@@ -110,10 +110,10 @@ async function main() {
   await shot('01-new-quote');
 
   // 3. Add body work from the fixed library, priced by hours
-  await page.locator('[data-testid="cq-add-work"]').click();
-  const dlg = page.locator('[data-testid="cq-add-work-dialog"]');
+  const dlg = page.locator('[data-testid="cq-picker"]');
+  await page.locator('[data-testid="cq-cat-body"] [data-testid="cq-add-item"]').first().click();
   await dlg.locator('button.cq-chip', { hasText: 'החלפת כנף קדמית שמאל' }).click();
-  await dlg.locator('button', { hasText: 'הוסף' }).first().click();
+  await page.locator('[data-testid="cq-picker-ok"]').click();
   const bodyRow = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]').first();
   await bodyRow.locator('input[aria-label="שעות"]').fill('2.5');
   check('hours pricing 2.5 × 380 = 950', (await bodyRow.locator('.cq-price').innerText()).includes('950.00'));
@@ -124,10 +124,12 @@ async function main() {
   await bodyRows.nth(1).locator('button[title="מחק שורה"]').click();
 
   // 4. Extra category (front alignment), global price with ₪ discount
-  await page.locator('[data-testid="cq-add-work"]').click();
-  await dlg.locator('select').selectOption('alignment');
+  await page.locator('[data-testid="cq-add-domain"]').click();
   await dlg.locator('button.cq-chip', { hasText: 'כיוון פרונט' }).click();
-  await dlg.locator('button', { hasText: 'הוסף' }).first().click();
+  await page.locator('[data-testid="cq-picker-ok"]').click();
+  await page.locator('[data-testid="cq-cat-alignment"] [data-testid="cq-add-item"]').first().click();
+  await dlg.locator('button.cq-chip', { hasText: 'כיוון פרונט' }).click();
+  await page.locator('[data-testid="cq-picker-ok"]').click();
   const alignRow = page.locator('[data-testid="cq-cat-alignment"] [data-testid="cq-work-row"]').first();
   await alignRow.locator('button', { hasText: 'גלובלי' }).click();
   await alignRow.locator('input[aria-label="מחיר גלובלי"]').fill('250');
@@ -136,10 +138,9 @@ async function main() {
   check('global price with ₪50 discount shows original and final', /250\.00[\s\S]*200\.00/.test(await alignRow.locator('.cq-price').innerText()));
 
   // 5. Free-text mechanics job (saved to library), global 1000 with 10% discount
-  await page.locator('[data-testid="cq-add-work"]').click();
-  await dlg.locator('select').selectOption('mech');
-  await dlg.locator('input[placeholder^="עבודה ב"]').fill('בדיקת מערכת בלמים E2E');
-  await dlg.locator('button', { hasText: 'הוסף' }).first().click();
+  await page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-add-item"]').first().click();
+  await page.locator('[data-testid="cq-picker-input"]').fill('בדיקת מערכת בלמים E2E');
+  await page.locator('[data-testid="cq-picker-ok"]').click();
   const mechRow = page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-work-row"]').first();
   await mechRow.locator('button', { hasText: 'גלובלי' }).click();
   await mechRow.locator('input[aria-label="מחיר גלובלי"]').fill('1000');
@@ -184,13 +185,13 @@ async function main() {
   await page.waitForTimeout(800);
   await shot('03-paint-calculator');
   await pc.locator('[data-testid="pc-apply-to-quote"]').click();
-  const confirm = page.locator('[data-testid="cq-paint-confirm"]');
-  await confirm.waitFor({ timeout: 15000 });
-  const confirmText = await confirm.innerText();
-  const money = [...confirmText.matchAll(/₪([\d,]+\.\d\d)/g)].map((m) => Number(m[1].replace(/,/g, '')));
+  // Applied directly; the notice shows the amounts (and offers an undo).
+  const notice = page.locator('[data-testid="cq-paint-notice"]');
+  await notice.waitFor({ timeout: 15000 });
+  const noticeText = await notice.innerText();
+  const money = [...noticeText.matchAll(/₪([\d,]+\.\d\d)/g)].map((m) => Number(m[1].replace(/,/g, '')));
   const [labor, materials] = money;
-  await shot('04-paint-confirm');
-  await page.locator('[data-testid="cq-paint-apply"]').click();
+  await shot('04-paint-applied');
   const paintSum = await page.locator('[data-testid="cq-cat-paint"] .cq-cat-head b').innerText();
   check('paint work enters paint category only (labour)', labor > 0 && Number(paintSum.replace(/[^\d.]/g, '')) === labor, `labor ${labor} / paint ${paintSum}`);
   const matRow = partRows.filter({ has: page.locator('input[value="חומרי צבע"]') });
@@ -201,8 +202,7 @@ async function main() {
 
   // 8. Re-apply a saved paint calculation → still one line each (no double count)
   await page.locator('button', { hasText: 'טען חישוב צבע שמור' }).click();
-  await page.locator('.cq-dialog button', { hasText: 'בחר' }).first().click();
-  await page.locator('[data-testid="cq-paint-apply"]').click();
+  await page.locator('[data-testid="cq-paint-pick"]').first().click();
   const paintLines = await page.locator('[data-testid="cq-cat-paint"] [data-testid="cq-work-row"]').count();
   check('re-applying saved paint calc does not duplicate', paintLines === 1 && (await matRow.count()) === 1, `paint lines ${paintLines}`);
 

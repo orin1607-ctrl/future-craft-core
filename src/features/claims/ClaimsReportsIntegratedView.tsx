@@ -3,6 +3,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import type { ClaimRecord } from './claimsConstants';
 import { displayClaimNum } from './claimsConstants';
 import type { GarageCaseRecord } from './ClaimsReportsView';
+import ClaimQuotesReportSection from './ClaimQuotesReportSection';
+import './claim-quote.css';
 
 export interface ClaimsReportsIntegratedViewProps {
   claims: ClaimRecord[];
@@ -1046,6 +1048,9 @@ export default function ClaimsReportsIntegratedView({
           </div>
         </div>
       </div>
+
+      {/* 5b. Supplier invoices & quotes: purchase cost vs sale per claim */}
+      <ClaimQuotesReportSection claims={claims} onOpenClaim={onOpenClaim} />
 
       {/* 6. Filtered Cases List Table / Mobile Cards */}
       <div className="sdiv" style={{ marginBottom: 10 }}>

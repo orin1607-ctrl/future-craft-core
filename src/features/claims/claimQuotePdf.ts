@@ -21,8 +21,11 @@ import {
   categoryLabel,
   computeTotals,
   formatIls,
+  partGroupOf,
+  partGroupsOf,
   partPricing,
   partTypeLabel,
+  workGroupsOf,
   workPricing,
   type QuoteData,
   type QuoteWorkLine,
@@ -136,6 +139,13 @@ function sectionTitle(p: Pager, title: string, sum?: string) {
   p.y += 24;
 }
 
+function subTitle(p: Pager, title: string, sum: string) {
+  p.need(ROW_H * 2);
+  text(p.ctx, `› ${title}`, PAGE_W - MARGIN - 4, p.y + 8, { size: 11.5, weight: 800, color: INK });
+  text(p.ctx, sum, MARGIN + 4, p.y + 8, { size: 10.5, weight: 700, color: MUTED, align: 'left' });
+  p.y += 18;
+}
+
 function workPriceDesc(w: QuoteWorkLine) {
   if (w.pricing === 'global') return 'מחיר גלובלי';
   return `${Number(w.hours || 0).toLocaleString('he-IL')} ש׳ × ${formatIls(w.hourRate)}`;
@@ -211,33 +221,30 @@ export async function renderClaimQuoteCanvases(d: QuoteData, meta: QuotePdfMeta)
     { title: 'הנחה', w: 95, align: 'left' },
     { title: 'סה״כ', w: width - 605, align: 'left' },
   ];
-  for (const cat of ALL_CATEGORIES) {
-    const lines = d.works.filter((w) => w.category === cat.key && (w.label.trim() || workPricing(w).original));
+  const workRows = (lines: QuoteWorkLine[]) => lines.map((w) => {
+    const pr = workPricing(w);
+    return [w.label || '—', workPriceDesc(w), formatIls(pr.original), discountDesc(w.discountType, w.discountValue, pr.discount), formatIls(pr.final)];
+  });
+  // Fixed areas in their order, then areas the user added; inside an area, its categories.
+  const usedKeys = [...new Set(d.works.map((w) => w.category))];
+  const areaKeys = [...ALL_CATEGORIES.map((c) => c.key).filter((k) => usedKeys.includes(k)), ...usedKeys.filter((k) => !ALL_CATEGORIES.some((c) => c.key === k))];
+  for (const key of areaKeys) {
+    const lines = d.works.filter((w) => w.category === key && (w.label.trim() || workPricing(w).original));
     if (!lines.length) continue;
-    const sum = lines.reduce((s, w) => s + workPricing(w).final, 0);
-    sectionTitle(p, categoryLabel(cat.key), formatIls(sum));
-    table(p, workCols, lines.map((w) => {
-      const pr = workPricing(w);
-      return [w.label || '—', workPriceDesc(w), formatIls(pr.original), discountDesc(w.discountType, w.discountValue, pr.discount), formatIls(pr.final)];
-    }), { boldLast: true });
-  }
-  // Works in categories unknown to this build still print.
-  const known = new Set(ALL_CATEGORIES.map((x) => x.key));
-  const orphan = d.works.filter((w) => !known.has(w.category));
-  if (orphan.length) {
-    sectionTitle(p, 'עבודות נוספות');
-    table(p, workCols, orphan.map((w) => {
-      const pr = workPricing(w);
-      return [w.label || '—', workPriceDesc(w), formatIls(pr.original), discountDesc(w.discountType, w.discountValue, pr.discount), formatIls(pr.final)];
-    }), { boldLast: true });
+    const sum = lines.reduce((s2, w) => s2 + workPricing(w).final, 0);
+    sectionTitle(p, categoryLabel(key), formatIls(sum));
+    const groups = workGroupsOf(d, key).filter((g) => lines.some((w) => (w.group || '').trim() === g));
+    for (const g of groups) {
+      const gl = lines.filter((w) => (w.group || '').trim() === g);
+      if (groups.length > 1 || g) subTitle(p, g || 'כללי', formatIls(gl.reduce((s2, w) => s2 + workPricing(w).final, 0)));
+      table(p, workCols, workRows(gl), { boldLast: true });
+    }
   }
 
   // Parts and materials (included only, gross prices only)
   const included = d.parts.filter((x) => x.included && (x.name.trim() || x.unitGross));
-  const partsOnly = included.filter((x) => x.partType !== 'material');
-  const materials = included.filter((x) => x.partType === 'material');
   const partCols: Col[] = [
-    { title: 'שם החלק', w: 190 },
+    { title: 'שם הפריט', w: 190 },
     { title: 'סוג', w: 80 },
     { title: 'מק״ט', w: 100 },
     { title: 'כמות', w: 45, align: 'center' },
@@ -245,18 +252,15 @@ export async function renderClaimQuoteCanvases(d: QuoteData, meta: QuotePdfMeta)
     { title: 'הנחה', w: 95, align: 'left' },
     { title: 'סה״כ', w: width - 595, align: 'left' },
   ];
-  if (partsOnly.length) {
-    sectionTitle(p, 'חלקים', formatIls(partsOnly.reduce((s, x) => s + partPricing(x).final, 0)));
-    table(p, partCols, partsOnly.map((x) => {
+  // Parts categories in order, חומרים last; the description is printed after the name.
+  for (const g of partGroupsOf(d)) {
+    const gl = included.filter((x) => partGroupOf(x) === g);
+    if (!gl.length) continue;
+    sectionTitle(p, g, formatIls(gl.reduce((s2, x) => s2 + partPricing(x).final, 0)));
+    table(p, partCols, gl.map((x) => {
       const pr = partPricing(x);
-      return [x.name || '—', partTypeLabel(x.partType), x.sku || '—', String(x.qty), formatIls(x.unitGross), discountDesc(x.discountType, x.discountValue, pr.discount), formatIls(pr.final)];
-    }), { boldLast: true });
-  }
-  if (materials.length) {
-    sectionTitle(p, 'חומרים', formatIls(materials.reduce((s, x) => s + partPricing(x).final, 0)));
-    table(p, partCols, materials.map((x) => {
-      const pr = partPricing(x);
-      return [x.name || '—', partTypeLabel(x.partType), x.sku || '—', String(x.qty), formatIls(x.unitGross), discountDesc(x.discountType, x.discountValue, pr.discount), formatIls(pr.final)];
+      const name = [x.name || '—', (x.description || '').trim()].filter(Boolean).join(' – ');
+      return [name, partTypeLabel(x.partType), x.sku || '—', String(x.qty), formatIls(x.unitGross), discountDesc(x.discountType, x.discountValue, pr.discount), formatIls(pr.final)];
     }), { boldLast: true });
   }
 

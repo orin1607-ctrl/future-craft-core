@@ -125,8 +125,13 @@ export async function patchClaimQuoteData(quote: ClaimQuoteRow, data: QuoteData,
   return row as unknown as ClaimQuoteRow;
 }
 
-export async function loadQuoteLibrary(): Promise<LibraryItem[]> {
-  const { data, error } = await tbl('claim_quote_library').select('id, kind, category, label, default_hours, default_price').order('label');
+/** The shop's own saved items plus shared ones (company ''), so libraries of different shops never mix. */
+export async function loadQuoteLibrary(companyName = ''): Promise<LibraryItem[]> {
+  const companies = [...new Set(['', companyName || ''])];
+  const { data, error } = await tbl('claim_quote_library')
+    .select('id, kind, category, label, default_hours, default_price')
+    .in('company_name', companies)
+    .order('label');
   if (error) return [];
   return (data || []) as unknown as LibraryItem[];
 }

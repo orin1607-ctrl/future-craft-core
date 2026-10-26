@@ -141,3 +141,48 @@ textarea.cq-in { width: 100%; resize: vertical; }
   .cq-rev-row { grid-template-columns: 28px 1fr 1fr; border-top: 1px solid var(--cq-br); padding-top: 6px; }
   .cq-rev-status { grid-column: 2 / 4; }
 }
+
+/* Work areas → categories → items; parts categories */
+.cq-group { border: 1px dashed var(--cq-br); border-radius: 9px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.cq-group-plain { border: none; padding: 0; }
+.cq-group-head { display: flex; justify-content: space-between; font-weight: 700; font-size: 12.5px; color: var(--ac3, #60a5fa); }
+.cq-group > .cq-btn-sm, .cq-cat-body > .cq-btn-dashed { align-self: flex-start; }
+.cq-btn-dashed { border-style: dashed; }
+.cq-cat-static { cursor: default; }
+.cq-in-desc { width: 100%; font-size: 12px; }
+.cq-move { flex-direction: row; align-items: center; gap: 6px; }
+.cq-paint-notice { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: rgba(16, 185, 129, .1); border: 1px solid rgba(16, 185, 129, .45); font-size: 12px; }
+.cq-pending { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, .45); background: rgba(59, 130, 246, .08); }
+.cq-check { padding: 7px 10px; border-radius: 8px; font-size: 12px; border: 1px solid var(--cq-br); }
+.cq-check-ok { border-color: rgba(34, 197, 94, .5); color: var(--cq-gn); }
+.cq-check-bad { border-color: rgba(239, 68, 68, .6); color: var(--cq-rd); background: rgba(239, 68, 68, .08); }
+.cq-target { flex-direction: row; align-items: center; gap: 8px; }
+
+/* Reports: supplier invoices & quotes */
+.cqr { background: var(--bg2, #071022); border: 1px solid var(--br2, rgba(255,255,255,.13)); border-radius: var(--r, 10px); padding: 12px 14px; margin-bottom: 16px; min-width: 0; }
+.cqr-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 10px; }
+.cqr-head h3 { margin: 0; font-size: 14.5px; font-weight: 800; }
+.cqr-sub { font-size: 11.5px; color: var(--t3, rgba(255,255,255,.38)); margin-top: 3px; }
+.cqr-search { max-width: 260px; }
+.cqr-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.cqr-kpi { background: var(--bg3, #0a1830); border: 1px solid var(--br, rgba(255,255,255,.07)); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.cqr-kpi span { font-size: 11px; color: var(--t2, rgba(255,255,255,.68)); }
+.cqr-kpi b { font-size: 15px; }
+.cqr-pos { color: var(--gn2, #22c55e); }
+.cqr-neg { color: var(--rd2, #ef4444); }
+.cqr-list { display: flex; flex-direction: column; gap: 8px; }
+.cqr-row { border: 1px solid var(--br2, rgba(255,255,255,.13)); border-radius: 9px; overflow: hidden; }
+.cqr-row-head { width: 100%; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; padding: 9px 12px; background: var(--bg3, #0a1830); border: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.cqr-who { display: flex; flex-direction: column; gap: 2px; }
+.cqr-who small { color: var(--t2, rgba(255,255,255,.68)); font-size: 11.5px; }
+.cqr-nums { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; }
+.cqr-detail { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.cqr-invs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cqr-inv { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: rgba(59,130,246,.12); }
+.cqr-table-wrap { overflow-x: auto; max-width: 100%; }
+.cqr-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 760px; }
+.cqr-table th, .cqr-table td { padding: 6px 8px; border-bottom: 1px solid var(--br, rgba(255,255,255,.07)); text-align: start; white-space: nowrap; }
+.cqr-table th { color: var(--t2, rgba(255,255,255,.68)); font-weight: 700; }
+.cqr-excluded { opacity: .55; }
+.cqr-detail > .btn { align-self: flex-start; }
+.cqr-table td.cqr-file { max-width: 200px; overflow: hidden; text-overflow: ellipsis; direction: ltr; text-align: right; }

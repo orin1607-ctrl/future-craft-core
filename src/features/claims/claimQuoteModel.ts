@@ -39,13 +39,45 @@ export const EXTRA_CATEGORIES: QuoteCategory[] = [
 
 export const ALL_CATEGORIES: QuoteCategory[] = [...CORE_CATEGORIES, ...EXTRA_CATEGORIES];
 
+/** A work area the user named ("עבודות חשמל", "ריפוד מושבים"…). */
+export const CUSTOM_PREFIX = 'custom:';
+export function customDomainKey(label: string) {
+  return `${CUSTOM_PREFIX}${label.trim()}`;
+}
+
 export function categoryLabel(key: string) {
+  if (key.startsWith(CUSTOM_PREFIX)) return key.slice(CUSTOM_PREFIX.length);
   return ALL_CATEGORIES.find((c) => c.key === key)?.label || key || 'עבודות נוספות';
+}
+
+/** Library rows keep the category inside a work area as "<area>::<category>"; no category → just the area. */
+export function libraryWorkCategory(domain: string, group = '') {
+  return group.trim() ? `${domain}::${group.trim()}` : domain;
+}
+export function splitLibraryWorkCategory(category: string) {
+  const i = category.indexOf('::');
+  return i < 0 ? { domain: category, group: '' } : { domain: category.slice(0, i), group: category.slice(i + 2) };
+}
+
+// ─── Part categories ──────────────────────────────────────────────────────────
+
+export const PARTS_GROUP = 'חלקים';
+/** Always shown, cannot be removed. Paint materials land here. */
+export const MATERIALS_GROUP = 'חומרים';
+
+export function partGroupOf(p: { group?: string; partType?: string }) {
+  return (p.group || '').trim() || (p.partType === 'material' ? MATERIALS_GROUP : PARTS_GROUP);
 }
 
 // ─── Library seed ─────────────────────────────────────────────────────────────
 
-export type LibraryItem = { id?: string; kind: 'work' | 'part'; category: string; label: string; default_hours?: number | null; default_price?: number | null };
+/**
+ * work: category = area or "<area>::<category>"; part: category = part category ('parts' = חלקים);
+ * domain: a custom work area; work_group: a category inside an area (category = area key);
+ * part_group: a custom parts category.
+ */
+export type LibraryKind = 'work' | 'part' | 'domain' | 'work_group' | 'part_group';
+export type LibraryItem = { id?: string; kind: LibraryKind; category: string; label: string; default_hours?: number | null; default_price?: number | null };
 
 export const SEED_WORKS: LibraryItem[] = [
   ...[
@@ -99,6 +131,8 @@ export type QuoteWorkLine = {
   globalPrice: number;
   discountType: DiscountType;
   discountValue: number;
+  /** Category inside the work area; empty = כללי. */
+  group?: string;
   note?: string;
   source?: 'manual' | 'paint_calc';
 };
@@ -130,6 +164,9 @@ export type QuotePartLine = {
   discountType: DiscountType;
   discountValue: number;
   included: boolean;
+  /** Parts category; empty = derived from partType (see partGroupOf). */
+  group?: string;
+  description?: string;
   supplier?: string;
   invoiceDocId?: string;
   invoiceName?: string;
@@ -146,6 +183,8 @@ export type QuoteInvoice = {
   readSource: 'pdf_text' | 'ocr' | 'none';
   lines: InvoiceLine[];
   reviewedAt?: string;
+  /** Whether the invoice text names this claim ('match'), another claim ('other') or neither. */
+  claimCheck?: 'match' | 'other' | 'unknown';
 };
 
 export type QuoteDocument = { fileId: string; fileName: string; version: number; createdAt: string };
@@ -177,6 +216,12 @@ export type QuoteData = {
   documents: QuoteDocument[];
   sendLog: QuoteSendEntry[];
   paintCalcRef?: { id: string; version: number; appliedAt: string; laborCost: number; materialsCost: number } | null;
+  /** Categories opened inside each work area (area key → names), shown even while empty. */
+  workGroups: Record<string, string[]>;
+  /** Parts categories besides the fixed חלקים / חומרים. */
+  partGroups: string[];
+  /** Claim documents (invoice kind) the user marked as not a supplier parts invoice. */
+  ignoredInvoiceDocs: string[];
 };
 
 let lineSeq = 0;
@@ -248,6 +293,9 @@ export function newQuoteData(claim: Record<string, string | undefined>): QuoteDa
     documents: [],
     sendLog: [],
     paintCalcRef: null,
+    workGroups: {},
+    partGroups: [],
+    ignoredInvoiceDocs: [],
   };
 }
 
@@ -267,7 +315,23 @@ export function normalizeQuoteData(raw: Partial<QuoteData> | null | undefined, c
     invoices: Array.isArray(raw.invoices) ? raw.invoices : [],
     documents: Array.isArray(raw.documents) ? raw.documents : [],
     sendLog: Array.isArray(raw.sendLog) ? raw.sendLog : [],
+    workGroups: raw.workGroups && typeof raw.workGroups === 'object' ? raw.workGroups : {},
+    partGroups: Array.isArray(raw.partGroups) ? raw.partGroups : [],
+    ignoredInvoiceDocs: Array.isArray(raw.ignoredInvoiceDocs) ? raw.ignoredInvoiceDocs : [],
   };
+}
+
+/** Part categories in display order: חלקים, custom ones (as added), חומרים last. Used ones always appear. */
+export function partGroupsOf(d: Pick<QuoteData, 'parts' | 'partGroups'>): string[] {
+  const used = d.parts.map(partGroupOf);
+  const middle = [...new Set([...(d.partGroups || []), ...used])].filter((g) => g !== PARTS_GROUP && g !== MATERIALS_GROUP);
+  return [PARTS_GROUP, ...middle, MATERIALS_GROUP];
+}
+
+/** Categories inside a work area in display order: כללי first, then as added, plus any used by lines. */
+export function workGroupsOf(d: Pick<QuoteData, 'works' | 'workGroups'>, domain: string): string[] {
+  const used = d.works.filter((w) => w.category === domain).map((w) => (w.group || '').trim());
+  return [...new Set(['', ...(d.workGroups?.[domain] || []), ...used])];
 }
 
 // ─── Math ─────────────────────────────────────────────────────────────────────
@@ -395,6 +459,7 @@ export function applyPaintCalc(d: QuoteData, calc: PaintCalcData, ref: { id: str
     parts.push(newPartLine({
       name: PAINT_MATERIALS_NAME,
       partType: 'material',
+      group: MATERIALS_GROUP,
       qty: 1,
       unitGross: materials,
       source: 'paint_materials',
@@ -422,7 +487,9 @@ function findSku(line: string) {
   return line.split(' ').find((t) => /^[A-Z0-9][A-Z0-9-]{4,}$/i.test(t) && /\d/.test(t) && (/[A-Z-]/i.test(t) || t.length >= 6)) || '';
 }
 
-const SKIP_LINE_RE = /סה["״]?כ|מע["״]?מ|לתשלום|סכום|חשבונית|קבלה|הזמנה|תאריך|טלפון|ע\.?מ|ח\.?פ|כתובת|עמוד|\b(?:total|subtotal|vat|invoice|receipt|order|date|phone|address|page)\b/i;
+const SKIP_LINE_RE = /סה["״]?כ|מע["״]?מ|לתשלום|סכום|חשבונית|קבלה|הזמנה|תאריך|טלפון|ע\.?מ|ח\.?פ|כתובת|עמוד|רכב|רישוי|תביעה|פוליסה|לקוח|\b(?:total|subtotal|vat|invoice|receipt|order|date|phone|address|page|vehicle|plate|claim|policy|customer)\b/i;
+/** A unit price above this is a reference number read as money, not a part price. */
+const MAX_UNIT_PRICE = 200000;
 
 /**
  * Best-effort line reader for parts invoices. Every line it returns is shown to the user for review;
@@ -452,6 +519,7 @@ export function parseInvoiceText(text: string): InvoiceLine[] {
     const unitCandidates = money.filter((m) => !(qty > 1 && money.some((u) => round2(u * qty) === round2(m))));
     const sorted = [...(unitCandidates.length ? unitCandidates : money)].sort((a, b) => b - a);
     const gross = sorted[0];
+    if (gross > MAX_UNIT_PRICE) continue;
     let net = sorted.length > 1 ? sorted[sorted.length - 1] : gross;
     if (supplierDiscountPct && sorted.length === 1) net = round2(gross * (1 - supplierDiscountPct / 100));
     out.push({ name: name.slice(0, 80), sku, qty, gross: round2(gross), net: round2(net), supplierDiscountPct });
@@ -500,6 +568,7 @@ export function applyInvoiceMatches(
   d: QuoteData,
   invoice: Pick<QuoteInvoice, 'docId' | 'fileName'>,
   approved: InvoiceMatch[],
+  targetGroup = '',
 ): QuoteData {
   let parts = [...d.parts];
   for (const m of approved) {
@@ -514,6 +583,7 @@ export function applyInvoiceMatches(
         invoiceDocId: invoice.docId,
         invoiceName: invoice.fileName,
         source: 'invoice',
+        ...(targetGroup.trim() ? { group: targetGroup.trim() } : {}),
       }));
     } else {
       parts = parts.map((p) => {
@@ -529,6 +599,47 @@ export function applyInvoiceMatches(
   // Drop the starter empty row once real parts arrive.
   parts = parts.filter((p, i, arr) => !(arr.length > 1 && !p.name.trim() && !p.unitGross && !p.sku));
   return { ...d, parts };
+}
+
+// ─── Automatic paint sync ────────────────────────────────────────────────────
+
+export type PaintCalcSnapshot = { id: string; version: number; laborCost: number; materialsCost: number };
+
+/**
+ * What to do with the claim's latest saved paint calculation when the quote opens:
+ * 'apply' when the quote has none yet, 'update' when a different (newer) calculation exists
+ * or its amounts differ, 'none' when they already match.
+ */
+export function paintSyncAction(d: Pick<QuoteData, 'paintCalcRef' | 'works'>, latest: PaintCalcSnapshot | null): 'none' | 'apply' | 'update' {
+  if (!latest) return 'none';
+  const ref = d.paintCalcRef;
+  const hasLines = d.works.some((w) => w.source === 'paint_calc');
+  if (!ref || !hasLines) return 'apply';
+  if (ref.id !== latest.id && latest.version >= (ref.version || 0)) return 'update';
+  if (ref.id === latest.id && (round2(ref.laborCost) !== round2(latest.laborCost) || round2(ref.materialsCost) !== round2(latest.materialsCost))) return 'update';
+  return 'none';
+}
+
+// ─── Which claim an invoice belongs to ───────────────────────────────────────
+
+const digitsOnly = (s: string) => String(s || '').replace(/\D/g, '');
+
+export type ClaimRef = { id: string; plate: string; claimNum: string; clientName: string };
+
+/**
+ * Looks for vehicle plates / claim numbers in the invoice text. Says whether it names this claim,
+ * and lists other claims it names instead, so an invoice is not synced into the wrong file.
+ */
+export function invoiceClaimCheck(text: string, current: ClaimRef, others: ClaimRef[]) {
+  const digitText = String(text || '').replace(/[\s-]/g, '');
+  const has = (v: string) => {
+    const dv = digitsOnly(v);
+    return dv.length >= 5 && digitText.includes(dv);
+  };
+  const mentionsCurrent = has(current.plate) || has(current.claimNum);
+  const otherClaims = others.filter((o) => o.id !== current.id && (has(o.plate) || has(o.claimNum)));
+  const status: 'match' | 'other' | 'unknown' = mentionsCurrent ? 'match' : otherClaims.length ? 'other' : 'unknown';
+  return { status, otherClaims };
 }
 
 export async function sha256Hex(bytes: Uint8Array) {

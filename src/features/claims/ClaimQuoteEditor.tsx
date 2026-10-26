@@ -17,8 +17,19 @@ import {
   PART_TYPES,
   applyInvoiceMatches,
   applyPaintCalc,
+  MATERIALS_GROUP,
+  PARTS_GROUP,
   categoryLabel,
   claimSnapshotOf,
+  customDomainKey,
+  invoiceClaimCheck,
+  libraryWorkCategory,
+  paintSyncAction,
+  partGroupOf,
+  partGroupsOf,
+  splitLibraryWorkCategory,
+  workGroupsOf,
+  type ClaimRef,
   compareToPart,
   computeTotals,
   formatIls,
@@ -37,6 +48,7 @@ import {
   type InvoiceLine,
   type InvoiceMatch,
   type LibraryItem,
+  type LibraryKind,
   type QuoteData,
   type QuoteInvoice,
   type QuotePartLine,
@@ -72,9 +84,35 @@ export interface ClaimQuoteEditorProps {
   onOpenEmail: (seed: { to: string; subject: string; body: string; file_ids: string[] }) => void;
   toast: (msg: string, type?: string) => void;
   onClose: (changed: boolean) => void;
+  /** Invoice-kind documents already in the claim's gallery (uploaded from the claim card, mail, etc.). */
+  claimInvoiceFiles?: Array<{ id: string; name: string; mime: string; createdAt: string }>;
+  /** All open claims, to tell which claim an invoice names. */
+  claimsIndex?: ClaimRef[];
 }
 
-type InvoiceReview = { invoice: QuoteInvoice; rows: Array<{ match: InvoiceMatch; line: InvoiceLine; approved: boolean }> };
+type ClaimCheck = ReturnType<typeof invoiceClaimCheck>;
+type InvoiceReview = {
+  invoice: QuoteInvoice;
+  rows: Array<{ match: InvoiceMatch; line: InvoiceLine; approved: boolean }>;
+  check: ClaimCheck;
+  targetGroup: string;
+};
+
+/** One dialog for adding a work area, a category inside an area, a work item, or a parts category. */
+type Picker =
+  | { mode: 'domain'; label: string; saveToLib: boolean }
+  | { mode: 'group'; domain: string; label: string; saveToLib: boolean }
+  | { mode: 'item'; domain: string; group: string; label: string; saveToLib: boolean }
+  | { mode: 'partGroup'; label: string; saveToLib: boolean };
+
+type PaintNotice = {
+  kind: 'apply' | 'update';
+  version: number;
+  from: { labor: number; materials: number } | null;
+  to: { labor: number; materials: number };
+  undo: Pick<QuoteData, 'works' | 'parts' | 'paintCalcRef'>;
+  auto: boolean;
+};
 
 const n = (v: string) => {
   const x = Number(String(v).replace(/,/g, ''));
@@ -99,6 +137,8 @@ function DiscountInputs({ type, value, onChange }: { type: DiscountType; value: 
 
 export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const { claim, actor, recipients, uploadFile, getSignedUrl, logHistory, onOpenEmail, toast, onClose } = props;
+  const claimInvoiceFiles = props.claimInvoiceFiles || [];
+  const claimsIndex = props.claimsIndex || [];
   const [quotes, setQuotes] = useState<ClaimQuoteRow[]>([]);
   const [quote, setQuote] = useState<ClaimQuoteRow | null>(null);
   const [data, setData] = useState<QuoteData>(() => newQuoteData(claim));
@@ -108,10 +148,11 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const [changedSomething, setChangedSomething] = useState(false);
   const [library, setLibrary] = useState<LibraryItem[]>(() => mergeLibrary([]));
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [addWork, setAddWork] = useState<{ category: string; label: string; saveToLib: boolean } | null>(null);
+  const [picker, setPicker] = useState<Picker | null>(null);
   const [paintOpen, setPaintOpen] = useState(false);
   const [paintPick, setPaintPick] = useState<PaintCalcRow[] | null>(null);
-  const [paintConfirm, setPaintConfirm] = useState<{ calc: PaintCalcData; ref: { id: string; version: number } } | null>(null);
+  const [paintNotice, setPaintNotice] = useState<PaintNotice | null>(null);
+  const latestPaint = useRef<PaintCalcRow | null>(null);
   const [review, setReview] = useState<InvoiceReview | null>(null);
   const [versions, setVersions] = useState<ClaimQuoteVersionRow[] | null>(null);
   const [changeNote, setChangeNote] = useState('');
@@ -129,7 +170,13 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
 
   const totals = useMemo(() => computeTotals(data), [data]);
   const workLabels = useMemo(() => library.filter((l) => l.kind === 'work'), [library]);
-  const partLabels = useMemo(() => library.filter((l) => l.kind === 'part').map((l) => l.label), [library]);
+  const libOf = (kind: LibraryKind, category?: string) => library.filter((l) => l.kind === kind && (category === undefined || l.category === category));
+  /** Saved part names for a parts category ('parts' is how חלקים is stored). */
+  const partLabelsFor = (group: string) => {
+    const cat = group === PARTS_GROUP ? 'parts' : group;
+    return [...new Set(library.filter((l) => l.kind === 'part' && l.category === cat).map((l) => l.label))];
+  };
+  const currentRef: ClaimRef = { id: claim.id, plate: String(claim.plate || ''), claimNum: String(claim.claimNum || ''), clientName: String(claim.clientName || '') };
   const recipient = recipients.find((r) => r.key === recipientKey) || null;
   const toEmail = (manualTo.email || recipient?.email || '').trim();
   const toPhone = (manualTo.phone || recipient?.phone || '').trim();
@@ -144,16 +191,32 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     const base = row ? normalizeQuoteData(row.data, claim) : newQuoteData(claim);
     const claimSnap = { ...base.claim };
     (Object.keys(fresh) as Array<keyof typeof fresh>).forEach((k) => { if (fresh[k]) claimSnap[k] = fresh[k]; });
-    setData({ ...base, claim: claimSnap });
-    setDirty(!row);
+    let next: QuoteData = { ...base, claim: claimSnap };
+    // Paint works come from the claim's latest saved paint calculation automatically.
+    const lp = latestPaint.current;
+    const action = lp ? paintSyncAction(next, { id: lp.id, version: lp.version, laborCost: lp.calc_data.laborCost, materialsCost: lp.calc_data.materialsCost }) : 'none';
+    setPaintNotice(null);
+    if (lp && action !== 'none') {
+      const undo = { works: next.works, parts: next.parts, paintCalcRef: next.paintCalcRef };
+      const from = next.paintCalcRef ? { labor: next.paintCalcRef.laborCost, materials: next.paintCalcRef.materialsCost } : null;
+      next = applyPaintCalc(next, lp.calc_data, { id: lp.id, version: lp.version });
+      setPaintNotice({ kind: action, version: lp.version, from, to: { labor: next.paintCalcRef!.laborCost, materials: next.paintCalcRef!.materialsCost }, undo, auto: true });
+    }
+    commitData(next);
+    setDirty(!row || action !== 'none');
   };
 
   useEffect(() => {
     let live = true;
     (async () => {
       try {
-        const [rows, lib] = await Promise.all([listClaimQuotes(claim.id), loadQuoteLibrary()]);
+        const [rows, lib, paintHist] = await Promise.all([
+          listClaimQuotes(claim.id),
+          loadQuoteLibrary(actor.company_name),
+          loadPaintCalcHistory(claim.id).catch(() => [] as PaintCalcRow[]),
+        ]);
         if (!live) return;
+        latestPaint.current = paintHist[0] || null;
         setQuotes(rows);
         setLibrary(mergeLibrary(lib));
         const pick = rows.find((r) => r.id === props.initialQuoteId) || rows[0] || null;
@@ -179,14 +242,22 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const persistLibrary = async (d: QuoteData) => {
     const known = new Set(library.map((l) => `${l.kind}|${l.category}|${l.label.trim()}`));
     const fresh: LibraryItem[] = [];
+    const add = (it: LibraryItem) => { if (!known.has(`${it.kind}|${it.category}|${it.label}`)) fresh.push(it); };
+    // Custom work areas and the categories opened in them are kept for future quotes.
+    for (const key of new Set([...d.categories, ...d.works.map((w) => w.category)])) {
+      if (key.startsWith('custom:')) add({ kind: 'domain', category: '', label: categoryLabel(key) });
+    }
+    for (const [domain, groups] of Object.entries(d.workGroups || {})) for (const g of groups) if (g.trim()) add({ kind: 'work_group', category: domain, label: g.trim() });
+    for (const g of d.partGroups || []) if (g.trim() && g !== PARTS_GROUP && g !== MATERIALS_GROUP) add({ kind: 'part_group', category: '', label: g.trim() });
     for (const w of d.works) {
       if (w.source === 'paint_calc' || !w.label.trim()) continue;
-      const it: LibraryItem = { kind: 'work', category: w.category, label: w.label.trim(), default_hours: w.pricing === 'hours' ? w.hours || null : null, default_price: w.pricing === 'global' ? w.globalPrice || null : null };
-      if (!known.has(`work|${it.category}|${it.label}`)) fresh.push(it);
+      if ((w.group || '').trim()) add({ kind: 'work_group', category: w.category, label: (w.group || '').trim() });
+      add({ kind: 'work', category: libraryWorkCategory(w.category, w.group || ''), label: w.label.trim(), default_hours: w.pricing === 'hours' ? w.hours || null : null, default_price: w.pricing === 'global' ? w.globalPrice || null : null });
     }
     for (const p of d.parts) {
       if (p.source === 'paint_materials' || !p.name.trim()) continue;
-      if (!known.has(`part|parts|${p.name.trim()}`)) fresh.push({ kind: 'part', category: 'parts', label: p.name.trim() });
+      const g = partGroupOf(p);
+      add({ kind: 'part', category: g === PARTS_GROUP ? 'parts' : g, label: p.name.trim() });
     }
     const seen = new Set<string>();
     for (const it of fresh) {
@@ -231,23 +302,60 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   // ─── Work picker ─────────────────────────────────────────────────────────
   const visibleCats = useMemo(() => {
     const used = new Set([...data.categories, ...data.works.map((w) => w.category)]);
-    return ALL_CATEGORIES.filter((c) => c.core || used.has(c.key));
+    const fixed = ALL_CATEGORIES.filter((c) => c.core || used.has(c.key));
+    const custom = [...used].filter((k) => k.startsWith('custom:')).map((k) => ({ key: k, label: categoryLabel(k), core: false }));
+    return [...fixed, ...custom];
   }, [data.categories, data.works]);
 
-  const confirmAddWork = async () => {
-    if (!addWork) return;
-    const label = addWork.label.trim();
-    if (!label) { toast('יש לבחור או להקליד עבודה', 'err'); return; }
-    const lib = workLabels.find((l) => l.category === addWork.category && l.label === label);
-    const line = newWorkLine(addWork.category, label, data.hourRate, lib?.default_price ? { pricing: 'global', globalPrice: Number(lib.default_price) } : { hours: Number(lib?.default_hours || 0) });
-    update((d) => ({ ...d, categories: [...new Set([...d.categories, addWork.category])], works: [...d.works, line] }));
-    setCollapsed((c) => ({ ...c, [addWork.category]: false }));
-    if (addWork.saveToLib && !lib) {
-      const it: LibraryItem = { kind: 'work', category: addWork.category, label };
-      setLibrary((prev) => mergeLibrary([...prev, it]));
-      await addQuoteLibraryItem(it, actor.company_name, actor).catch(() => null);
+  const remember = async (it: LibraryItem, wanted: boolean) => {
+    if (!wanted || library.some((l) => l.kind === it.kind && l.category === it.category && l.label === it.label)) return;
+    setLibrary((prev) => mergeLibrary([...prev, it]));
+    await addQuoteLibraryItem(it, actor.company_name, actor).catch(() => null);
+  };
+
+  const confirmPicker = async () => {
+    if (!picker) return;
+    const label = picker.label.trim();
+    if (!label) { toast('יש לבחור מהרשימה או להקליד שם', 'err'); return; }
+    if (picker.mode === 'domain') {
+      const fixed = ALL_CATEGORIES.find((c) => c.label === label);
+      const key = fixed ? fixed.key : customDomainKey(label);
+      update((d) => ({ ...d, categories: [...new Set([...d.categories, key])] }));
+      setCollapsed((c) => ({ ...c, [key]: false }));
+      if (!fixed) await remember({ kind: 'domain', category: '', label }, picker.saveToLib);
+    } else if (picker.mode === 'group') {
+      const { domain } = picker;
+      update((d) => ({ ...d, categories: [...new Set([...d.categories, domain])], workGroups: { ...d.workGroups, [domain]: [...new Set([...(d.workGroups[domain] || []), label])] } }));
+      await remember({ kind: 'work_group', category: domain, label }, picker.saveToLib);
+    } else if (picker.mode === 'item') {
+      const { domain, group } = picker;
+      const cat = libraryWorkCategory(domain, group);
+      const lib = workLabels.find((l) => l.category === cat && l.label === label);
+      const line = newWorkLine(domain, label, data.hourRate, {
+        group,
+        ...(lib?.default_price ? { pricing: 'global' as const, globalPrice: Number(lib.default_price) } : { hours: Number(lib?.default_hours || 0) }),
+      });
+      update((d) => ({ ...d, categories: [...new Set([...d.categories, domain])], works: [...d.works, line] }));
+      setCollapsed((c) => ({ ...c, [domain]: false }));
+      await remember({ kind: 'work', category: cat, label }, picker.saveToLib);
+    } else {
+      if (label !== PARTS_GROUP && label !== MATERIALS_GROUP) {
+        update((d) => ({ ...d, partGroups: [...new Set([...(d.partGroups || []), label])] }));
+        await remember({ kind: 'part_group', category: '', label }, picker.saveToLib);
+      }
     }
-    setAddWork(null);
+    setPicker(null);
+  };
+
+  /** Saved choices offered as chips in the picker. */
+  const pickerChips = (pk: Picker): string[] => {
+    if (pk.mode === 'domain') {
+      const shown = new Set(visibleCats.map((c) => c.label));
+      return [...new Set([...EXTRA_CATEGORIES.map((c) => c.label), ...libOf('domain').map((l) => l.label)])].filter((l) => !shown.has(l));
+    }
+    if (pk.mode === 'group') return libOf('work_group', pk.domain).map((l) => l.label).filter((l) => !(data.workGroups[pk.domain] || []).includes(l));
+    if (pk.mode === 'item') return [...new Set(libOf('work', libraryWorkCategory(pk.domain, pk.group)).map((l) => l.label))];
+    return libOf('part_group').map((l) => l.label).filter((l) => !partGroupsOf(data).includes(l));
   };
 
   // ─── Paint ───────────────────────────────────────────────────────────────
@@ -263,20 +371,59 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     }
   };
 
-  const applyPaint = () => {
-    if (!paintConfirm) return;
-    update((d) => applyPaintCalc(d, paintConfirm.calc, paintConfirm.ref));
-    setPaintConfirm(null);
+  /** Replaces the paint lines (never adds a second set) and shows what changed, with an undo. */
+  const applyPaint = (calc: PaintCalcData, ref: { id: string; version: number }) => {
+    const d = dataRef.current;
+    const undo = { works: d.works, parts: d.parts, paintCalcRef: d.paintCalcRef };
+    const from = d.paintCalcRef ? { labor: d.paintCalcRef.laborCost, materials: d.paintCalcRef.materialsCost } : null;
+    const next = applyPaintCalc(d, calc, ref);
+    commitData(next);
+    setDirty(true);
+    setPaintNotice({ kind: from ? 'update' : 'apply', version: ref.version, from, to: { labor: next.paintCalcRef!.laborCost, materials: next.paintCalcRef!.materialsCost }, undo, auto: false });
     setPaintPick(null);
-    toast('חישוב הצבע עודכן בהצעה: עבודת צבע + חומרי צבע');
+  };
+
+  const undoPaint = () => {
+    if (!paintNotice) return;
+    update((d) => ({ ...d, ...paintNotice.undo }));
+    setPaintNotice(null);
+    toast('עדכון חישוב הצבע בוטל');
   };
 
   // ─── Invoices ────────────────────────────────────────────────────────────
-  const startReview = (invoice: QuoteInvoice, parts: QuotePartLine[]) => {
+  const startReview = (invoice: QuoteInvoice, parts: QuotePartLine[], text = '') => {
     const matches = matchInvoiceLines(parts, invoice.lines);
-    // New lines are pre-checked only when they carry a catalogue number; anything else waits for an explicit tick.
-    setReview({ invoice, rows: matches.map((m) => ({ match: m, line: { ...m.line }, approved: m.kind === 'new' && !!m.line.sku })) });
+    const check: ClaimCheck = text ? invoiceClaimCheck(text, currentRef, claimsIndex) : { status: invoice.claimCheck || 'unknown', otherClaims: [] };
+    // New lines are pre-checked only when they carry a catalogue number, and never when the invoice names another claim.
+    const preCheck = (m: InvoiceMatch) => check.status !== 'other' && m.kind === 'new' && !!m.line.sku;
+    setReview({ invoice: { ...invoice, claimCheck: check.status }, rows: matches.map((m) => ({ match: m, line: { ...m.line }, approved: preCheck(m) })), check, targetGroup: PARTS_GROUP });
   };
+
+  /** Reads an invoice already stored in the claim (no new upload) and opens the review. */
+  const syncClaimInvoice = async (f: { id: string; name: string; mime: string }) => {
+    setBusy('invoice');
+    try {
+      const url = await getSignedUrl(f.id);
+      const blob = url ? await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null) : null;
+      if (!blob) { toast('לא ניתן להוריד את החשבונית מהתיק', 'err'); return; }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const sha = await sha256Hex(bytes);
+      const same = dataRef.current.invoices.find((i) => i.sha === sha || i.docId === f.id);
+      if (same) { toast(`החשבונית כבר מסונכרנת להצעה (${same.fileName}) — לא נוצרה כפילות`, 'err'); return; }
+      const read = await extractClaimDocumentText({ bytes, mimeType: f.mime || blob.type, fileName: f.name });
+      const invoice: QuoteInvoice = {
+        docId: f.id, sha, fileName: f.name, uploadedAt: new Date().toISOString(), readSource: read.source, lines: parseInvoiceText(read.text),
+        claimCheck: invoiceClaimCheck(read.text, currentRef, claimsIndex).status,
+      };
+      update((d) => ({ ...d, invoices: [...d.invoices.filter((i) => i.sha !== sha), invoice] }));
+      await logHistory('חשבונית ספק מהתיק סונכרנה להצעת מחיר', `${f.name} · ${invoice.lines.length} שורות זוהו`).catch(() => null);
+      startReview(invoice, dataRef.current.parts, read.text);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const pendingClaimInvoices = claimInvoiceFiles.filter((f) => !data.invoices.some((i) => i.docId === f.id) && !(data.ignoredInvoiceDocs || []).includes(f.id));
 
   const onInvoiceFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -301,10 +448,11 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
           uploadedAt: new Date().toISOString(),
           readSource: read.source,
           lines: parseInvoiceText(read.text),
+          claimCheck: invoiceClaimCheck(read.text, currentRef, claimsIndex).status,
         };
         update((d) => ({ ...d, invoices: [...d.invoices.filter((i) => i.sha !== sha), invoice] }));
         await logHistory('חשבונית חלקים נקלטה להצעת מחיר', `${file.name} · ${invoice.lines.length} שורות זוהו`).catch(() => null);
-        startReview(invoice, data.parts);
+        startReview(invoice, data.parts, read.text);
         // One review at a time; further files wait for the next upload.
         break;
       }
@@ -324,8 +472,8 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
       return part ? [compareToPart(part, r.line)] : [{ kind: 'new', line: r.line }];
     });
     update((d) => {
-      const next = applyInvoiceMatches(d, review.invoice, approved);
-      return { ...next, invoices: next.invoices.map((i) => (i.sha === review.invoice.sha ? { ...i, lines: review.rows.map((r) => r.line), reviewedAt: new Date().toISOString() } : i)) };
+      const next = applyInvoiceMatches(d, review.invoice, approved, review.targetGroup === PARTS_GROUP ? '' : review.targetGroup);
+      return { ...next, invoices: next.invoices.map((i) => (i.sha === review.invoice.sha ? { ...i, lines: review.rows.map((r) => r.line), claimCheck: review.check.status, reviewedAt: new Date().toISOString() } : i)) };
     });
     toast(`עודכנו ${approved.length} שורות מהחשבונית`);
     setReview(null);
@@ -467,13 +615,13 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
 
   const workRow = (w: QuoteWorkLine) => {
     const pr = workPricing(w);
-    const opts = workLabels.filter((l) => l.category === w.category);
+    const opts = [...new Set(workLabels.filter((l) => splitLibraryWorkCategory(l.category).domain === w.category).map((l) => l.label))];
     return (
       <div className="cq-row" key={w.id} data-testid="cq-work-row">
         <div className="cq-row-main">
           <input className="cq-in cq-in-label" list={`cq-wl-${w.category}`} value={w.label} placeholder="תיאור העבודה" aria-label="תיאור העבודה"
             onChange={(e) => setWork(w.id, { label: e.target.value })} />
-          <datalist id={`cq-wl-${w.category}`}>{opts.map((o) => <option key={o.label} value={o.label} />)}</datalist>
+          <datalist id={`cq-wl-${w.category}`}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
           {/ימין|שמאל/.test(w.label) && (
             <button type="button" className="cq-icon" title="החלף צד ימין/שמאל" onClick={() => setWork(w.id, { label: swapSide(w.label) })}>⇄</button>
           )}
@@ -520,13 +668,15 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     return (
       <div className={`cq-row cq-part${p.included ? '' : ' cq-excluded'}`} key={p.id} data-testid="cq-part-row">
         <div className="cq-row-main">
-          <input className="cq-in cq-in-label" list="cq-part-names" value={p.name} placeholder="שם החלק" aria-label="שם החלק"
+          <input className="cq-in cq-in-label" list={`cq-pn-${partGroupOf(p)}`} value={p.name} placeholder={partGroupOf(p) === MATERIALS_GROUP ? 'שם החומר' : 'שם הפריט'} aria-label="שם החלק"
             onChange={(e) => setPart(p.id, { name: e.target.value })} />
           <select className="cq-in cq-in-sm" value={p.partType} aria-label="סוג החלק" onChange={(e) => setPart(p.id, { partType: e.target.value })}>
             {PART_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
           </select>
           <input className="cq-in cq-in-sku" value={p.sku} placeholder="מק״ט" aria-label="מק״ט" onChange={(e) => setPart(p.id, { sku: e.target.value })} />
         </div>
+        <input className="cq-in cq-in-desc" value={p.description || ''} placeholder="תיאור (לא חובה)" aria-label="תיאור"
+          onChange={(e) => setPart(p.id, { description: e.target.value })} />
         <div className="cq-row-fields">
           <label className="cq-f"><span>כמות</span>
             <input className="cq-in cq-in-num" type="number" min={0} step="any" inputMode="decimal" value={p.qty || ''} onChange={(e) => setPart(p.id, { qty: n(e.target.value) })} />
@@ -552,6 +702,13 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
           <button type="button" className="cq-icon cq-del" title="מחק שורה" onClick={() => update((d) => ({ ...d, parts: d.parts.filter((x) => x.id !== p.id) }))}>🗑</button>
         </div>
         {p.invoiceDocId && <div className="cq-tag">🧾 מקושר לחשבונית: {p.invoiceName || p.invoiceDocId}</div>}
+        {partGroupsOf(data).length > 2 && (
+          <label className="cq-f cq-move"><span>קטגוריה</span>
+            <select className="cq-in cq-in-sm" value={partGroupOf(p)} aria-label="קטגוריית חלק" onChange={(e) => setPart(p.id, { group: e.target.value })}>
+              {partGroupsOf(data).map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        )}
         {p.source === 'paint_materials' && <div className="cq-tag">ממחשבון הצבע — לא כלול בעלות עבודת הצבע</div>}
       </div>
     );
@@ -606,7 +763,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                     <input className="cq-in cq-in-num" type="number" min={0} step="any" value={data.hourRate || ''} aria-label="מחיר שעת עבודה"
                       onChange={(e) => update((d) => ({ ...d, hourRate: n(e.target.value) }))} /> ₪ לפני מע״מ
                   </span>
-                  <button type="button" className="cq-btn cq-btn-p" data-testid="cq-add-work" onClick={() => setAddWork({ category: 'body', label: '', saveToLib: true })}>➕ הוסף עבודה</button>
+                  <button type="button" className="cq-btn cq-btn-p" data-testid="cq-add-domain" onClick={() => setPicker({ mode: 'domain', label: '', saveToLib: true })}>➕ הוסף תחום עבודה</button>
                 </div>
                 {visibleCats.map((cat) => {
                   const lines = data.works.filter((w) => w.category === cat.key);
@@ -624,11 +781,37 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                             <div className="cq-paint-bar">
                               <button type="button" className="cq-btn cq-btn-paint" data-testid="cq-open-paint" onClick={() => setPaintOpen(true)}>🎨 פתח מחשבון צבע</button>
                               <button type="button" className="cq-btn cq-btn-g" onClick={() => void openSavedPaint()}>טען חישוב צבע שמור</button>
-                              {data.paintCalcRef && <span className="cq-note">חישוב צבע {data.paintCalcRef.version ? `גרסה ${data.paintCalcRef.version}` : ''} הוחל: עבודה {formatIls(data.paintCalcRef.laborCost)} · חומרים {formatIls(data.paintCalcRef.materialsCost)}</span>}
+                              {data.paintCalcRef
+                                ? <span className="cq-note">מסונכרן לחישוב צבע {data.paintCalcRef.version ? `גרסה ${data.paintCalcRef.version}` : ''}: עבודה {formatIls(data.paintCalcRef.laborCost)} · חומרי צבע {formatIls(data.paintCalcRef.materialsCost)} (בחלקים וחומרים)</span>
+                                : <span className="cq-note">אין עדיין חישוב צבע שמור בתיק — עבודות הצבע יתמלאו אוטומטית כשיישמר.</span>}
                             </div>
                           )}
-                          {lines.map(workRow)}
-                          <button type="button" className="cq-btn cq-btn-g cq-btn-sm" onClick={() => update((d) => ({ ...d, works: [...d.works, newWorkLine(cat.key, '', d.hourRate)] }))}>+ שורה ב{cat.label}</button>
+                          {cat.key === 'paint' && paintNotice && (
+                            <div className="cq-paint-notice" data-testid="cq-paint-notice">
+                              <span>
+                                {paintNotice.auto ? '🔄 עודכן אוטומטית' : '✓ עודכן'} מחישוב הצבע{paintNotice.version ? ` (גרסה ${paintNotice.version})` : ''}:
+                                {' '}עבודת צבע {paintNotice.from ? `${formatIls(paintNotice.from.labor)} ← ` : ''}{formatIls(paintNotice.to.labor)}
+                                {' · '}חומרי צבע {paintNotice.from ? `${formatIls(paintNotice.from.materials)} ← ` : ''}{formatIls(paintNotice.to.materials)}.
+                                {' '}השורות הקודמות הוחלפו — אין חיוב כפול. השינוי יישמר בשמירת ההצעה.
+                              </span>
+                              <button type="button" className="cq-btn cq-btn-g cq-btn-sm" onClick={undoPaint}>בטל עדכון</button>
+                            </div>
+                          )}
+                          {workGroupsOf(data, cat.key).map((g) => {
+                            const glines = lines.filter((w) => (w.group || '').trim() === g);
+                            const hasGroups = workGroupsOf(data, cat.key).length > 1;
+                            if (!g && !glines.length && hasGroups && cat.key !== 'paint') return null;
+                            return (
+                              <div className={g ? 'cq-group' : 'cq-group cq-group-plain'} key={g || '__general'} data-testid={`cq-group-${cat.key}-${g || 'general'}`}>
+                                {(g || hasGroups) && <div className="cq-group-head"><span>{g || 'כללי'}</span><b>{formatIls(glines.reduce((s2, w) => s2 + workPricing(w).final, 0))}</b></div>}
+                                {glines.map(workRow)}
+                                <button type="button" className="cq-btn cq-btn-g cq-btn-sm" data-testid="cq-add-item"
+                                  onClick={() => setPicker({ mode: 'item', domain: cat.key, group: g, label: '', saveToLib: true })}>+ הוסף סעיף{g ? ` ב${g}` : ''}</button>
+                              </div>
+                            );
+                          })}
+                          <button type="button" className="cq-btn cq-btn-g cq-btn-sm cq-btn-dashed" data-testid="cq-add-group"
+                            onClick={() => setPicker({ mode: 'group', domain: cat.key, label: '', saveToLib: true })}>+ הוסף קטגוריה ב{cat.label}</button>
                         </div>
                       )}
                     </div>
@@ -640,11 +823,25 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
               <section className="cq-card">
                 <div className="cq-sec-head">
                   <h3>חלקים וחומרים</h3>
+                  <button type="button" className="cq-btn cq-btn-g" data-testid="cq-add-part-group" onClick={() => setPicker({ mode: 'partGroup', label: '', saveToLib: true })}>➕ הוסף קטגוריה</button>
                   <button type="button" className="cq-btn cq-btn-p" data-testid="cq-add-part" onClick={() => update((d) => ({ ...d, parts: [...d.parts, newPartLine()] }))}>➕ הוסף חלק</button>
                 </div>
-                <datalist id="cq-part-names">{partLabels.map((l) => <option key={l} value={l} />)}</datalist>
-                {data.parts.map(partRow)}
-                {!data.parts.length && <div className="cq-empty">אין חלקים. לחץ "הוסף חלק".</div>}
+                {partGroupsOf(data).map((g) => {
+                  const glines = data.parts.filter((p) => partGroupOf(p) === g);
+                  const sum = glines.filter((p) => p.included).reduce((s2, p) => s2 + partPricing(p).final, 0);
+                  return (
+                    <div className="cq-cat" key={g} data-testid={`cq-pgroup-${g}`}>
+                      <div className="cq-cat-head cq-cat-static"><span>{g}{g === MATERIALS_GROUP ? ' (קבוע)' : ''} <small>({glines.length})</small></span><b>{formatIls(sum)}</b></div>
+                      <div className="cq-cat-body">
+                        <datalist id={`cq-pn-${g}`}>{partLabelsFor(g).map((l) => <option key={l} value={l} />)}</datalist>
+                        {glines.map(partRow)}
+                        {!glines.length && <div className="cq-note">אין פריטים בקטגוריה.</div>}
+                        <button type="button" className="cq-btn cq-btn-g cq-btn-sm" data-testid="cq-add-part-item"
+                          onClick={() => update((d) => ({ ...d, parts: [...d.parts, newPartLine(g === MATERIALS_GROUP ? { group: g, partType: 'material' } : g === PARTS_GROUP ? {} : { group: g })] }))}>+ הוסף פריט ב{g}</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </section>
 
               {/* Invoices */}
@@ -655,10 +852,23 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                   <input ref={invoiceInput} type="file" hidden accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(e) => void onInvoiceFiles(e.target.files)} />
                 </div>
                 <div className="cq-note">החשבונית נשמרת בגלריית התיק. השורות שזוהו מוצגות לאישורך — שום מחיר או חלק לא משתנה בלי אישור. העלאה חוזרת של אותו קובץ לא יוצרת כפילות.</div>
+                {pendingClaimInvoices.length > 0 && (
+                  <div className="cq-pending" data-testid="cq-pending-invoices">
+                    <b>חשבוניות שהועלו לתיק וטרם סונכרנו להצעה ({pendingClaimInvoices.length})</b>
+                    {pendingClaimInvoices.map((f) => (
+                      <div className="cq-inv" key={f.id}>
+                        <span>📎 {f.name}</span>
+                        <small>{f.createdAt ? new Date(f.createdAt).toLocaleDateString('he-IL') : ''}</small>
+                        <button type="button" className="cq-btn cq-btn-p cq-btn-sm" data-testid="cq-sync-claim-invoice" disabled={!!busy} onClick={() => void syncClaimInvoice(f)}>סנכרן להצעה</button>
+                        <button type="button" className="cq-btn cq-btn-g cq-btn-sm" onClick={() => update((d) => ({ ...d, ignoredInvoiceDocs: [...(d.ignoredInvoiceDocs || []), f.id] }))}>לא חשבונית ספק</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {data.invoices.map((inv) => (
                   <div className="cq-inv" key={inv.sha}>
                     <span>🧾 {inv.fileName}</span>
-                    <small>{new Date(inv.uploadedAt).toLocaleDateString('he-IL')} · {inv.lines.length} שורות · {inv.reviewedAt ? 'נבדקה' : 'ממתינה לבדיקה'}{inv.readSource === 'none' ? ' · לא נקרא טקסט' : ''}</small>
+                    <small>{new Date(inv.uploadedAt).toLocaleDateString('he-IL')} · {inv.lines.length} שורות · {inv.reviewedAt ? 'נבדקה' : 'ממתינה לבדיקה'}{inv.readSource === 'none' ? ' · לא נקרא טקסט' : ''}{inv.claimCheck === 'match' ? ' · ✓ תואמת לתיק' : inv.claimCheck === 'other' ? ' · ⚠ מזכירה תיק אחר' : ''}</small>
                     <button type="button" className="cq-btn cq-btn-g cq-btn-sm" onClick={() => startReview(inv, data.parts)}>בדיקה והתאמה</button>
                   </div>
                 ))}
@@ -757,37 +967,38 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
           </div>
         )}
 
-        {/* Add work picker */}
-        {addWork && (
-          <div className="cq-dialog-back" onClick={(e) => { if (e.target === e.currentTarget) setAddWork(null); }}>
-            <div className="cq-dialog" data-testid="cq-add-work-dialog">
-              <h3>➕ הוסף עבודה</h3>
-              <label><span>קטגוריה</span>
-                <select className="cq-in" value={addWork.category} onChange={(e) => setAddWork({ ...addWork, category: e.target.value, label: '' })}>
-                  <optgroup label="ראשיות">{CORE_CATEGORIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</optgroup>
-                  <optgroup label="נוספות">{EXTRA_CATEGORIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</optgroup>
-                </select>
-              </label>
+        {/* Add area / category / item / parts category */}
+        {picker && (
+          <div className="cq-dialog-back" onClick={(e) => { if (e.target === e.currentTarget) setPicker(null); }}>
+            <div className="cq-dialog" data-testid="cq-picker">
+              <h3>
+                {picker.mode === 'domain' ? '➕ הוסף תחום עבודה'
+                  : picker.mode === 'group' ? `➕ הוסף קטגוריה ב${categoryLabel(picker.domain)}`
+                  : picker.mode === 'item' ? `➕ הוסף סעיף ב${categoryLabel(picker.domain)}${picker.group ? ` › ${picker.group}` : ''}`
+                  : '➕ הוסף קטגוריית חלקים'}
+              </h3>
               <div className="cq-chips">
-                {workLabels.filter((l) => l.category === addWork.category).map((l) => (
-                  <button type="button" key={l.label} className={`cq-chip${addWork.label === l.label ? ' on' : ''}`} onClick={() => setAddWork({ ...addWork, label: l.label })}>{l.label}</button>
+                {pickerChips(picker).map((l) => (
+                  <button type="button" key={l} className={`cq-chip${picker.label === l ? ' on' : ''}`} onClick={() => setPicker({ ...picker, label: l })}>{l}</button>
                 ))}
               </div>
-              <label><span>או הקלד עבודה חדשה</span>
-                <input className="cq-in" value={addWork.label} placeholder={`עבודה ב${categoryLabel(addWork.category)}`} autoFocus onChange={(e) => setAddWork({ ...addWork, label: e.target.value })}
-                  onKeyDown={(e) => { if (e.key === 'Enter') void confirmAddWork(); }} />
+              <label><span>{pickerChips(picker).length ? 'או הקלד חדש' : 'שם'}</span>
+                <input className="cq-in" data-testid="cq-picker-input" value={picker.label} autoFocus
+                  placeholder={picker.mode === 'domain' ? 'לדוגמה: עבודות חשמל' : picker.mode === 'group' ? 'לדוגמה: חזית הרכב' : picker.mode === 'item' ? 'תיאור הסעיף' : 'לדוגמה: צמיגים'}
+                  onChange={(e) => setPicker({ ...picker, label: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === 'Enter') void confirmPicker(); }} />
               </label>
-              <label className="cq-incl"><input type="checkbox" checked={addWork.saveToLib} onChange={(e) => setAddWork({ ...addWork, saveToLib: e.target.checked })} /><span>שמור בספריית העבודות לשימוש חוזר</span></label>
+              <label className="cq-incl"><input type="checkbox" checked={picker.saveToLib} onChange={(e) => setPicker({ ...picker, saveToLib: e.target.checked })} /><span>שמור לשימוש חוזר בהצעות הבאות</span></label>
               <div className="cq-dialog-acts">
-                <button type="button" className="cq-btn cq-btn-p" onClick={() => void confirmAddWork()}>הוסף</button>
-                <button type="button" className="cq-btn cq-btn-g" onClick={() => setAddWork(null)}>ביטול</button>
+                <button type="button" className="cq-btn cq-btn-p" data-testid="cq-picker-ok" onClick={() => void confirmPicker()}>הוסף</button>
+                <button type="button" className="cq-btn cq-btn-g" onClick={() => setPicker(null)}>ביטול</button>
               </div>
             </div>
           </div>
         )}
 
         {/* Saved paint calcs */}
-        {paintPick && !paintConfirm && (
+        {paintPick && (
           <div className="cq-dialog-back" onClick={(e) => { if (e.target === e.currentTarget) setPaintPick(null); }}>
             <div className="cq-dialog">
               <h3>🎨 חישובי צבע שמורים בתיק</h3>
@@ -795,26 +1006,10 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                 <div className="cq-ver" key={row.id}>
                   <div><b>{row.is_draft ? 'טיוטה אחרונה' : `גרסה ${row.version}`}</b> · {new Date(row.updated_at || row.created_at).toLocaleString('he-IL')}</div>
                   <small>עבודת צבע {formatIls(row.calc_data.laborCost)} · חומרי צבע {formatIls(row.calc_data.materialsCost)}</small>
-                  <button type="button" className="cq-btn cq-btn-g cq-btn-sm" onClick={() => setPaintConfirm({ calc: row.calc_data, ref: { id: row.id, version: row.is_draft ? 0 : row.version } })}>בחר</button>
+                  <button type="button" className="cq-btn cq-btn-g cq-btn-sm" data-testid="cq-paint-pick" onClick={() => applyPaint(row.calc_data, { id: row.id, version: row.is_draft ? 0 : row.version })}>החל על ההצעה</button>
                 </div>
               ))}
               <div className="cq-dialog-acts"><button type="button" className="cq-btn cq-btn-g" onClick={() => setPaintPick(null)}>סגור</button></div>
-            </div>
-          </div>
-        )}
-
-        {paintConfirm && (
-          <div className="cq-dialog-back">
-            <div className="cq-dialog" data-testid="cq-paint-confirm">
-              <h3>אישור עדכון חישוב צבע</h3>
-              <div className="cq-sum-row"><span>עבודת צבע → עבודות צבע</span><b>{formatIls(paintConfirm.calc.laborCost)}</b></div>
-              <div className="cq-sum-row"><span>חומרי צבע → חלקים וחומרים</span><b>{formatIls(paintConfirm.calc.materialsCost)}</b></div>
-              {data.paintCalcRef && <div className="cq-note">השורות מחישוב הצבע הקודם (עבודה {formatIls(data.paintCalcRef.laborCost)}, חומרים {formatIls(data.paintCalcRef.materialsCost)}) יוחלפו — ללא חישוב כפול.</div>}
-              <div className="cq-note">המע״מ של מחשבון הצבע לא נכנס — המע״מ מחושב פעם אחת על כל ההצעה.</div>
-              <div className="cq-dialog-acts">
-                <button type="button" className="cq-btn cq-btn-p" data-testid="cq-paint-apply" onClick={applyPaint}>אשר ועדכן הצעה</button>
-                <button type="button" className="cq-btn cq-btn-g" onClick={() => setPaintConfirm(null)}>ביטול</button>
-              </div>
             </div>
           </div>
         )}
@@ -829,7 +1024,8 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                 onClose={() => setPaintOpen(false)}
                 onApplyToQuote={(calc, saved) => {
                   setPaintOpen(false);
-                  setPaintConfirm({ calc, ref: saved || { id: '', version: 0 } });
+                  applyPaint(calc, saved || { id: '', version: 0 });
+                  if (saved) latestPaint.current = { id: saved.id, version: saved.version, calc_data: calc } as PaintCalcRow;
                 }}
               />
             </div>
@@ -845,6 +1041,18 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                 {review.invoice.readSource === 'none' ? 'לא נמצא טקסט קריא בקובץ — אפשר להוסיף שורות ידנית.' : `נקרא מ-${review.invoice.readSource === 'ocr' ? 'זיהוי תווים (OCR)' : 'טקסט ה-PDF'} — בדוק את הערכים לפני אישור.`}
                 {' '}סמן רק את מה שברצונך לעדכן.
               </div>
+              {review.check.status === 'match' && <div className="cq-check cq-check-ok" data-testid="cq-claim-check">✓ החשבונית מזכירה את הרכב / התביעה של התיק הזה ({currentRef.plate || currentRef.claimNum}).</div>}
+              {review.check.status === 'other' && (
+                <div className="cq-check cq-check-bad" data-testid="cq-claim-check">
+                  ⚠ החשבונית מזכירה תיק אחר: {review.check.otherClaims.map((o) => `${o.clientName || o.id} (רכב ${o.plate || '—'})`).join(', ')}. ייתכן שהיא הועלתה לתיק הלא נכון — שום שורה לא סומנה מראש.
+                </div>
+              )}
+              {review.check.status === 'unknown' && <div className="cq-check" data-testid="cq-claim-check">לא נמצאו בחשבונית מספר רכב או מספר תביעה — ודא שהיא שייכת לתיק הזה.</div>}
+              <label className="cq-f cq-target"><span>קטגוריה לחלקים חדשים</span>
+                <select className="cq-in cq-in-sm" value={review.targetGroup} onChange={(e) => setReview((rv) => rv && ({ ...rv, targetGroup: e.target.value }))}>
+                  {partGroupsOf(data).map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </label>
               <div className="cq-rev-table">
                 <div className="cq-rev-head"><span /><span>מצב</span><span>שם</span><span>מק״ט</span><span>כמות</span><span>ברוטו</span><span>נטו 🔒</span></div>
                 {review.rows.map((r, i) => {

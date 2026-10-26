@@ -6861,6 +6861,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           actor={{ id: actor.id, full_name: actor.full_name || 'משתמש', company_name: cur.company_name || companyName }}
           recipients={quoteRecipients(cur, claimContacts)}
           initialQuoteId={quoteOpen.quoteId}
+          claimInvoiceFiles={docs.files
+            .filter((f) => f.doc_kind === 'garage_invoice' || fileMeta(f).staff_type === 'garage_invoice')
+            .map((f) => ({ id: f.id, name: f.original_name, mime: f.mime_type || '', createdAt: f.created_at }))}
+          claimsIndex={claims.map((c) => ({ id: c.id, plate: c.plate || '', claimNum: c.claimNum || '', clientName: c.clientName || '' }))}
           uploadFile={(file, extra) => apiRef.current.staffUpload(cur.id, '', file, extra)}
           getSignedUrl={async (fileId) => String(((await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: fileId })) as { url?: string }).url || '')}
           logHistory={(action, note) => apiRef.current.logHistory(cur.id, action, note, 'quote')}
