@@ -10,6 +10,7 @@ import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import { DocumentPreviewDialog } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { buildVehicleContextUrl, buildVehicleHubUrl, isVehicleScopedContext, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
+import { readAccidentReportReturn } from '@/lib/reportAccidentNav';
 import {
   accidentBelongsToVehicle,
   accidentMatchesSearch,
@@ -232,7 +233,13 @@ export default function Accidents() {
       })
     : '/accidents';
 
+  const reportReturn = readAccidentReportReturn(searchParams);
+
   const backFromDetailToList = () => {
+    if (reportReturn) {
+      navigate(reportReturn);
+      return;
+    }
     if (driverScoped) {
       goBackToDriver();
       return;
@@ -305,7 +312,7 @@ export default function Accidents() {
           onClick={backFromDetailToList}
           className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"
         >
-          <ArrowRight size={20} /> {driverScoped ? 'חזרה לכרטיס הנהג' : 'חזרה לרשימת התאונות'}
+          <ArrowRight size={20} /> {reportReturn ? 'חזרה לדוח תאונות' : driverScoped ? 'חזרה לכרטיס הנהג' : 'חזרה לרשימת התאונות'}
         </button>
         <div className="card-elevated mb-4">
           <div className="flex items-center justify-between mb-4">

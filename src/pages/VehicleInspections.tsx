@@ -9,6 +9,7 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
+import { resolvePrivateDocumentUrl } from '@/lib/accidentDocuments';
 import {
   checklistItemsWithoutSignature,
   findInspectionSignatureUrl,
@@ -382,6 +383,37 @@ function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack 
   );
 }
 
+function InspectionSignatureImage({ stored }: { stored: string }) {
+  const [src, setSrc] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSrc('');
+    setFailed(false);
+    void resolvePrivateDocumentUrl(stored).then((url) => {
+      if (cancelled) return;
+      if (!url) setFailed(true);
+      else setSrc(url);
+    });
+    return () => { cancelled = true; };
+  }, [stored]);
+
+  if (failed) {
+    return <p className="text-sm text-destructive text-center">החתימה שמורה, אך לא ניתן להציג אותה כרגע</p>;
+  }
+  if (!src) return <p className="text-sm text-muted-foreground text-center">טוען חתימה...</p>;
+  return (
+    <img
+      src={src}
+      alt="חתימת קצין הרכב"
+      data-testid="inspection-signature-image"
+      className="max-h-40 max-w-full mx-auto"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; onBack: () => void }) {
   const [items, setItems] = useState<InspectionItemRow[]>([]);
   const [internalNumber, setInternalNumber] = useState<string | null>(null);
@@ -389,8 +421,21 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
   const [downloadingForm, setDownloadingForm] = useState(false);
 
   useEffect(() => {
-    void supabase.from('inspection_items').select('*').eq('inspection_id', inspection.id)
-      .then(({ data }) => { if (data) setItems(data as InspectionItemRow[]); });
+    void (async () => {
+      if (inspection.vehicle_id) {
+        const { data: owner } = await supabase
+          .from('vehicle_inspections')
+          .select('vehicle_id')
+          .eq('id', inspection.id)
+          .maybeSingle();
+        if (owner?.vehicle_id && owner.vehicle_id !== inspection.vehicle_id) {
+          setItems([]);
+          return;
+        }
+      }
+      const { data } = await supabase.from('inspection_items').select('*').eq('inspection_id', inspection.id);
+      if (data) setItems(data as InspectionItemRow[]);
+    })();
 
     if (inspection.vehicle_id) {
       void supabase.from('vehicles').select('internal_number').eq('id', inspection.vehicle_id).maybeSingle()
@@ -525,9 +570,9 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
 
       {signatureUrl && (
         <div className="card-elevated mb-4" data-testid="inspection-signature">
-          <h2 className="text-lg font-bold mb-3">חתימה דיגיטלית</h2>
+          <h2 className="text-lg font-bold mb-3">חתימת קצין הרכב</h2>
           <div className="rounded-xl border border-border bg-white p-3">
-            <img src={signatureUrl} alt="חתימה דיגיטלית" className="max-h-40 max-w-full mx-auto" />
+            <InspectionSignatureImage stored={signatureUrl} />
           </div>
         </div>
       )}

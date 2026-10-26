@@ -1,5 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  accidentCardPath,
+  buildReportsReturnPath,
+  parseReportsSearch,
+  type ReportFilterSnapshot,
+} from '@/lib/reportAccidentNav';
 import {
   BarChart3, Car, Users, FileText, Wrench, AlertTriangle, Download, Filter,
   ChevronDown, ChevronUp, ShoppingCart, TrendingUp, Package, Mail, MessageSquare,
@@ -113,10 +119,18 @@ function statusLabel(s: string | null | undefined): string {
   return s;
 }
 
+function localIsoDate(value: string | undefined): Date | undefined {
+  const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return undefined;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
 export default function Reports() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const companyFilter = useCompanyFilter();
+  const restoredFilters = useRef(false);
   const [raw, setRaw] = useState<RawData>({
     vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [], inspections: [],
   });
@@ -136,6 +150,24 @@ export default function Reports() {
   const [filterInternal, setFilterInternal] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  useEffect(() => {
+    if (restoredFilters.current) return;
+    restoredFilters.current = true;
+    const snap = parseReportsSearch(searchParams.toString());
+    if (!snap.present) return;
+    if (snap.period) setPeriodMode(snap.period as ReportPeriodMode);
+    setFilterDateFrom(localIsoDate(snap.from));
+    setFilterDateTo(localIsoDate(snap.to));
+    if (snap.company) setFilterCompany(snap.company);
+    if (snap.vendor) setFilterVendor(snap.vendor);
+    if (snap.vehicle) setFilterVehicle(snap.vehicle);
+    if (snap.internal) setFilterInternal(snap.internal);
+    if (snap.driver) setFilterDriver(snap.driver);
+    if (snap.status) setFilterStatus(snap.status);
+    if (snap.types) setFilterReportTypes(snap.types);
+    if (snap.expanded) setExpandedReport(snap.expanded);
+  }, [searchParams]);
 
   useEffect(() => { loadData(); }, [companyFilter]);
 
@@ -420,6 +452,37 @@ export default function Reports() {
     setFilterReportTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
     setExpandedReport(type);
   };
+
+  const openAccidentCard = (accidentId: string, expanded: string) => {
+    const snapshot: ReportFilterSnapshot = {
+      period: periodMode,
+      from: filterDateFrom ? format(filterDateFrom, 'yyyy-MM-dd') : undefined,
+      to: filterDateTo ? format(filterDateTo, 'yyyy-MM-dd') : undefined,
+      company: filterCompany || undefined,
+      vendor: filterVendor || undefined,
+      vehicle: filterVehicle || undefined,
+      internal: filterInternal || undefined,
+      driver: filterDriver || undefined,
+      status: filterStatus || undefined,
+      types: filterReportTypes,
+      expanded,
+    };
+    navigate(accidentCardPath(accidentId, buildReportsReturnPath(snapshot)));
+  };
+
+  const accidentOpenCell = (accidentId: string, expanded: string) => (
+    <button
+      type="button"
+      data-testid={`open-accident-${accidentId}`}
+      className="font-bold text-primary underline min-h-[44px] whitespace-nowrap"
+      onClick={(event) => {
+        event.stopPropagation();
+        openAccidentCard(accidentId, expanded);
+      }}
+    >
+      פתח כרטיס תאונה
+    </button>
+  );
 
   const clearFilters = () => {
     setPeriodMode('month');
@@ -868,16 +931,20 @@ export default function Reports() {
             }
             table={
               <DetailTable
-                headers={STANDARD_HEADERS}
-                rows={filtered.accidents.map(a => standardRow({
-                  internal: getInternal(a.vehicle_plate),
-                  plate: a.vehicle_plate,
-                  company: getCompanyForPlate(a.vehicle_plate, a.company_name),
-                  driver: a.driver_name,
-                  eventType: 'תאונה',
-                  date: fmtDate(a.date),
-                  status: statusLabel(a.status),
-                }))}
+                headers={[...STANDARD_HEADERS, 'כרטיס']}
+                onRowActivate={(index) => openAccidentCard(filtered.accidents[index].id, 'ops_accidents')}
+                rows={filtered.accidents.map(a => [
+                  ...standardRow({
+                    internal: getInternal(a.vehicle_plate),
+                    plate: a.vehicle_plate,
+                    company: getCompanyForPlate(a.vehicle_plate, a.company_name),
+                    driver: a.driver_name,
+                    eventType: 'תאונה',
+                    date: fmtDate(a.date),
+                    status: statusLabel(a.status),
+                  }),
+                  accidentOpenCell(a.id, 'ops_accidents'),
+                ])}
               />
             }
           />
@@ -1295,10 +1362,12 @@ function DetailTable({
   headers,
   rows,
   internalColumnIndex = 0,
+  onRowActivate,
 }: {
   headers: string[];
   rows: React.ReactNode[][];
   internalColumnIndex?: number;
+  onRowActivate?: (index: number) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -1319,7 +1388,11 @@ function DetailTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
+            <tr
+              key={i}
+              className={`border-b border-border/50 hover:bg-muted/40 ${onRowActivate ? 'cursor-pointer' : ''}`}
+              onClick={onRowActivate ? () => onRowActivate(i) : undefined}
+            >
               {row.map((cell, j) => (
                 <td key={j} className="p-3 whitespace-nowrap">
                   {j === internalColumnIndex && typeof cell === 'string' && cell !== '-' && cell !== '—'

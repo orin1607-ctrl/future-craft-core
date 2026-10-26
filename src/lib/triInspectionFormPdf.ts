@@ -4,6 +4,7 @@
  */
 import whiteLogo from '@/assets/white-logo.png';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePrivateDocumentUrl } from '@/lib/accidentDocuments';
 import {
   assembleTriInspectionForm,
   canDownloadTriForm,
@@ -363,29 +364,11 @@ function checklistWithoutSignature<T extends { item_name?: string | null }>(item
   return (items || []).filter((item) => item?.item_name !== DIGITAL_SIGNATURE_ITEM);
 }
 
-function documentsStoragePath(urlOrPath: string): string | null {
-  const raw = urlOrPath.trim();
-  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return null;
-  if (!/^https?:\/\//i.test(raw)) return raw.replace(/^\/+/, '');
-  const match = raw.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/documents\/([^?]+)/i);
-  if (!match?.[1]) return null;
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return match[1];
-  }
-}
-
 async function readableSignature(src: string): Promise<string> {
   const value = src.trim();
   if (!value || value.startsWith('data:image/')) return value;
-  const direct = /^https?:/i.test(value) ? value : '';
-  const path = documentsStoragePath(value);
-  if (path) {
-    const { data, error } = await supabase.storage.from('documents').createSignedUrl(path, 900);
-    if (!error && data?.signedUrl) return data.signedUrl;
-  }
-  return direct;
+  const resolved = await resolvePrivateDocumentUrl(value);
+  return resolved || (/^https?:/i.test(value) ? value : '');
 }
 
 export async function downloadTriInspectionForm(inspectionId: string): Promise<File> {
