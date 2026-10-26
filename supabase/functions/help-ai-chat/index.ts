@@ -119,6 +119,36 @@ const FLEET_GEMINI_TOOLS = [
           properties: { company_name: { type: "STRING" } },
         },
       },
+      {
+        name: "get_vehicles_needing_treatment",
+        description: "רשימת רכבים שצריכים טיפול החודש או שיש להם הזמנת שירות או טיפול פעיל",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+          },
+        },
+      },
+      {
+        name: "get_drivers_missing_documents",
+        description: "רשימת נהגים שחסרים להם מסמכים (רישיון, תוקף, ת.ז. או צילום)",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+          },
+        },
+      },
+      {
+        name: "get_untreated_vehicles_report",
+        description: "דוח רכבים שלא טופלו, תקלות פתוחות והזמנות שירות ממתינות",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+          },
+        },
+      },
     ],
   },
 ];
@@ -275,6 +305,60 @@ async function executeFleetTool(
           total_alerts: (data || []).length,
           active_alerts: active.length,
           type_breakdown: typeBreakdown,
+        });
+      }
+
+      case "get_vehicles_needing_treatment": {
+        const until = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+        let q = supabase.from("vehicles").select("id, license_plate, manufacturer, model, next_service_date, status");
+        if (company) q = q.eq("company_name", company);
+        const { data: vehData } = await q.lte("next_service_date", until).order("next_service_date", { ascending: true }).limit(20);
+
+        let oq = supabase.from("service_orders").select("id, vehicle_plate, service_category, status");
+        if (company) oq = oq.eq("company_name", company);
+        const { data: orderData } = await oq.in("status", ["new", "open", "in_progress", "pending", "ממתין", "בטיפול", "פתוח"]).limit(20);
+
+        return JSON.stringify({
+          vehicles_with_service_due: vehData || [],
+          active_service_orders: orderData || [],
+        });
+      }
+
+      case "get_drivers_missing_documents": {
+        let q = supabase.from("drivers").select("id, full_name, phone, id_number, license_number, license_expiry, license_image_url");
+        if (company) q = q.eq("company_name", company);
+        const { data: drvData } = await q.limit(40);
+        const missing = (drvData || []).filter((d: any) => !d.license_number || !d.license_expiry || !d.id_number || !d.license_image_url).map((d: any) => ({
+          name: d.full_name,
+          missing_license: !d.license_number,
+          missing_expiry: !d.license_expiry,
+          missing_id: !d.id_number,
+          missing_image: !d.license_image_url,
+        }));
+        return JSON.stringify({
+          total_drivers: (drvData || []).length,
+          missing_documents_count: missing.length,
+          drivers: missing,
+        });
+      }
+
+      case "get_untreated_vehicles_report": {
+        let fq = supabase.from("faults").select("id, vehicle_plate, description, status").in("status", ["open", "new", "in_progress", "פתוח", "בטיפול"]);
+        if (company) fq = fq.eq("company_name", company);
+        const { data: faults } = await fq.limit(20);
+
+        let soq = supabase.from("service_orders").select("id, vehicle_plate, service_category, status").in("status", ["new", "open", "in_progress", "pending", "ממתין", "בטיפול", "פתוח"]);
+        if (company) soq = soq.eq("company_name", company);
+        const { data: orders } = await soq.limit(20);
+
+        let vq = supabase.from("vehicles").select("id, license_plate, manufacturer, model, status").eq("status", "in_service");
+        if (company) vq = vq.eq("company_name", company);
+        const { data: inService } = await vq.limit(20);
+
+        return JSON.stringify({
+          open_faults: faults || [],
+          open_orders: orders || [],
+          vehicles_in_service: inService || [],
         });
       }
 
@@ -1070,8 +1154,8 @@ Deno.serve(async (req) => {
     const lastUserText = String(lastUserMessage?.content || "").trim();
     const isReportsModule = effectiveModule === "reports";
     const isGarageModule = (effectiveModule === "garage" || (effectiveModule === "dashboard" && !claimId)) && !isReportsModule;
-    const hasClaimsIntent = !isGarageModule && !isReportsModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
-    const isClaimsModule = (effectiveModule === "claims" || (!!claimId && !isGarageModule && !isReportsModule) || hasClaimsIntent) && !isGarageModule && !isReportsModule;
+    const hasClaimsIntent = !isGarageModule && !isReportsModule && !isFleetModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
+    const isClaimsModule = !isFleetModule && (effectiveModule === "claims" || (!!claimId && !isGarageModule && !isReportsModule) || hasClaimsIntent) && !isGarageModule && !isReportsModule;
 
     let claimBlock = "";
     if (claimId && !isGarageModule) {
