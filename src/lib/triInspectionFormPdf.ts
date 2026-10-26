@@ -4,7 +4,12 @@
  */
 import whiteLogo from '@/assets/white-logo.png';
 import { supabase } from '@/integrations/supabase/client';
-import { resolvePrivateDocumentUrl } from '@/lib/accidentDocuments';
+import {
+  extractDocumentsStoragePath,
+  normalizeAccidentFilePath,
+  resolvePrivateDocumentUrl,
+} from '@/lib/accidentDocuments';
+import { checklistItemsWithoutSignature, findInspectionSignatureUrl } from '@/lib/inspectionSignature';
 import {
   assembleTriInspectionForm,
   canDownloadTriForm,
@@ -94,11 +99,93 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
       return;
     }
     const img = new Image();
-    if (/^https?:/i.test(src)) img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
   });
+}
+
+type LoadedSignature = { image: HTMLImageElement; revoke: () => void };
+
+async function imageFromBlob(blob: Blob): Promise<LoadedSignature | null> {
+  if (!blob || blob.size < 32) return null;
+  const url = URL.createObjectURL(blob);
+  const image = await loadImage(url);
+  if (!image) {
+    URL.revokeObjectURL(url);
+    return null;
+  }
+  return { image, revoke: () => URL.revokeObjectURL(url) };
+}
+
+/** Same stored file the inspection card shows. Bytes, not a cross-origin canvas image. */
+async function loadInspectionSignature(src: string): Promise<LoadedSignature | null> {
+  const value = src.trim();
+  if (!value) return null;
+  if (value.startsWith('data:image/')) {
+    const image = await loadImage(value);
+    return image ? { image, revoke: () => undefined } : null;
+  }
+  const path = normalizeAccidentFilePath(value) || extractDocumentsStoragePath(value);
+  if (path) {
+    const { data, error } = await supabase.storage.from('documents').download(path);
+    if (!error && data) {
+      const loaded = await imageFromBlob(data);
+      if (loaded) return loaded;
+    }
+  }
+  const signed = await resolvePrivateDocumentUrl(value);
+  const remote = signed || (/^https?:/i.test(value) ? value : '');
+  if (remote) {
+    try {
+      const response = await fetch(remote);
+      if (response.ok) {
+        const loaded = await imageFromBlob(await response.blob());
+        if (loaded) return loaded;
+      }
+    } catch {
+      /* the signed link is only a fallback for the stored file */
+    }
+  }
+  return null;
+}
+
+function signatureInk(image: HTMLImageElement): { sx: number; sy: number; sw: number; sh: number } | null {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx || !image.width || !image.height) return null;
+  ctx.drawImage(image, 0, 0);
+  let pixels: Uint8ClampedArray;
+  try {
+    pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  } catch {
+    return null;
+  }
+  let minX = canvas.width;
+  let minY = canvas.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < canvas.height; y += 1) {
+    for (let x = 0; x < canvas.width; x += 1) {
+      const i = (y * canvas.width + x) * 4;
+      const alpha = pixels[i + 3];
+      if (alpha < 24) continue;
+      if (pixels[i] > 186 && pixels[i + 1] > 186 && pixels[i + 2] > 186) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < minX || maxY < minY) return null;
+  const pad = 12;
+  const sx = Math.max(0, minX - pad);
+  const sy = Math.max(0, minY - pad);
+  const right = Math.min(canvas.width, maxX + 1 + pad);
+  const bottom = Math.min(canvas.height, maxY + 1 + pad);
+  return { sx, sy, sw: right - sx, sh: bottom - sy };
 }
 
 function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
@@ -198,13 +285,19 @@ export async function buildTriInspectionFormPdf(source: TriFormSource): Promise<
   const form = assembleTriInspectionForm(source);
   const [logo, signature] = await Promise.all([
     loadImage(whiteLogo),
-    form.signatureSrc ? loadImage(form.signatureSrc) : Promise.resolve(null),
+    form.signatureSrc ? loadInspectionSignature(form.signatureSrc) : Promise.resolve(null),
   ]);
   if (form.signatureSrc && !signature) {
     throw new Error('signature');
   }
+  const ink = signature ? signatureInk(signature.image) : null;
+  if (form.signatureSrc && !ink) {
+    signature?.revoke();
+    throw new Error('signature');
+  }
 
   const sheets: Sheet[] = [];
+  try {
   let sheet = openSheet(form, logo, 1);
   sheets.push(sheet);
   const right = PAGE_W - MARGIN;
@@ -269,26 +362,25 @@ export async function buildTriInspectionFormPdf(source: TriFormSource): Promise<
     sheet.y += 42;
   }
 
-  if (form.signatureSrc && signature) {
+  if (signature && ink) {
+    const boxH = 210;
+    need(boxH + 48);
     heading('חתימת קצין הרכב');
-    need(128);
     const top = sheet.y;
     sheet.ctx.strokeStyle = '#1e3a8a';
     sheet.ctx.lineWidth = 1.5;
-    sheet.ctx.strokeRect(MARGIN, top, innerW, 112);
-    const maxW = 240;
-    const maxH = 84;
-    const ratio = Math.min(maxW / Math.max(signature.width, 1), maxH / Math.max(signature.height, 1), 1);
-    const w = signature.width * ratio;
-    const h = signature.height * ratio;
-    sheet.ctx.drawImage(signature, right - w - 12, top + 14, w, h);
-    if (form.inspectorName) {
-      sheet.ctx.fillStyle = '#334155';
-      sheet.ctx.font = `600 12px ${FONT}`;
-      sheet.ctx.textAlign = 'right';
-      sheet.ctx.fillText(form.inspectorName, right - 12, top + 104);
-    }
-    sheet.y = top + 124;
+    sheet.ctx.strokeRect(MARGIN, top, innerW, boxH);
+    const maxW = innerW - 28;
+    const maxH = boxH - 28;
+    const ratio = Math.min(maxW / ink.sw, maxH / ink.sh);
+    const w = Math.max(1, ink.sw * ratio);
+    const h = Math.max(1, ink.sh * ratio);
+    const x = right - w - 14;
+    const y = top + Math.max(8, (boxH - h) / 2);
+    sheet.ctx.imageSmoothingEnabled = true;
+    sheet.ctx.imageSmoothingQuality = 'high';
+    sheet.ctx.drawImage(signature.image, ink.sx, ink.sy, ink.sw, ink.sh, x, y, w, h);
+    sheet.y = top + boxH + 16;
   }
 
   heading(form.notes.length ? `הערות הביקורת (${form.notes.length})` : 'הערות הביקורת');
@@ -340,6 +432,9 @@ export async function buildTriInspectionFormPdf(source: TriFormSource): Promise<
     heightPx: PAGE_H,
   }))));
   return new File([pdf], form.fileName, { type: 'application/pdf' });
+  } finally {
+    signature?.revoke();
+  }
 }
 
 function savePdfFile(file: File) {
@@ -353,22 +448,8 @@ function savePdfFile(file: File) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-const DIGITAL_SIGNATURE_ITEM = '__digital_signature__';
-
 function signatureFromItems(items: Array<{ item_name?: string | null; notes?: string | null }> | null | undefined): string {
-  const match = (items || []).find((item) => item?.item_name === DIGITAL_SIGNATURE_ITEM);
-  return String(match?.notes || '').trim();
-}
-
-function checklistWithoutSignature<T extends { item_name?: string | null }>(items: T[] | null | undefined): T[] {
-  return (items || []).filter((item) => item?.item_name !== DIGITAL_SIGNATURE_ITEM);
-}
-
-async function readableSignature(src: string): Promise<string> {
-  const value = src.trim();
-  if (!value || value.startsWith('data:image/')) return value;
-  const resolved = await resolvePrivateDocumentUrl(value);
-  return resolved || (/^https?:/i.test(value) ? value : '');
+  return findInspectionSignatureUrl(items) || '';
 }
 
 export async function downloadTriInspectionForm(inspectionId: string): Promise<File> {
@@ -390,7 +471,7 @@ export async function downloadTriInspectionForm(inspectionId: string): Promise<F
       : Promise.resolve({ data: null as { internal_number?: string | null; year?: number | string | null } | null }),
   ]);
 
-  const items = checklistWithoutSignature(itemsRes.data || []);
+  const items = checklistItemsWithoutSignature(itemsRes.data || []);
   const row = data as { signature_url?: string | null; notes?: string | null };
   let signatureSrc = signatureFromItems(itemsRes.data || []);
   if (!signatureSrc) signatureSrc = String(row.signature_url || '').trim();
@@ -398,7 +479,6 @@ export async function downloadTriInspectionForm(inspectionId: string): Promise<F
     const embedded = String(row.notes || '').match(/data:image\/(?:png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+/i);
     signatureSrc = embedded?.[0] || '';
   }
-  signatureSrc = await readableSignature(signatureSrc);
 
   const file = await buildTriInspectionFormPdf({
     plate: data.vehicle_plate || '',
