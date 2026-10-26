@@ -38,6 +38,8 @@ import { loadPaintCalcHistory, type PaintCalcRow } from './claimPaintCalc';
 import ClaimQuoteEditor, { type QuoteRecipient } from './ClaimQuoteEditor';
 import { listClaimQuotes, type ClaimQuoteRow } from './claimQuoteService';
 import { formatIls } from './claimQuoteModel';
+import CarPartPanel from './CarPartPanel';
+import { contextFromClaim } from './carPartBridge';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -930,6 +932,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [paintHistory, setPaintHistory] = useState<PaintCalcRow[]>([]);
   const [paintHistoryLoading, setPaintHistoryLoading] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState<{ quoteId: string | null } | null>(null);
+  const [carPartOpen, setCarPartOpen] = useState(false);
   const [claimQuotes, setClaimQuotes] = useState<ClaimQuoteRow[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -3829,6 +3832,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: '#fff' }} data-testid="claims-quote-btn" onClick={() => { setCardMore(false); setQuoteOpen({ quoteId: claimQuotes[0]?.id || null }); }}>💰 הצעת מחיר</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }} data-testid="claims-paint-calc-btn" onClick={() => { setCardMore(false); setPaintCalcInitial(null); setPaintCalcOpen(true); }}>🎨 מחשבון צבע והערכת עלויות</button>
+                <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#111' }} data-testid="claims-carpart-btn" onClick={() => { setCardMore(false); setCarPartOpen(true); }}>🔧 Car-Part – מכרז חלקי חילוף</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
@@ -6878,6 +6882,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             setQuoteOpen(null);
             if (changed) void loadCardData(cur.id);
           }}
+        />
+      )}
+
+      {carPartOpen && cur && (
+        <CarPartPanel
+          key={cur.id}
+          ctx={contextFromClaim(cur)}
+          files={docs.files}
+          uploadFile={(file, extra) => apiRef.current.staffUpload(cur.id, '', file, extra)}
+          updateMeta={async (fileId, patch) => apiRef.current.invokeDocs('update_doc_meta', { claim_id: cur.id, file_id: fileId, ...patch })}
+          logHistory={(action, note) => apiRef.current.logHistory(cur.id, action, note, 'carpart')}
+          onOpenFile={(fileId) => { const f = docs.files.find((x) => x.id === fileId); if (f) void openInCard(cur.id, f); }}
+          onDownloadFile={(fileId) => { const f = docs.files.find((x) => x.id === fileId); if (f) void downloadClaimFile(cur.id, f); }}
+          onSaved={() => { void loadCardData(cur.id); }}
+          onClose={() => setCarPartOpen(false)}
+          toast={toast}
         />
       )}
 
