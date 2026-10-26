@@ -230,6 +230,15 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     setDirty(!row || action !== 'none');
   };
 
+  /** Keep a newly added line on screen. The claims page itself does not scroll. */
+  useEffect(() => {
+    if (!focusId) return;
+    const timer = window.setTimeout(() => {
+      document.querySelector(`[data-line-id="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'start', inline: 'nearest' });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [focusId]);
+
   useEffect(() => {
     let live = true;
     (async () => {
@@ -658,11 +667,11 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     const fromPaint = w.source === 'paint_calc';
     const opts = [...new Set(workLabels.filter((l) => splitLibraryWorkCategory(l.category).domain === w.category).map((l) => l.label))];
     return (
-      <div className="cq-tr" key={w.id} data-testid="cq-work-row">
+      <div className="cq-tr" key={w.id} data-testid="cq-work-row" data-line-id={w.id}>
         <span className="cq-td cq-td-desc cq-a-desc" data-label="פירוט העבודה">
           <span className="cq-desc-line">
             <input className="cq-in" list={`cq-wl-${w.category}`} value={w.label} placeholder="למשל: פירוק והרכבת פגוש קדמי" aria-label="תיאור העבודה"
-              autoFocus={focusId === w.id} onChange={(e) => setWork(w.id, { label: e.target.value })} />
+              autoFocus={focusId === w.id && window.innerWidth > 640} onChange={(e) => setWork(w.id, { label: e.target.value })} />
             {/ימין|שמאל/.test(w.label) && (
               <>
                 <button type="button" className="cq-icon" title="החלף צד ימין/שמאל" onClick={() => setWork(w.id, { label: swapSide(w.label) })}>⇄</button>
@@ -674,7 +683,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
           <datalist id={`cq-wl-${w.category}`}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
           {fromPaint && <small className="cq-tag">🎨 ממחשבון הצבע · חומרי הצבע בשורה נפרדת בחלקים וחומרים</small>}
         </span>
-        <span className="cq-td cq-a-hours" data-label="שעות">
+        <span className="cq-td cq-a-hours" data-label="מספר שעות">
           {manual ? (
             <button type="button" className="cq-manual" data-testid="cq-price-hours" title="חזרה לחישוב לפי שעות"
               onClick={() => setWork(w.id, { pricing: 'hours', hourRate: data.hourRate })}>
@@ -689,8 +698,10 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
         </span>
         <span className="cq-td cq-a-price" data-label="מחיר לפני הנחה">
           {/* Typing here sets a manual amount for this line instead of hours × rate. */}
-          <NumField key="price" className="cq-in cq-in-money" value={pr.original} label="מחיר גלובלי" placeholder="0"
+          <NumField key="price" className="cq-in cq-in-money" value={pr.original} label="מחיר גלובלי" placeholder="הקלד מחיר"
             onValue={(v) => setWork(w.id, { pricing: 'global', globalPrice: v })} />
+          {!manual && w.hours > 0 && <small className="cq-note" data-testid="cq-hours-formula">{formatIls(w.hourRate)} × {w.hours} שעות</small>}
+          <small className="cq-price-hint">אפשר להקליד כאן מחיר ידני, בלי חישוב לפי שעות</small>
         </span>
         {discountCell(w.discountType, w.discountValue, pr.discount, (t, v) => setWork(w.id, { discountType: t, discountValue: v }))}
         <span className="cq-td cq-td-final cq-a-final" data-label="מחיר סופי"><b dir="ltr" data-testid="cq-final">{formatIls(pr.final)}</b></span>
@@ -705,17 +716,17 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     const pr = partPricing(p);
     const open = partOpen[p.id] ?? !!(p.sku || p.unitNet || p.invoiceDocId || !p.included);
     return (
-      <div className={`cq-tr-wrap${p.included ? '' : ' cq-excluded'}`} key={p.id} data-testid="cq-part-row">
+      <div className={`cq-tr-wrap${p.included ? '' : ' cq-excluded'}`} key={p.id} data-testid="cq-part-row" data-line-id={p.id}>
         <div className="cq-tr cq-tr-part">
           <span className="cq-td cq-td-desc cq-a-desc" data-label="שם החלק / החומר">
             <input className="cq-in" list={`cq-pn-${partGroupOf(p)}`} value={p.name} placeholder={partGroupOf(p) === MATERIALS_GROUP ? 'שם החומר' : 'שם החלק'} aria-label="שם החלק"
-              autoFocus={focusId === p.id} onChange={(e) => setPart(p.id, { name: e.target.value })} />
+              autoFocus={focusId === p.id && window.innerWidth > 640} onChange={(e) => setPart(p.id, { name: e.target.value })} />
           </span>
           <span className="cq-td cq-a-qty" data-label="כמות">
             <NumField value={p.qty} label="כמות" placeholder="1" onValue={(v) => setPart(p.id, { qty: v })} />
           </span>
           <span className="cq-td cq-a-unit" data-label="מחיר ליחידה">
-            <NumField className="cq-in cq-in-money" value={p.unitGross} label="ברוטו ליחידה" placeholder="0" onValue={(v) => setPart(p.id, { unitGross: v })} />
+            <NumField className="cq-in cq-in-money" value={p.unitGross} label="ברוטו ליחידה" placeholder="הקלד מחיר" onValue={(v) => setPart(p.id, { unitGross: v })} />
           </span>
           <span className="cq-td cq-td-calc cq-a-before" data-label="לפני הנחה"><b dir="ltr" data-testid="cq-before">{formatIls(pr.original)}</b></span>
           {discountCell(p.discountType, p.discountValue, pr.discount, (t, v) => setPart(p.id, { discountType: t, discountValue: v }))}
