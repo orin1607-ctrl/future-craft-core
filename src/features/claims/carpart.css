@@ -1,0 +1,66 @@
+/* Car-Part panel — uses the claims screen tokens (claims.css), with fallbacks. */
+.cp-backdrop {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(4, 9, 20, .82); backdrop-filter: blur(3px);
+  display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow: auto;
+}
+.cp-root {
+  --cp-bg: var(--bg, #04091a); --cp-bg2: var(--bg2, #071022); --cp-bg3: var(--bg3, #0a1830);
+  --cp-br: var(--br2, rgba(255,255,255,.13)); --cp-t: var(--t, #fff); --cp-t2: var(--t2, rgba(255,255,255,.68));
+  --cp-ac: var(--ac, #1d4ed8); --cp-gn: var(--gn2, #22c55e); --cp-or: #f59e0b;
+  width: 100%; max-width: 920px; background: var(--cp-bg); color: var(--cp-t);
+  border: 1px solid var(--cp-br); border-radius: 14px; overflow: hidden;
+  font-family: Heebo, "Arial Hebrew", Arial, sans-serif; font-size: 13px;
+}
+.cp-head {
+  display: flex; gap: 12px; justify-content: space-between; align-items: center;
+  padding: 12px 16px; background: var(--cp-bg2); border-bottom: 1px solid var(--cp-br);
+}
+.cp-brand { display: flex; gap: 14px; align-items: center; }
+.cp-title { font-size: 18px; font-weight: 800; }
+.cp-sub { font-size: 12px; color: var(--cp-t2); }
+.cp-close { background: transparent; border: 1px solid var(--cp-br); color: var(--cp-t); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; }
+.cp-body { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 20px; }
+.cp-card { background: var(--cp-bg2); border: 1px solid var(--cp-br); border-radius: 12px; padding: 12px 14px; }
+.cp-card h3 { margin: 0 0 6px; font-size: 14px; font-weight: 800; }
+.cp-claim { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px 16px; }
+.cp-kv { display: flex; flex-direction: column; min-width: 0; }
+.cp-kv span { font-size: 11px; color: var(--cp-t2); }
+.cp-kv b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-help { margin: 0 0 10px; color: var(--cp-t2); line-height: 1.55; }
+.cp-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cp-btn {
+  border: 1px solid var(--cp-br); background: var(--cp-bg3); color: var(--cp-t);
+  border-radius: 9px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer;
+}
+.cp-btn:disabled { opacity: .5; cursor: not-allowed; }
+.cp-pri { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-color: transparent; color: #111; }
+.cp-ok { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: transparent; color: #fff; }
+.cp-sm { padding: 5px 10px; font-size: 12px; }
+.cp-live { margin-top: 10px; color: var(--cp-gn); font-weight: 700; }
+.cp-warn { margin-top: 10px; color: var(--cp-or); font-weight: 700; }
+.cp-drop {
+  display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; text-align: center;
+  min-height: 96px; padding: 14px; margin-bottom: 10px; cursor: pointer;
+  border: 2px dashed var(--cp-br); border-radius: 12px; background: var(--cp-bg3);
+}
+.cp-drop span { color: var(--cp-t2); font-size: 12px; }
+.cp-drop.on { border-color: var(--cp-or); }
+.cp-drop.has { border-color: var(--cp-gn); border-style: solid; }
+.cp-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.cp-fg { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
+.cp-fg span { font-size: 11px; color: var(--cp-t2); }
+.cp-grow { flex: 1; }
+.cp-in { background: var(--cp-bg3); border: 1px solid var(--cp-br); border-radius: 7px; color: var(--cp-t); padding: 7px 9px; font: inherit; }
+.cp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cp-list li { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 8px 10px; border: 1px solid var(--cp-br); border-radius: 9px; background: var(--cp-bg3); }
+.cp-li-main { display: flex; flex-direction: column; min-width: 0; }
+.cp-li-main span { color: var(--cp-t2); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.cp-li-acts { display: flex; gap: 6px; flex-shrink: 0; }
+.cp-empty { color: var(--cp-t2); }
+@media (max-width: 720px) {
+  .cp-claim { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-brand .tb-logo { display: none; }
+  .cp-backdrop { padding: 0; }
+  .cp-root { border-radius: 0; min-height: 100%; }
+}
