@@ -196,33 +196,29 @@ function buildSummaryText(data: PaintCalcData): string {
 ${parts}`;
 }
 
-/** רישום פעולה לשדה row_data.paintCalcHistory של התביעה (ללא שינוי מבנה) */
+/** רישום פעולה בהיסטוריית התיק (claims_history — אותו מבנה כמו claimsService.appendHistory) */
 async function appendToClaimHistory(
   claimId: string,
   _companyName: string,
   entry: { action: string; note: string; by: string },
 ) {
   try {
-    const { data: claim } = await supabase
-      .from('claims' as never)
-      .select('id, row_data')
-      .eq('id', claimId)
-      .maybeSingle() as { data: { id: string; row_data: Record<string, unknown> } | null };
-    if (!claim) return;
-
-    const existing = (claim.row_data?.paintCalcHistory as unknown[]) || [];
-    const updated = [
-      ...existing,
-      { ...entry, at: new Date().toISOString() },
-    ];
-
-    await supabase
-      .from('claims' as never)
-      .update({
-        row_data: { ...claim.row_data, paintCalcHistory: updated },
-        updated_at: new Date().toISOString(),
-      } as never)
-      .eq('id', claimId);
+    const id = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    await supabase.from('claims_history' as never).insert({
+      id,
+      claim_id: claimId,
+      row_data: {
+        id,
+        claimId,
+        action: 'חישוב צבע נשמר',
+        note: entry.note,
+        type: entry.action,
+        valueBefore: '',
+        valueAfter: '',
+        by: entry.by,
+        at: new Date().toLocaleString('he-IL'),
+      },
+    } as never);
   } catch (e) {
     console.error('appendToClaimHistory error', e);
   }

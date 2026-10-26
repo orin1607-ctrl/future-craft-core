@@ -255,11 +255,13 @@ interface PaintCalculatorProps {
   actor: { id: string; full_name: string; company_name: string };
   onClose?: () => void;
   initialCalc?: PaintCalcRow | null;
+  /** Opened from a claim quote: saves the calculation officially, then hands it to the quote. */
+  onApplyToQuote?: (data: PaintCalcData, saved: { id: string; version: number } | null) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose, initialCalc }) => {
+const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose, initialCalc, onApplyToQuote }) => {
   const [customerName, setCustomerName] = useState('');
   const [carModel, setCarModel] = useState('');
   const [carGroup, setCarGroup] = useState<'A' | 'B' | 'C' | 'D'>('B');
@@ -519,6 +521,16 @@ const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose
     }
   };
 
+  const handleApplyToQuote = async () => {
+    if (!onApplyToQuote) return;
+    const calcData = runCalculate();
+    setSaveStatus('saving');
+    const saved = await savePaintCalcOfficial(claim.id, actor.company_name, calcData, actor.id, actor.full_name);
+    setSaveStatus(saved ? 'saved' : 'error');
+    if (saved) setHistory(prev => [saved, ...prev]);
+    onApplyToQuote(calcData, saved ? { id: saved.id, version: saved.version } : null);
+  };
+
   const partsForGroup = Object.keys(PARTS_DATA[carGroup] || {});
 
   return (
@@ -776,6 +788,11 @@ const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose
           </div>
 
           <div className="pc-section pc-actions">
+            {onApplyToQuote && (
+              <button type="button" className="pc-btn-pri pc-btn-lg" data-testid="pc-apply-to-quote" onClick={() => void handleApplyToQuote()} disabled={saveStatus === 'saving'}>
+                ➜ העבר להצעת המחיר (עבודה + חומרי צבע)
+              </button>
+            )}
             <button
               type="button"
               className="pc-btn-pri pc-btn-lg"

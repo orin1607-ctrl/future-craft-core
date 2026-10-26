@@ -185,9 +185,9 @@ const SCALE = 2; // 2x retina resolution for crisp Hebrew text & tables
 const MARGIN = 36;
 const FONT = 'Heebo, "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif';
 
-type PdfPage = { jpeg: Uint8Array; widthPx: number; heightPx: number };
+export type PdfPage = { jpeg: Uint8Array; widthPx: number; heightPx: number };
 
-function wrapJpegsAsPdf(pages: PdfPage[]): Uint8Array {
+export function wrapJpegsAsPdf(pages: PdfPage[]): Uint8Array {
   const pageW = 595;
   const encoder = new TextEncoder();
   const chunks: Uint8Array[] = [];
@@ -241,7 +241,7 @@ function wrapJpegsAsPdf(pages: PdfPage[]): Uint8Array {
   return out;
 }
 
-async function readyHebrewFont() {
+export async function readyHebrewFont() {
   try {
     if (typeof document !== 'undefined' && !document.getElementById('claims-heebo')) {
       const l = document.createElement('link');
@@ -263,7 +263,7 @@ async function readyHebrewFont() {
   }
 }
 
-function loadImageSafe(src: string): Promise<HTMLImageElement | null> {
+export function loadImageSafe(src: string): Promise<HTMLImageElement | null> {
   if (!src) return Promise.resolve(null);
   return new Promise((resolve) => {
     const img = new Image();
@@ -276,7 +276,7 @@ function loadImageSafe(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+export function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   const raw = String(text || '').replace(/\s+/g, ' ').trim();
   if (!raw) return ['—'];
   const words = raw.split(' ');
@@ -295,7 +295,7 @@ function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxW: number
   return out.length ? out : ['—'];
 }
 
-function drawRoundedRect(
+export function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -734,7 +734,7 @@ export async function renderGarageQuoteCanvases(
   return canvases;
 }
 
-function canvasToJpegBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+export function canvasToJpegBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (b) => {
