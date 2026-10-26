@@ -254,20 +254,30 @@ async function main() {
   await dl.saveAs(pdfPath);
   const pdfBuf = fs.readFileSync(pdfPath);
   check('PDF generated', pdfBuf.subarray(0, 5).toString() === '%PDF-' && pdfBuf.length > 20000, `${pdfBuf.length} bytes, ${dl.suggestedFilename()}`);
-  const pdfjsPng = await page.evaluate(async (b64) => {
-    const pdfjs = await import('/node_modules/pdfjs-dist/legacy/build/pdf.mjs');
-    pdfjs.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs';
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
-    const pg = await doc.getPage(1);
-    const vp = pg.getViewport({ scale: 1.6 });
-    const c = document.createElement('canvas');
-    c.width = vp.width; c.height = vp.height;
-    await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, canvas: c }).promise;
-    return { pages: doc.numPages, url: c.toDataURL('image/png') };
-  }, pdfBuf.toString('base64'));
-  fs.writeFileSync(path.join(OUT, '06-quote-pdf-page1.png'), Buffer.from(pdfjsPng.url.split(',')[1], 'base64'));
-  check('PDF readable', pdfjsPng.pages >= 1, `${pdfjsPng.pages} page(s)`);
+  // Page-1 preview needs pdf.js from a local dev server; on the published site the PDF is read in Node instead.
+  const local = /127\.0\.0\.1|localhost/.test(BASE);
+  let pdfPages = 0;
+  if (local) {
+    const pdfjsPng = await page.evaluate(async (b64) => {
+      const pdfjs = await import('/node_modules/pdfjs-dist/legacy/build/pdf.mjs');
+      pdfjs.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs';
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false }).promise;
+      const pg = await doc.getPage(1);
+      const vp = pg.getViewport({ scale: 1.6 });
+      const c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, canvas: c }).promise;
+      return { pages: doc.numPages, url: c.toDataURL('image/png') };
+    }, pdfBuf.toString('base64'));
+    fs.writeFileSync(path.join(OUT, '06-quote-pdf-page1.png'), Buffer.from(pdfjsPng.url.split(',')[1], 'base64'));
+    pdfPages = pdfjsPng.pages;
+  } else {
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuf), isEvalSupported: false }).promise;
+    pdfPages = doc.numPages;
+  }
+  check('PDF readable', pdfPages >= 1, `${pdfPages} page(s)`);
   await shot('07-after-pdf');
 
   // 12. WhatsApp: opens wa.me with a prepared message, logged as not confirmed
