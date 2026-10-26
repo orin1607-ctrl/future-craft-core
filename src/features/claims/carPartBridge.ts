@@ -5,6 +5,7 @@
  * Car-Part has no public API and its login cookie has no SameSite=None, so it cannot run logged-in
  * inside an iframe of our site. The bridge therefore:
  *  - opens Car-Part in a named side window (the user's own subscription / browser session),
+ *  - detects mobile vs desktop devices and opens either desktop or mobile site accordingly,
  *  - remembers which claim the window was opened from (localStorage, no passwords stored),
  *  - saves the tender PDF the user produced in Car-Part into that claim's documents through the
  *    existing claims-docs `staff_upload`, tagged with claim number + vehicle plate.
@@ -12,10 +13,14 @@
  */
 
 export const CARPART_ORIGIN = 'https://car-part.co.il';
-/** Customer "find parts" screen — Car-Part's own login page appears first when not signed in. */
+/** Desktop "find parts" screen */
 export const CARPART_FIND_PARTS_URL = `${CARPART_ORIGIN}/csm/client/requestpart/findparts.jsp`;
-/** Customer "my requests" screen — where tender answers and print reports live. */
+/** Desktop "my requests" screen — where tender answers and print reports live. */
 export const CARPART_REQUESTS_URL = `${CARPART_ORIGIN}/csm/client/requestpart/requestedPartsStatus.jsp`;
+/** Mobile site entrance — Car-Part dedicated mobile view */
+export const CARPART_MOBILE_URL = `${CARPART_ORIGIN}/m/`;
+/** Mobile search / parts screen */
+export const CARPART_MOBILE_SEARCH_URL = `${CARPART_ORIGIN}/m/search_car.jsp`;
 export const CARPART_HOME_URL = `${CARPART_ORIGIN}/`;
 
 /** Marker kept in doc_meta.staff_title / staff_note so Car-Part documents can be listed per claim. */
@@ -48,6 +53,26 @@ export type CarPartFileLike = {
 
 function clean(v: unknown) {
   return String(v ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/** Check if current client is mobile browser */
+export function isCarPartMobileClient(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) || window.innerWidth <= 768;
+}
+
+/**
+ * Returns the best URL for opening Car-Part based on device type:
+ * Desktop -> full CRM client/findparts.jsp
+ * Mobile -> dedicated /m/ interface
+ */
+export function getCarPartTenderUrl(isMobile = isCarPartMobileClient()): string {
+  return isMobile ? CARPART_MOBILE_URL : CARPART_FIND_PARTS_URL;
+}
+
+export function getCarPartRequestsUrl(isMobile = isCarPartMobileClient()): string {
+  return isMobile ? CARPART_MOBILE_URL : CARPART_REQUESTS_URL;
 }
 
 /** Israeli plates are stored with or without dashes — keep digits only for matching / file names. */
@@ -183,8 +208,15 @@ export function carPartWindowName(claimId: string) {
   return `carpart_${clean(claimId).replace(/[^A-Za-z0-9_]/g, '_') || 'claim'}`;
 }
 
-/** Side-by-side window features: Car-Part on the left half, the claim stays visible on the right. */
-export function carPartWindowFeatures(screenW: number, screenH: number) {
+/**
+ * Window features:
+ * - On phone/mobile: do not pass tiny popup bounds that break browser mobile tabs; open natural full tab/window.
+ * - On desktop: side-by-side window positioned nicely on the screen.
+ */
+export function carPartWindowFeatures(screenW: number, screenH: number, isMobile = isCarPartMobileClient()): string {
+  if (isMobile || (screenW && screenW <= 768)) {
+    return '';
+  }
   const w = Math.max(900, Math.round((screenW || 1400) * 0.6));
   const h = Math.max(700, Math.round((screenH || 900) * 0.9));
   return `popup=yes,width=${w},height=${h},left=0,top=0,resizable=yes,scrollbars=yes`;

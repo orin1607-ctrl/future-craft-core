@@ -39,6 +39,8 @@ import ClaimQuoteEditor, { type QuoteRecipient } from './ClaimQuoteEditor';
 import { listClaimQuotes, type ClaimQuoteRow } from './claimQuoteService';
 import { formatIls } from './claimQuoteModel';
 import CarPartPanel from './CarPartPanel';
+import DocumentViewerModal from './DocumentViewerModal';
+import { shareDocToEmail, shareDocToWhatsApp, type DocShareFile } from './claimDocShare';
 import { contextFromClaim } from './carPartBridge';
 import './claims.css';
 
@@ -1071,6 +1073,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
+  const [viewerModalFile, setViewerModalFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [previewList, setPreviewList] = useState<ClaimFile[]>([]);
   const [narrowList, setNarrowList] = useState(false);
   const [phoneNarrow, setPhoneNarrow] = useState(false);
@@ -1892,7 +1895,57 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
     if (!r.url) { toast('לא ניתן לפתוח את הקובץ', 'err'); return; }
     if (list && list.length) setPreviewList(list);
-    setPreviewFile({ id: f.id, url: String(r.url), name: f.original_name, mime: f.mime_type || '' });
+    const item = { id: f.id, url: String(r.url), name: f.original_name, mime: f.mime_type || '' };
+    setPreviewFile(item);
+    setViewerModalFile(item);
+  };
+
+  const shareFileWhatsApp = async (claim: ClaimRecord, f: ClaimFile) => {
+    try {
+      const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claim.id, file_id: f.id });
+      const docShareFile: DocShareFile = {
+        id: f.id,
+        name: f.original_name,
+        url: String(r?.url || ''),
+        mime: f.mime_type,
+      };
+      const res = await shareDocToWhatsApp(
+        docShareFile,
+        contextFromClaim(claim),
+        '',
+        (msg) => toast(msg, 'inf')
+      );
+      if (res.method === 'native') toast('שותף בהצלחה לוואטסאפ', 'ok');
+      else if (res.method === 'wa_link') toast('נפתח WhatsApp', 'ok');
+    } catch {
+      toast('השיתוף לוואטסאפ נכשל', 'err');
+    }
+  };
+
+  const shareFileEmail = async (claim: ClaimRecord, f: ClaimFile) => {
+    try {
+      const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claim.id, file_id: f.id });
+      const docShareFile: DocShareFile = {
+        id: f.id,
+        name: f.original_name,
+        url: String(r?.url || ''),
+        mime: f.mime_type,
+      };
+      const res = await shareDocToEmail(docShareFile, contextFromClaim(claim), {
+        onInternalCompose: (seed) => {
+          void openSendModal('draft', { to: seed.to, subject: seed.subject, body: seed.body, file_ids: seed.file_ids });
+        },
+      });
+      if (res.method === 'internal') {
+        toast('נפתח עורך המייל עם הקובץ המצורף', 'ok');
+      } else if (res.method === 'native') {
+        toast('שותף בהצלחה לאימייל', 'ok');
+      } else {
+        toast('נפתחה תוכנת האימייל', 'ok');
+      }
+    } catch {
+      toast('השליחה לאימייל נכשלה', 'err');
+    }
   };
 
   const downloadClaimFile = async (claimId: string, f: ClaimFile) => {
@@ -2023,7 +2076,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     );
   };
 
-  const previewIdx = previewFile ? previewList.findIndex((x) => x.id === previewFile.id) : -1;
+  const activeFile = viewerModalFile || previewFile;
+  const previewIdx = activeFile ? previewList.findIndex((x) => x.id === activeFile.id) : -1;
   const previewNav = previewList.length > 1 && previewIdx >= 0 ? {
     pos: `${previewIdx + 1} / ${previewList.length}`,
     canPrev: previewIdx > 0,
@@ -4228,6 +4282,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onPreview={(f, list) => void openInCard(cur.id, f as ClaimFile, list as ClaimFile[])}
                     onDownload={(f) => void downloadClaimFile(cur.id, f as ClaimFile)}
                     onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
+                    onWhatsApp={(f) => void shareFileWhatsApp(cur, f as ClaimFile)}
+                    onEmail={(f) => void shareFileEmail(cur, f as ClaimFile)}
                     onShareTopic={(ids) => openSecureShare(ids)}
                     onRename={(f, title) => void renameClaimDoc(f as ClaimFile, title)}
                     onPrepareRead={(f) => readClaimDocNow(cur.id, f as ClaimFile)}
@@ -6885,6 +6941,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         />
       )}
 
+      {viewerModalFile && cur && (
+        <DocumentViewerModal
+          file={viewerModalFile}
+          ctx={contextFromClaim(cur)}
+          onClose={() => setViewerModalFile(null)}
+          pos={previewNav.pos}
+          canPrev={previewNav.canPrev}
+          canNext={previewNav.canNext}
+          onPrev={previewNav.onPrev}
+          onNext={previewNav.onNext}
+          onInternalEmail={(seed) => {
+            void openSendModal('draft', { to: seed.to, subject: seed.subject, body: seed.body, file_ids: seed.file_ids });
+          }}
+          toast={toast}
+        />
+      )}
+
       {carPartOpen && cur && (
         <CarPartPanel
           key={cur.id}
@@ -6895,6 +6968,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           logHistory={(action, note) => apiRef.current.logHistory(cur.id, action, note, 'carpart')}
           onOpenFile={(fileId) => { const f = docs.files.find((x) => x.id === fileId); if (f) void openInCard(cur.id, f); }}
           onDownloadFile={(fileId) => { const f = docs.files.find((x) => x.id === fileId); if (f) void downloadClaimFile(cur.id, f); }}
+          getFileSignedUrl={async (fileId) => {
+            const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: fileId });
+            return String(r?.url || '');
+          }}
+          onInternalEmail={(seed) => {
+            void openSendModal('draft', { to: seed.to, subject: seed.subject, body: seed.body, file_ids: seed.file_ids });
+          }}
           onSaved={() => { void loadCardData(cur.id); }}
           onClose={() => setCarPartOpen(false)}
           toast={toast}
