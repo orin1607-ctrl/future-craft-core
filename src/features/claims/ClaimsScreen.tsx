@@ -27,7 +27,7 @@ import GaragePhotosGallery from './GaragePhotosGallery';
 import { isGaragePhoto, type GarageAssignment } from './claimGarage';
 import { sharePublicUrl } from './claimSecureShare';
 import { downloadRemoteFile } from './claimFileDownload';
-import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
+import { contactRoleLabel, emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
 import { claimContextFromRecord, chatBoundClaim, chatClaimOnOpen } from './claimsAiModel';
 import { documentReadCaption } from './claimDocumentRead';
 import { documentDisplayTitle, documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
@@ -35,6 +35,9 @@ import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
 import { ClaimsAiWorkspace, type ClaimsAiDocumentActions } from './ClaimsAiWorkspace';
 import PaintCalculator from './PaintCalculator';
 import { loadPaintCalcHistory, type PaintCalcRow } from './claimPaintCalc';
+import ClaimQuoteEditor, { type QuoteRecipient } from './ClaimQuoteEditor';
+import { listClaimQuotes, type ClaimQuoteRow } from './claimQuoteService';
+import { formatIls } from './claimQuoteModel';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -814,8 +817,26 @@ function invoiceFiles(files: ClaimFile[]) {
   return files.filter((f) => f.doc_kind === 'garage_invoice');
 }
 
+/** Who a quote can go to: the claim's own fields first, then linked contacts. Entries without email or phone are skipped. */
+function quoteRecipients(c: ClaimRecord, contacts: ClaimContact[]): QuoteRecipient[] {
+  const out: QuoteRecipient[] = [
+    { key: 'client', label: 'לקוח', name: c.clientName || '', email: c.clientEmail || '', phone: c.clientPhone || '' },
+    { key: 'insurer', label: 'חברת ביטוח', name: c.insRepName || c.insCompany || '', email: c.insEmail || '', phone: c.insRepPhone || '' },
+    { key: 'surveyor', label: 'שמאי', name: c.surveyor || '', email: c.survEmail || '', phone: c.survPhone || '' },
+    ...contacts.map((ct) => ({
+      key: `contact-${ct.id}`,
+      label: contactRoleLabel(ct.role),
+      name: ct.full_name,
+      email: ct.channels.find((ch) => ch.kind === 'email' && ch.value)?.value || '',
+      phone: ct.channels.find((ch) => ch.kind === 'whatsapp' && ch.value)?.value || ct.channels.find((ch) => ch.kind === 'phone' && ch.value)?.value || '',
+    })),
+  ];
+  return out.filter((r) => r.email || r.phone);
+}
+
 const CARD_TAB_GROUPS: Array<{ key: string; label: string; shortLabel?: string; tabs: Array<{ key: string; label: string }> }> = [
   { key: 'info', label: 'מידע', tabs: [{ key: 'claim', label: 'תביעה' }, { key: 'client', label: 'לקוח' }, { key: 'vehicle', label: 'רכב' }] },
+  { key: 'quote', label: 'הצעות מחיר', tabs: [{ key: 'quotes', label: 'הצעות מחיר' }] },
   { key: 'docs', label: 'גלריית מסמכים ותמונות', shortLabel: 'גלריה', tabs: [{ key: 'docs', label: 'כל הגלריה' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
   { key: 'mail', label: 'דואר ותקשורת', tabs: [{ key: 'gin', label: 'התכתבויות' }, { key: 'mailfu', label: 'מעקב מייל' }] },
   { key: 'work', label: 'טיפול ומעקב', tabs: [{ key: 'treat', label: 'טיפול' }, { key: 'tasks', label: 'משימות' }, { key: 'rems', label: 'תזכורות' }] },
@@ -908,6 +929,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [paintCalcInitial, setPaintCalcInitial] = useState<PaintCalcRow | null>(null);
   const [paintHistory, setPaintHistory] = useState<PaintCalcRow[]>([]);
   const [paintHistoryLoading, setPaintHistoryLoading] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState<{ quoteId: string | null } | null>(null);
+  const [claimQuotes, setClaimQuotes] = useState<ClaimQuoteRow[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [gHits, setGHits] = useState<ClaimRecord[]>([]);
@@ -1461,6 +1484,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setDocsReady(true);
       }).catch(() => { if (live()) { setDocs({ requests: [], files: [] }); setDocsReady(true); } }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
+      listClaimQuotes(id).then((q) => { if (live()) setClaimQuotes(q); }).catch(() => { if (live()) setClaimQuotes([]); }),
       loadPaintCalcHistory(id).then((ph) => { if (live()) { setPaintHistory(ph); setPaintHistoryLoading(false); } }).catch(() => { if (live()) { setPaintHistory([]); setPaintHistoryLoading(false); } }),
       apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
       apiRef.current.invokeDocs('get_garage_assignment', { claim_id: id }).then((g) => {
@@ -3803,6 +3827,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
+                <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: '#fff' }} data-testid="claims-quote-btn" onClick={() => { setCardMore(false); setQuoteOpen({ quoteId: claimQuotes[0]?.id || null }); }}>💰 הצעת מחיר</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }} data-testid="claims-paint-calc-btn" onClick={() => { setCardMore(false); setPaintCalcInitial(null); setPaintCalcOpen(true); }}>🎨 מחשבון צבע והערכת עלויות</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
@@ -5113,6 +5138,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       ))}
                     </div>
                   )
+              )}
+              {cardTab === 'quotes' && (
+                <div data-testid="claim-quotes-tab">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>💰 הצעות מחיר בתיק</div>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="claim-quote-new" onClick={() => setQuoteOpen({ quoteId: null })}>+ הצעת מחיר חדשה</button>
+                  </div>
+                  {claimQuotes.length === 0 ? (
+                    <div className="empty">אין עדיין הצעות מחיר בתיק זה.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {claimQuotes.map((q) => (
+                        <div key={q.id} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 8, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>הצעת מחיר {q.quote_no} · גרסה {q.version || '—'}</div>
+                            <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>
+                              עודכן ע"י {q.updated_by_name || q.created_by_name || 'משתמש'} · {new Date(q.updated_at).toLocaleString('he-IL')}
+                              {(q.data?.documents?.length || 0) > 0 ? ` · ${q.data.documents.length} קבצי PDF בגלריה` : ''}
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>סה"כ כולל מע"מ: {formatIls(Number(q.total_amount || 0))}</div>
+                          </div>
+                          <button type="button" className="btn btn-g btn-sm" onClick={() => setQuoteOpen({ quoteId: q.id })}>פתח הצעה</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               {cardTab === 'paint_history' && (
                 <div data-testid="claim-paint-calc-history">
@@ -6800,6 +6852,29 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             />
           </div>
         </div>
+      )}
+
+      {quoteOpen && cur && (
+        <ClaimQuoteEditor
+          key={`${cur.id}-${quoteOpen.quoteId || 'new'}`}
+          claim={cur}
+          actor={{ id: actor.id, full_name: actor.full_name || 'משתמש', company_name: cur.company_name || companyName }}
+          recipients={quoteRecipients(cur, claimContacts)}
+          initialQuoteId={quoteOpen.quoteId}
+          uploadFile={(file, extra) => apiRef.current.staffUpload(cur.id, '', file, extra)}
+          getSignedUrl={async (fileId) => String(((await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: fileId })) as { url?: string }).url || '')}
+          logHistory={(action, note) => apiRef.current.logHistory(cur.id, action, note, 'quote')}
+          onOpenEmail={(seed) => {
+            setQuoteOpen(null);
+            void loadCardData(cur.id);
+            void openSendModal('draft', seed);
+          }}
+          toast={toast}
+          onClose={(changed) => {
+            setQuoteOpen(null);
+            if (changed) void loadCardData(cur.id);
+          }}
+        />
       )}
 
       <div className="toasts">

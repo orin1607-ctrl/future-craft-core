@@ -56,7 +56,14 @@ function isReadableImage(mime: string, fileName: string) {
 }
 
 async function loadPdfjs() {
-  return import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  // In a real browser pdf.js needs its worker URL ("No GlobalWorkerOptions.workerSrc specified" otherwise).
+  // Node and jsdom have no Worker and keep working without it.
+  if (typeof Worker !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
+    const { default: workerUrl } = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
+    pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  }
+  return pdfjs;
 }
 
 async function readPdfText(bytes: Uint8Array) {
@@ -310,6 +317,33 @@ export async function readClaimDocument(input: {
   } catch {
     return unreadableDocumentRead(claimId, sha, 'לא ניתן לקרוא את הקובץ. לא נוצרו פרטים משוערים.');
   }
+}
+
+/** Raw text of a PDF or image (PDF text layer first, OCR fallback). Used to read parts invoices into a quote. */
+export async function extractClaimDocumentText(input: {
+  bytes: Uint8Array;
+  mimeType?: string;
+  fileName?: string;
+}): Promise<{ text: string; source: 'pdf_text' | 'ocr' | 'none'; confidence: number }> {
+  const mime = String(input.mimeType || '');
+  const fileName = String(input.fileName || '');
+  try {
+    if (isPdf(mime, fileName)) {
+      const pdfText = await readPdfText(input.bytes);
+      if (normalizeDocText(pdfText).length >= MIN_TEXT_CHARS) return { text: pdfText, source: 'pdf_text', confidence: 100 };
+      const pages = await renderPdfPages(input.bytes);
+      if (!pages.length) return { text: '', source: 'none', confidence: 0 };
+      const found = await recognizeClaimImagesDetailed(pages, 'image/png');
+      return { text: found.text, source: 'ocr', confidence: found.confidence };
+    }
+    if (isReadableImage(mime, fileName)) {
+      const found = await recognizeClaimImagesDetailed([input.bytes], mime || 'image/jpeg');
+      return { text: found.text, source: 'ocr', confidence: found.confidence };
+    }
+  } catch {
+    /* unreadable → empty text, the user fills the lines by hand */
+  }
+  return { text: '', source: 'none', confidence: 0 };
 }
 
 export function mergeDocumentRead(
