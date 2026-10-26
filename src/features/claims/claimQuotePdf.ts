@@ -287,7 +287,10 @@ export async function renderClaimQuoteCanvases(d: QuoteData, meta: QuotePdfMeta)
     const y = p.y + 34 + i * 21;
     if (strong) drawRoundedRect(p.ctx, MARGIN + 6, y - 11, sw - 12, 22, 6, INK);
     text(p.ctx, k, MARGIN + sw - 14, y, { size: strong ? 12.5 : 11, weight: strong ? 800 : 600, color: strong ? '#ffffff' : INK });
+    // Amounts are drawn left-to-right so a minus sign stays in front of the number.
+    p.ctx.direction = 'ltr';
     text(p.ctx, v < 0 ? `-${formatIls(-v)}` : formatIls(v), MARGIN + 14, y, { size: strong ? 13 : 11, weight: strong ? 900 : 700, color: strong ? '#ffffff' : INK, align: 'left' });
+    p.ctx.direction = 'rtl';
   });
   // Notes beside the summary
   const notesX = right;

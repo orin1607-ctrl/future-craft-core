@@ -116,7 +116,7 @@ async function main() {
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const bodyRow = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]').first();
   await bodyRow.locator('input[aria-label="שעות"]').fill('2.5');
-  check('hours pricing 2.5 × 380 = 950', (await bodyRow.locator('.cq-price').innerText()).includes('950.00'));
+  check('hours pricing 2.5 × 380 = 950', (await bodyRow.locator('[data-testid="cq-breakdown"]').innerText()).includes('950.00'));
   // Same job on the other side
   await bodyRow.locator('button[title="הוסף את אותה עבודה בצד השני"]').click();
   const bodyRows = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]');
@@ -135,7 +135,7 @@ async function main() {
   await alignRow.locator('input[aria-label="מחיר גלובלי"]').fill('250');
   await alignRow.locator('select[aria-label="סוג הנחה"]').selectOption('amount');
   await alignRow.locator('input[aria-label="ערך הנחה"]').fill('50');
-  check('global price with ₪50 discount shows original and final', /250\.00[\s\S]*200\.00/.test(await alignRow.locator('.cq-price').innerText()));
+  check('global price with ₪50 discount shows original and final', /250\.00[\s\S]*200\.00/.test(await alignRow.locator('[data-testid="cq-breakdown"]').innerText()));
 
   // 5. Free-text mechanics job (saved to library), global 1000 with 10% discount
   await page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-add-item"]').first().click();
@@ -153,7 +153,7 @@ async function main() {
     const r = partRows.nth(i);
     await r.locator('input[aria-label="שם החלק"]').fill(v.name);
     if (v.sku) await r.locator('input[aria-label="מק״ט"]').fill(v.sku);
-    const nums = r.locator('.cq-f input');
+    const nums = r.locator('input[aria-label="כמות"], input[aria-label="ברוטו ליחידה"], input[aria-label="נטו לספק"]');
     await nums.nth(0).fill(String(v.qty));
     await nums.nth(1).fill(String(v.gross));
     await nums.nth(2).fill(String(v.net));
@@ -229,12 +229,12 @@ async function main() {
   check('invoice read: SKU match shows price change', /שינוי:[\s\S]*1200→1450/.test(revText), revText.replace(/\s+/g, ' ').slice(0, 200));
   check('invoice read: unknown part offered as new', revText.includes('חלק חדש'));
   await shot('05-invoice-review');
-  const before1 = await partRows.nth(0).locator('.cq-f input').nth(1).inputValue();
+  const before1 = await partRows.nth(0).locator('input[aria-label="כמות"], input[aria-label="ברוטו ליחידה"], input[aria-label="נטו לספק"]').nth(1).inputValue();
   check('nothing changed before approval', before1 === '1200', before1);
   await review.locator('.cq-rev-changed input[type="checkbox"]').check();
   await page.locator('[data-testid="cq-invoice-approve"]').click();
   check('approved change applied (gross 1450) and linked to invoice',
-    (await partRows.nth(0).locator('.cq-f input').nth(1).inputValue()) === '1450' && (await partRows.nth(0).innerText()).includes('מקושר לחשבונית'));
+    (await partRows.nth(0).locator('input[aria-label="כמות"], input[aria-label="ברוטו ליחידה"], input[aria-label="נטו לספק"]').nth(1).inputValue()) === '1450' && (await partRows.nth(0).innerText()).includes('מקושר לחשבונית'));
   const partNames = await partRows.locator('input[aria-label="שם החלק"]').evaluateAll((els) => els.map((e) => e.value));
   check('invoice header lines are not added as parts', !partNames.some((n) => /INVOICE|Run /i.test(n)) && partNames.includes('Headlamp right'), partNames.join(', '));
   const partsAfter = await partRows.count();
