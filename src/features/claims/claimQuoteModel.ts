@@ -336,6 +336,23 @@ export function workGroupsOf(d: Pick<QuoteData, 'works' | 'workGroups'>, domain:
 
 // ─── Math ─────────────────────────────────────────────────────────────────────
 
+/**
+ * What a price / hours box keeps while the user types: digits and one decimal point.
+ * A comma is taken as the decimal point (Hebrew phone keyboards), so "2,5" stays 2.5 instead of 25.
+ * A leading "0" and a trailing "." are kept, so "0.5" and "2." can be typed.
+ */
+export function cleanNumericInput(raw: string) {
+  const s = String(raw ?? '').replace(/,/g, '.').replace(/[^\d.]/g, '');
+  const dot = s.indexOf('.');
+  return dot < 0 ? s : `${s.slice(0, dot + 1)}${s.slice(dot + 1).replace(/\./g, '')}`;
+}
+
+/** The number for calculations; an empty or half-typed box ("", ".") counts as 0. */
+export function parseNumericInput(clean: string) {
+  const v = Number(clean === '.' ? '' : clean);
+  return Number.isFinite(v) ? v : 0;
+}
+
 export function round2(n: number) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }

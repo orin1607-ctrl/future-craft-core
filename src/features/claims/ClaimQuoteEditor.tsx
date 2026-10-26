@@ -21,6 +21,8 @@ import {
   PARTS_GROUP,
   categoryLabel,
   claimSnapshotOf,
+  cleanNumericInput,
+  parseNumericInput,
   customDomainKey,
   invoiceClaimCheck,
   libraryWorkCategory,
@@ -114,10 +116,43 @@ type PaintNotice = {
   auto: boolean;
 };
 
-const n = (v: string) => {
-  const x = Number(String(v).replace(/,/g, ''));
-  return Number.isFinite(x) ? x : 0;
-};
+/**
+ * Price / hours box. Keeps exactly what is typed (so "0.5", "2." and "2,5" work on every browser and
+ * phone keyboard) and reports the number on each keystroke. Shows the stored value again when not editing.
+ */
+function NumField({ value, onValue, className = 'cq-in cq-in-num', label, placeholder }: {
+  value: number;
+  onValue: (v: number) => void;
+  className?: string;
+  label?: string;
+  placeholder?: string;
+}) {
+  const shown = (v: number) => (v ? String(v) : '');
+  const [raw, setRaw] = useState(() => shown(value));
+  const editing = useRef(false);
+  useEffect(() => {
+    if (!editing.current) setRaw(shown(value));
+  }, [value]);
+  return (
+    <input
+      className={className}
+      type="text"
+      inputMode="decimal"
+      dir="ltr"
+      autoComplete="off"
+      value={raw}
+      placeholder={placeholder}
+      aria-label={label}
+      onFocus={() => { editing.current = true; }}
+      onBlur={() => { editing.current = false; setRaw(shown(parseNumericInput(cleanNumericInput(raw)))); }}
+      onChange={(e) => {
+        const clean = cleanNumericInput(e.target.value);
+        setRaw(clean);
+        onValue(parseNumericInput(clean));
+      }}
+    />
+  );
+}
 
 function DiscountInputs({ type, value, onChange }: { type: DiscountType; value: number; onChange: (type: DiscountType, value: number) => void }) {
   return (
@@ -128,8 +163,7 @@ function DiscountInputs({ type, value, onChange }: { type: DiscountType; value: 
         <option value="amount">הנחה ₪</option>
       </select>
       {type !== 'none' && (
-        <input className="cq-in cq-in-num" type="number" min={0} step="any" inputMode="decimal" value={value || ''} aria-label="ערך הנחה"
-          onChange={(e) => onChange(type, n(e.target.value))} />
+        <NumField value={value} label="ערך הנחה" onValue={(v) => onChange(type, v)} />
       )}
     </span>
   );
@@ -632,22 +666,20 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
         </div>
         <div className="cq-row-fields">
           <span className="cq-seg" role="group" aria-label="שיטת תמחור">
-            <button type="button" className={w.pricing === 'hours' ? 'on' : ''} onClick={() => setWork(w.id, { pricing: 'hours' })}>שעות</button>
-            <button type="button" className={w.pricing === 'global' ? 'on' : ''} onClick={() => setWork(w.id, { pricing: 'global' })}>גלובלי</button>
+            <button type="button" className={w.pricing === 'hours' ? 'on' : ''} aria-pressed={w.pricing === 'hours'} data-testid="cq-price-hours" onClick={() => setWork(w.id, { pricing: 'hours' })}>לפי שעות</button>
+            <button type="button" className={w.pricing === 'global' ? 'on' : ''} aria-pressed={w.pricing === 'global'} data-testid="cq-price-fixed"
+              onClick={() => setWork(w.id, { pricing: 'global', ...(!w.globalPrice && w.hours && w.hourRate ? { globalPrice: Math.round(w.hours * w.hourRate * 100) / 100 } : {}) })}>סכום קבוע</button>
           </span>
           {w.pricing === 'hours' ? (
             <span className="cq-hours">
-              <input className="cq-in cq-in-num" type="number" min={0} step="0.25" inputMode="decimal" value={w.hours || ''} placeholder="שעות" aria-label="שעות"
-                onChange={(e) => setWork(w.id, { hours: n(e.target.value) })} />
+              <NumField key="hours" value={w.hours} label="שעות" placeholder="שעות" onValue={(v) => setWork(w.id, { hours: v })} />
               <span className="cq-x">×</span>
-              <input className="cq-in cq-in-num" type="number" min={0} step="any" inputMode="decimal" value={w.hourRate || ''} aria-label="מחיר שעה"
-                onChange={(e) => setWork(w.id, { hourRate: n(e.target.value) })} />
-              <span className="cq-unit">₪/ש׳</span>
+              <NumField key="rate" value={w.hourRate} label="מחיר שעה" placeholder="מחיר לשעה" onValue={(v) => setWork(w.id, { hourRate: v })} />
+              <span className="cq-unit">₪/ש׳ =</span>
             </span>
           ) : (
             <span className="cq-hours">
-              <input className="cq-in cq-in-money" type="number" min={0} step="any" inputMode="decimal" value={w.globalPrice || ''} placeholder="מחיר" aria-label="מחיר גלובלי"
-                onChange={(e) => setWork(w.id, { globalPrice: n(e.target.value) })} />
+              <NumField key="fixed" className="cq-in cq-in-money" value={w.globalPrice} label="מחיר גלובלי" placeholder="סכום ₪" onValue={(v) => setWork(w.id, { globalPrice: v })} />
               <span className="cq-unit">₪</span>
             </span>
           )}
@@ -679,16 +711,16 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
           onChange={(e) => setPart(p.id, { description: e.target.value })} />
         <div className="cq-row-fields">
           <label className="cq-f"><span>כמות</span>
-            <input className="cq-in cq-in-num" type="number" min={0} step="any" inputMode="decimal" value={p.qty || ''} onChange={(e) => setPart(p.id, { qty: n(e.target.value) })} />
+            <NumField value={p.qty} label="כמות" onValue={(v) => setPart(p.id, { qty: v })} />
           </label>
           <label className="cq-f"><span>ברוטו ליח׳</span>
-            <input className="cq-in cq-in-money" type="number" min={0} step="any" inputMode="decimal" value={p.unitGross || ''} onChange={(e) => setPart(p.id, { unitGross: n(e.target.value) })} />
+            <NumField className="cq-in cq-in-money" value={p.unitGross} label="ברוטו ליחידה" onValue={(v) => setPart(p.id, { unitGross: v })} />
           </label>
           <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>נטו לספק 🔒</span>
-            <input className="cq-in cq-in-money" type="number" min={0} step="any" inputMode="decimal" value={p.unitNet || ''} onChange={(e) => setPart(p.id, { unitNet: n(e.target.value) })} />
+            <NumField className="cq-in cq-in-money" value={p.unitNet} label="נטו לספק" onValue={(v) => setPart(p.id, { unitNet: v })} />
           </label>
           <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>הנחת ספק % 🔒</span>
-            <input className="cq-in cq-in-num" type="number" min={0} max={100} step="any" inputMode="decimal" value={p.supplierDiscountPct || ''} onChange={(e) => setPart(p.id, { supplierDiscountPct: n(e.target.value) })} />
+            <NumField value={p.supplierDiscountPct} label="הנחת ספק" onValue={(v) => setPart(p.id, { supplierDiscountPct: Math.min(v, 100) })} />
           </label>
           <DiscountInputs type={p.discountType} value={p.discountValue} onChange={(t, v) => setPart(p.id, { discountType: t, discountValue: v })} />
           <span className="cq-price">
@@ -760,8 +792,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                 <div className="cq-sec-head">
                   <h3>עבודות</h3>
                   <span className="cq-rate">מחיר שעה בהצעה:
-                    <input className="cq-in cq-in-num" type="number" min={0} step="any" value={data.hourRate || ''} aria-label="מחיר שעת עבודה"
-                      onChange={(e) => update((d) => ({ ...d, hourRate: n(e.target.value) }))} /> ₪ לפני מע״מ
+                    <NumField value={data.hourRate} label="מחיר שעת עבודה" onValue={(v) => update((d) => ({ ...d, hourRate: v }))} /> ₪ לפני מע״מ (לסעיפים חדשים)
                   </span>
                   <button type="button" className="cq-btn cq-btn-p" data-testid="cq-add-domain" onClick={() => setPicker({ mode: 'domain', label: '', saveToLib: true })}>➕ הוסף תחום עבודה</button>
                 </div>
@@ -900,7 +931,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                 <div className="cq-sum-row cq-sum-disc"><span>סה״כ הנחות ללקוח</span><b>{totals.discounts ? `-${formatIls(totals.discounts)}` : formatIls(0)}</b></div>
                 <div className="cq-sum-row"><span>סה״כ לאחר הנחות ולפני מע״מ</span><b>{formatIls(totals.afterDiscounts)}</b></div>
                 <div className="cq-sum-row"><span>מע״מ
-                  <input className="cq-in cq-in-pct" type="number" min={0} step="any" value={data.vatPercent} aria-label="אחוז מע״מ" onChange={(e) => update((d) => ({ ...d, vatPercent: n(e.target.value) }))} />%</span>
+                  <NumField className="cq-in cq-in-pct" value={data.vatPercent} label="אחוז מע״מ" onValue={(v) => update((d) => ({ ...d, vatPercent: v }))} />%</span>
                   <b>{formatIls(totals.vat)}</b></div>
                 <div className="cq-sum-total" data-testid="cq-total"><span>סה״כ כולל מע״מ</span><b>{formatIls(totals.total)}</b></div>
               </section>
@@ -1064,9 +1095,9 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                       <span className="cq-rev-status">{status}</span>
                       <input className="cq-in" value={r.line.name} onChange={(e) => set({ name: e.target.value })} />
                       <input className="cq-in" dir="ltr" value={r.line.sku} onChange={(e) => set({ sku: e.target.value })} />
-                      <input className="cq-in" type="number" value={r.line.qty || ''} onChange={(e) => set({ qty: n(e.target.value) })} />
-                      <input className="cq-in" type="number" value={r.line.gross || ''} onChange={(e) => set({ gross: n(e.target.value) })} />
-                      <input className="cq-in" type="number" value={r.line.net || ''} onChange={(e) => set({ net: n(e.target.value) })} />
+                      <NumField className="cq-in" value={r.line.qty} label="כמות" onValue={(v) => set({ qty: v })} />
+                      <NumField className="cq-in" value={r.line.gross} label="ברוטו" onValue={(v) => set({ gross: v })} />
+                      <NumField className="cq-in" value={r.line.net} label="נטו" onValue={(v) => set({ net: v })} />
                     </div>
                   );
                 })}

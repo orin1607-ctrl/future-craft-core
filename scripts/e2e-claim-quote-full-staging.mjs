@@ -177,7 +177,7 @@ async function main() {
   await grp.locator('[data-testid="cq-add-item"]').click();
   await pickerSet(ITEM);
   const itemRow = grp.locator('[data-testid="cq-work-row"]').first();
-  await itemRow.locator('button', { hasText: 'גלובלי' }).click();
+  await itemRow.locator('[data-testid="cq-price-fixed"]').click();
   await itemRow.locator('input[aria-label="מחיר גלובלי"]').fill('600');
   check(3, 'item added inside the category with a global price', money(await itemRow.locator('.cq-price b').innerText()) === 600);
 
@@ -192,7 +192,7 @@ async function main() {
   await mech.locator('[data-testid="cq-add-item"]').first().click();
   await pickerSet(`בדיקת בלמים E2E ${RUN}`);
   const mrow = mech.locator('[data-testid="cq-work-row"]').first();
-  await mrow.locator('button', { hasText: 'גלובלי' }).click();
+  await mrow.locator('[data-testid="cq-price-fixed"]').click();
   await mrow.locator('input[aria-label="מחיר גלובלי"]').fill('1000');
   await mrow.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
   await mrow.locator('input[aria-label="ערך הנחה"]').fill('10');

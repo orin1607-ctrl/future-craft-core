@@ -158,3 +158,23 @@ describe('invoices & quotes report', () => {
     expect(buildQuoteReport([q], claims)).toEqual([]);
   });
 });
+
+describe('typing prices and hours', () => {
+  it('keeps what a person types, with . or , as the decimal point', async () => {
+    const { cleanNumericInput, parseNumericInput } = await import('./claimQuoteModel');
+    const typed = (s: string) => {
+      let box = '';
+      for (const ch of s) box = cleanNumericInput(box + ch);
+      return { box, value: parseNumericInput(box) };
+    };
+    expect(typed('2,5')).toEqual({ box: '2.5', value: 2.5 });
+    expect(typed('0')).toEqual({ box: '0', value: 0 });
+    expect(typed('0.5')).toEqual({ box: '0.5', value: 0.5 });
+    expect(typed('2.')).toEqual({ box: '2.', value: 2 });
+    expect(typed('1250.50')).toEqual({ box: '1250.50', value: 1250.5 });
+    expect(typed('1.2.3')).toEqual({ box: '1.23', value: 1.23 });
+    expect(typed('₪ 380')).toEqual({ box: '380', value: 380 });
+    expect(typed('.')).toEqual({ box: '.', value: 0 });
+    expect(typed('')).toEqual({ box: '', value: 0 });
+  });
+});

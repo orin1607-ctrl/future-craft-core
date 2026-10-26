@@ -131,7 +131,7 @@ async function main() {
   await dlg.locator('button.cq-chip', { hasText: 'כיוון פרונט' }).click();
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const alignRow = page.locator('[data-testid="cq-cat-alignment"] [data-testid="cq-work-row"]').first();
-  await alignRow.locator('button', { hasText: 'גלובלי' }).click();
+  await alignRow.locator('[data-testid="cq-price-fixed"]').click();
   await alignRow.locator('input[aria-label="מחיר גלובלי"]').fill('250');
   await alignRow.locator('select[aria-label="סוג הנחה"]').selectOption('amount');
   await alignRow.locator('input[aria-label="ערך הנחה"]').fill('50');
@@ -142,7 +142,7 @@ async function main() {
   await page.locator('[data-testid="cq-picker-input"]').fill('בדיקת מערכת בלמים E2E');
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const mechRow = page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-work-row"]').first();
-  await mechRow.locator('button', { hasText: 'גלובלי' }).click();
+  await mechRow.locator('[data-testid="cq-price-fixed"]').click();
   await mechRow.locator('input[aria-label="מחיר גלובלי"]').fill('1000');
   await mechRow.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
   await mechRow.locator('input[aria-label="ערך הנחה"]').fill('10');
