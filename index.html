@@ -7,6 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
+    <meta name="theme-color" content="#0284c7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="דליה">
     <meta name="description" content="מערכת ניהול תפעול חכמה לצי רכבים - דליה">
     <meta name="author" content="Lovable" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -23,14 +28,23 @@
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/6FA5nK4PvoOwHLHDiKMimErvDGw1/social-images/social-1772119555159-logo-png.webp">
     <meta property="og:title" content="דליה - ניהול צי רכב">
-  <meta name="twitter:title" content="דליה - ניהול צי רכב">
-  <meta property="og:description" content="מערכת ניהול תפעול חכמה לצי רכבים - דליה">
-  <meta name="twitter:description" content="מערכת ניהול תפעול חכמה לצי רכבים - דליה">
+    <meta name="twitter:title" content="דליה - ניהול צי רכב">
+    <meta property="og:description" content="מערכת ניהול תפעול חכמה לצי רכבים - דליה">
+    <meta name="twitter:description" content="מערכת ניהול תפעול חכמה לצי רכבים - דליה">
     <meta name="google-site-verification" content="uRS1OxmsOeJjFpv4ciyc_fQYn7s29Sn6gZbtO3jliOY" />
   </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('%BASE_URL%sw-share.js', { scope: '%BASE_URL%' }).catch(function(err) {
+            console.warn('[PWA] SW register error:', err);
+          });
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

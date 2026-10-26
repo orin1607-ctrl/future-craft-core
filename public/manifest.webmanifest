@@ -1,0 +1,52 @@
+{
+  "name": "דליה - ניהול תביעות וצי רכב",
+  "short_name": "דליה תביעות",
+  "description": "מערכת ניהול תביעות, מכרזי חלפים ותפעול ציי רכב",
+  "start_url": "./?view=claims",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0284c7",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "./favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "./placeholder.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "./?action=share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "shared_files",
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "image/png",
+            ".png",
+            "image/jpeg",
+            ".jpg",
+            ".jpeg",
+            "image/webp",
+            "image/*"
+          ]
+        }
+      ]
+    }
+  }
+}

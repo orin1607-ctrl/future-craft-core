@@ -39,6 +39,8 @@ import ClaimQuoteEditor, { type QuoteRecipient } from './ClaimQuoteEditor';
 import { listClaimQuotes, type ClaimQuoteRow } from './claimQuoteService';
 import { formatIls } from './claimQuoteModel';
 import CarPartPanel from './CarPartPanel';
+import ClaimShareConfirmModal from './ClaimShareConfirmModal';
+import { getPendingSharedDocs, type SharedDocItem } from './claimShareInbox';
 import DocumentViewerModal from './DocumentViewerModal';
 import { shareDocToEmail, shareDocToWhatsApp, type DocShareFile } from './claimDocShare';
 import { contextFromClaim } from './carPartBridge';
@@ -1074,6 +1076,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [viewerModalFile, setViewerModalFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
+  const [pendingShareDoc, setPendingShareDoc] = useState<SharedDocItem | null>(null);
   const [previewList, setPreviewList] = useState<ClaimFile[]>([]);
   const [narrowList, setNarrowList] = useState(false);
   const [phoneNarrow, setPhoneNarrow] = useState(false);
@@ -1093,6 +1096,47 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
   const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
   const toastN = useRef(0);
+
+  const checkShareInbox = useCallback(async () => {
+    try {
+      const sharedDocs = await getPendingSharedDocs();
+      if (sharedDocs && sharedDocs.length > 0) {
+        setPendingShareDoc(sharedDocs[0]);
+      }
+    } catch (err) {
+      console.warn('[ClaimsScreen] checkShareInbox error', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkShareInbox();
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('dalia_share_channel');
+        bc.onmessage = () => { void checkShareInbox(); };
+      }
+    } catch { /* ignore */ }
+
+    const onFocus = () => { void checkShareInbox(); };
+    window.addEventListener('focus', onFocus);
+
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has('shared_doc')) {
+      sp.delete('shared_doc');
+      sp.delete('action');
+      const newSearch = sp.toString();
+      const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+      void checkShareInbox();
+    }
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      bc?.close();
+    };
+  }, [checkShareInbox]);
   const isSuperAdmin = actor.role === 'super_admin';
 
   const toast = (msg: string, type = 'ok') => {
@@ -6938,6 +6982,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             setQuoteOpen(null);
             if (changed) void loadCardData(cur.id);
           }}
+        />
+      )}
+
+      {pendingShareDoc && (
+        <ClaimShareConfirmModal
+          item={pendingShareDoc}
+          currentClaim={cur}
+          allClaims={claims}
+          existingFiles={docs.files}
+          uploadFile={(claimId, file, extra) => apiRef.current.staffUpload(claimId, '', file, extra)}
+          updateMeta={async (claimId, fileId, patch) => apiRef.current.invokeDocs('update_doc_meta', { claim_id: claimId, file_id: fileId, ...patch })}
+          logHistory={(claimId, action, note) => apiRef.current.logHistory(claimId, action, note, 'carpart')}
+          getSignedUrl={async (claimId, fileId) => {
+            const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: fileId });
+            return String(r?.url || '');
+          }}
+          onOpenViewer={(file) => {
+            setViewerModalFile(file);
+          }}
+          onInternalEmail={(seed) => {
+            void openSendModal('draft', { to: seed.to, subject: seed.subject, body: seed.body, file_ids: seed.file_ids });
+          }}
+          onClose={() => setPendingShareDoc(null)}
+          onSavedToClaim={(claimId) => {
+            if (cur?.id === claimId) {
+              void loadCardData(claimId);
+            }
+          }}
+          toast={toast}
         />
       )}
 

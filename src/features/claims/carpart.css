@@ -47,13 +47,41 @@
 .cp-live { margin-top: 10px; color: var(--cp-gn); font-weight: 700; }
 .cp-warn { margin-top: 10px; color: var(--cp-or); font-weight: 700; }
 .cp-drop {
-  display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; text-align: center;
-  min-height: 96px; padding: 14px; margin-bottom: 10px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; text-align: center;
+  min-height: 100px; padding: 16px; margin-bottom: 10px; cursor: pointer;
   border: 2px dashed var(--cp-br); border-radius: 12px; background: var(--cp-bg3);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .cp-drop span { color: var(--cp-t2); font-size: 12px; }
-.cp-drop.on { border-color: var(--cp-or); }
-.cp-drop.has { border-color: var(--cp-gn); border-style: solid; }
+.cp-drop.on { border-color: var(--cp-or); background: rgba(245, 158, 11, 0.08); }
+.cp-drop.has { border-color: var(--cp-gn); border-style: solid; background: rgba(16, 185, 129, 0.08); }
+.cp-drop-acts { display: flex; gap: 8px; margin-top: 6px; }
+
+.cp-success-banner {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cp-sb-title {
+  color: #34d399;
+  font-weight: 800;
+  font-size: 14px;
+}
+.cp-sb-name {
+  color: var(--cp-t);
+  font-size: 12px;
+}
+.cp-sb-acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .cp-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .cp-fg { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
 .cp-fg span { font-size: 11px; color: var(--cp-t2); }
