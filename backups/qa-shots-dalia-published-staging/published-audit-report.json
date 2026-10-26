@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-10-26T14:43:00.757Z",
+  "targetUrl": "https://orin1607-ctrl.github.io/future-craft-core/fleet-dalia-ai",
+  "company": "דרכי חיים",
+  "tests": {
+    "publishedDesktop": {
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/fleet-dalia-ai",
+      "title": "דליה - ניהול צי רכב",
+      "treatmentReplied": true,
+      "vehicleFound": true,
+      "vehicleNavigated": true
+    },
+    "publishedMobile": {
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/fleet-dalia-ai",
+      "micVisible": true
+    }
+  }
+}

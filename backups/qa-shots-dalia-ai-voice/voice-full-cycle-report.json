@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-10-26T14:31:04.675Z",
+  "company": "דרכי חיים",
+  "tests": {
+    "voiceOpenVehicleCard": {
+      "command": "תפתח לי את הכרטיס של רכב 78948502",
+      "buttonCreated": true,
+      "navigated": true,
+      "targetUrl": "http://localhost:4180/vehicles?vehicleId=2a0cba63-330b-4061-b90f-9a91c323a514&view=hub"
+    },
+    "voiceOpenDriverCard": {
+      "command": "חפש נהג זאב אלמליח",
+      "buttonCreated": true,
+      "navigated": true,
+      "targetUrl": "http://localhost:4180/drivers?driverId=f5228726-b8ba-4068-9bff-d39acba930ce"
+    },
+    "voiceBargeInInterruption": {
+      "firstCommand": "איזה רכבים צריכים טיפול החודש?",
+      "interruptCommand": "עצור! תכין לי דוח על רכבים שלא טופלו",
+      "speechCancelledOnBargeIn": true,
+      "newReportGenerated": true
+    },
+    "spokenAudioQuality": {
+      "utterancesSpokenCount": 2,
+      "noRawTagsInSpeech": true,
+      "samples": [
+        "דוח רכבים שלא טופלו / בהמתנה לטיפול — חברה «דרכי חיים» , תקלות פתוחות הממתינות לתיקון: 0 , הזמנות שירות פעילות/ממתינות: 0 , רכבים בסטטוס \"בטיפול\": 0",
+        "לא נמצאו רכבים שדורשים טיפול החודש בחברה «דרכי חיים»."
+      ]
+    }
+  }
+}

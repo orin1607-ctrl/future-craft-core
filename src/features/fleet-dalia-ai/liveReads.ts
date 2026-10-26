@@ -34,9 +34,14 @@ const NAV: Record<string, ActionLink> = {
   open_vehicles: { label: 'רשימת רכבים', path: '/vehicles' },
   open_drivers: { label: 'רשימת נהגים', path: '/drivers' },
   open_tracking: { label: 'מעקב רכבים', path: '/vehicle-tracking' },
+  open_driver_tracking: { label: 'מעקב נהגים', path: '/driver-tracking' },
   open_reports: { label: 'דוחות', path: '/reports' },
   open_alerts_screen: { label: 'התראות', path: '/alerts' },
   open_tasks_screen: { label: 'משימות', path: '/vehicle-tasks' },
+  open_faults: { label: 'תקלות', path: '/faults' },
+  open_accidents: { label: 'תאונות', path: '/accidents' },
+  open_service_orders: { label: 'הזמנות שירות', path: '/service-orders' },
+  open_documents_screen: { label: 'מסמכים', path: '/documents' },
 };
 
 const TRACKING_KEY: Record<string, SummaryFilterKey> = {
@@ -307,6 +312,168 @@ async function openTasks(company: string): Promise<ActionResult> {
   );
 }
 
+async function vehiclesTreatmentSoon(company: string): Promise<ActionResult> {
+  assertStagingReadTarget(import.meta.env.VITE_SUPABASE_URL as string | undefined);
+  const now = new Date();
+  const until = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+  // 1. Vehicles with upcoming next_service_date
+  const { data: dateVehicles } = await scoped(
+    'vehicles',
+    'id,license_plate,internal_number,manufacturer,model,next_service_date,status',
+    company,
+  )
+    .lte('next_service_date', until)
+    .order('next_service_date', { ascending: true })
+    .limit(15);
+
+  // 2. Open service orders
+  const { data: openOrders } = await scoped(
+    'service_orders',
+    'id,vehicle_plate,service_category,status,created_at',
+    company,
+  )
+    .in('status', ['new', 'open', 'in_progress', 'pending', 'ממתין', 'בטיפול', 'פתוח'])
+    .limit(15);
+
+  // 3. Vehicles in tracking flagged with attention
+  const trackingRows = await loadFleetTrackingRows(company).catch(() => []);
+  const inAttention = trackingRows.filter((r) => r.has_active_service || r.service_status === 'in_treatment' || r.status === 'in_service');
+
+  const links: ActionLink[] = [{ label: 'מעקב רכבים לטיפול', path: '/vehicle-tracking?summary=attention' }];
+  const lines: string[] = [];
+
+  const foundPlates = new Set<string>();
+
+  for (const v of dateVehicles || []) {
+    const plate = String(v.license_plate || '');
+    if (plate) foundPlates.add(plate);
+    const dateStr = v.next_service_date ? ` (מועד: ${v.next_service_date})` : '';
+    lines.push(`• ${plate} ${v.manufacturer || ''} ${v.model || ''}${dateStr} · מועד טיפול קרוב`);
+    if (v.id) links.push({ label: `כרטיס ${plate}`, path: buildVehicleHubUrl(String(v.id)) });
+  }
+
+  for (const order of openOrders || []) {
+    const plate = String(order.vehicle_plate || '');
+    if (!plate || foundPlates.has(plate)) continue;
+    foundPlates.add(plate);
+    lines.push(`• ${plate} · הזמנת שירות בסטטוס «${order.status || 'בטיפול'}» (${order.service_category || 'כללי'})`);
+  }
+
+  for (const row of inAttention) {
+    const plate = String(row.license_plate || '');
+    if (!plate || foundPlates.has(plate)) continue;
+    foundPlates.add(plate);
+    lines.push(`• ${plate} ${row.manufacturer || ''} ${row.model || ''} · בטיפול / דורש טיפול פעיל`);
+    if (row.id) links.push({ label: `כרטיס ${plate}`, path: buildVehicleHubUrl(String(row.id)) });
+  }
+
+  if (lines.length === 0) {
+    return ok(`לא נמצאו רכבים שדורשים טיפול החודש בחברה «${company}».`, [
+      { label: 'מעקב רכבים', path: '/vehicle-tracking' },
+      { label: 'הזמנות שירות', path: '/service-orders' },
+    ]);
+  }
+
+  return ok(
+    `רכבים שצריכים טיפול או נמצאים בטיפול בחברה «${company}» (${lines.length}):\n${lines.join('\n')}`,
+    links.slice(0, 8),
+  );
+}
+
+async function driversMissingDocuments(company: string): Promise<ActionResult> {
+  const { data, error } = await scoped(
+    'drivers',
+    'id,full_name,phone,id_number,license_number,license_expiry,license_image_url,status',
+    company,
+  ).order('full_name').limit(40);
+
+  if (error) return fail(`בדיקת מסמכי הנהגים נעצרה: ${error.message}`);
+  const list = data || [];
+  const missingList: Array<{ name: string; id: string; missing: string[] }> = [];
+
+  for (const d of list) {
+    const missing: string[] = [];
+    if (!d.license_number) missing.push('מספר רישיון');
+    if (!d.license_expiry) missing.push('תוקף רישיון');
+    if (!d.id_number) missing.push('תעודת זהות');
+    if (!d.license_image_url) missing.push('צילום רישיון');
+
+    if (missing.length > 0) {
+      missingList.push({
+        name: String(d.full_name || 'נהג ללא שם'),
+        id: String(d.id),
+        missing,
+      });
+    }
+  }
+
+  if (missingList.length === 0) {
+    return ok(`כל הנהגים בחברה «${company}» מעודכנים עם מסמכים תקינים במערכת.`, [
+      { label: 'מעקב נהגים', path: '/driver-tracking' },
+    ]);
+  }
+
+  const lines = missingList.slice(0, 15).map((d) => `• ${d.name} — חסר: ${d.missing.join(', ')}`);
+  const links: ActionLink[] = [
+    { label: 'מעקב נהגים', path: '/driver-tracking' },
+    ...missingList.slice(0, 6).map((d) => ({
+      label: `מסמכי ${d.name}`,
+      path: driverPath(d.id, 'documents'),
+    })),
+  ];
+
+  return ok(
+    `נמצאו ${missingList.length} נהגים עם מסמכים חסרים בחברה «${company}»:\n${lines.join('\n')}`,
+    links,
+  );
+}
+
+async function reportUntreatedVehicles(company: string): Promise<ActionResult> {
+  const [faultsRes, serviceRes, vehiclesRes] = await Promise.all([
+    scoped('faults', 'id,vehicle_plate,description,fault_type,status,created_at', company)
+      .in('status', ['open', 'new', 'in_progress', 'פתוח', 'בטיפול'])
+      .limit(20),
+    scoped('service_orders', 'id,vehicle_plate,service_category,status,created_at', company)
+      .in('status', ['open', 'new', 'in_progress', 'pending', 'ממתין', 'בטיפול', 'פתוח'])
+      .limit(20),
+    scoped('vehicles', 'id,license_plate,internal_number,manufacturer,model,status', company)
+      .eq('status', 'in_service')
+      .limit(20),
+  ]);
+
+  const faults = faultsRes.data || [];
+  const services = serviceRes.data || [];
+  const inServiceVehicles = vehiclesRes.data || [];
+
+  const lines: string[] = [
+    `📊 דוח רכבים שלא טופלו / בהמתנה לטיפול — חברה «${company}»`,
+    `• תקלות פתוחות הממתינות לתיקון: ${faults.length}`,
+    `• הזמנות שירות פעילות/ממתינות: ${services.length}`,
+    `• רכבים בסטטוס "בטיפול": ${inServiceVehicles.length}`,
+  ];
+
+  if (faults.length > 0) {
+    lines.push('\nתקלות עיקריות שטרם טופלו:');
+    for (const f of faults.slice(0, 5)) {
+      lines.push(`• רכב ${f.vehicle_plate || '—'}: ${f.description || f.fault_type || 'תקלה פתוחה'}`);
+    }
+  }
+
+  if (services.length > 0) {
+    lines.push('\nהזמנות שירות פתוחות:');
+    for (const s of services.slice(0, 5)) {
+      lines.push(`• רכב ${s.vehicle_plate || '—'}: ${s.service_category || 'טיפול'} (סטטוס: ${s.status})`);
+    }
+  }
+
+  return ok(lines.join('\n'), [
+    { label: 'מסך הדוחות', path: '/reports' },
+    { label: 'מעקב רכבים', path: '/vehicle-tracking?summary=attention' },
+    { label: 'מסך תקלות', path: '/faults' },
+  ]);
+}
+
 export async function executeFleetAction(
   id: string,
   query: string,
@@ -328,9 +495,12 @@ export async function executeFleetAction(
   }
   try {
     if (id === 'search_vehicles') return await searchVehicles(company, query);
+    if (id === 'vehicles_treatment_soon') return await vehiclesTreatmentSoon(company);
     if (id === 'vehicle_status_counts') return await vehicleStatusCounts(company);
     if (id === 'search_drivers') return await searchDrivers(company, query);
     if (id === 'open_driver_documents') return await searchDrivers(company, query, 'documents');
+    if (id === 'drivers_missing_documents') return await driversMissingDocuments(company);
+    if (id === 'report_untreated_vehicles') return await reportUntreatedVehicles(company);
     if (id in TRACKING_KEY) return await trackingRead(company, id);
     if (id === 'driver_license_watch') return await dateWatch(company, 'license_expiry', 'תוקף רישיון');
     if (id === 'driver_exam_watch') return await dateWatch(company, 'exam_expiry', 'תוקף מבחן');

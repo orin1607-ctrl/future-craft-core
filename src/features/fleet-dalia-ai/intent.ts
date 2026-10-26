@@ -4,11 +4,22 @@ export function safeSearchToken(raw: string): string {
   return raw.replace(/[%*,()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
 }
 
+const STOP_WORDS = new Set([
+  'תפתח', 'תפתחי', 'פתח', 'פתחי', 'תביא', 'הבא',
+  'בבקשה', 'לי', 'את', 'של', 'עבור',
+  'חפש', 'חיפוש', 'מצא', 'תמצא', 'הצג', 'תציג', 'הראה', 'תראה',
+  'כרטיס', 'הכרטיס', 'בכרטיס', 'לכרטיס',
+  'רכב', 'הרכב', 'לרכב', 'ברכב', 'רכבים', 'הרכבים',
+  'נהג', 'הנהג', 'לנהג', 'בנהג', 'נהגים', 'הנהגים',
+  'לוחית', 'הלוחית', 'מספר', 'המספר', 'רישיון', 'הרישיון', 'מבחן', 'המבחן',
+]);
+
 export function extractQuery(text: string): string {
-  const stripped = text
-    .replace(/חפש|חיפוש|מצא|הצג|פתח|כרטיס|רכב|רכבים|נהג|נהגים|לוחית|מספר|רישיון|מבחן/g, ' ')
-    .replace(/[%*,()]/g, ' ');
-  return safeSearchToken(stripped);
+  const cleaned = text.replace(/[%*,()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = cleaned.split(' ');
+  const filtered = words.filter((w) => !STOP_WORDS.has(w.trim()));
+  const result = filtered.length > 0 ? filtered.join(' ') : '';
+  return safeSearchToken(result);
 }
 
 export function matchCategory(text: string): FleetCategoryId | null {
