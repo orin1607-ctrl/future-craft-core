@@ -33,6 +33,8 @@ import { documentReadCaption } from './claimDocumentRead';
 import { documentDisplayTitle, documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
 import { ClaimsAiWorkspace, type ClaimsAiDocumentActions } from './ClaimsAiWorkspace';
+import PaintCalculator from './PaintCalculator';
+import { loadPaintCalcHistory, type PaintCalcRow } from './claimPaintCalc';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -817,7 +819,7 @@ const CARD_TAB_GROUPS: Array<{ key: string; label: string; shortLabel?: string; 
   { key: 'docs', label: 'גלריית מסמכים ותמונות', shortLabel: 'גלריה', tabs: [{ key: 'docs', label: 'כל הגלריה' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
   { key: 'mail', label: 'דואר ותקשורת', tabs: [{ key: 'gin', label: 'התכתבויות' }, { key: 'mailfu', label: 'מעקב מייל' }] },
   { key: 'work', label: 'טיפול ומעקב', tabs: [{ key: 'treat', label: 'טיפול' }, { key: 'tasks', label: 'משימות' }, { key: 'rems', label: 'תזכורות' }] },
-  { key: 'hist', label: 'היסטוריה', tabs: [{ key: 'timeline', label: 'היסטוריה' }] },
+  { key: 'hist', label: 'היסטוריה', tabs: [{ key: 'timeline', label: 'היסטוריה כללית' }, { key: 'paint_history', label: 'היסטוריית חישובי צבע' }] },
 ];
 
 function cardGroupOf(tab: string) {
@@ -902,6 +904,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [cardMore, setCardMore] = useState(false);
   const [sbOpen, setSbOpen] = useState(false);
   const [modal, setModal] = useState<string | null>(null);
+  const [paintCalcOpen, setPaintCalcOpen] = useState(false);
+  const [paintCalcInitial, setPaintCalcInitial] = useState<PaintCalcRow | null>(null);
+  const [paintHistory, setPaintHistory] = useState<PaintCalcRow[]>([]);
+  const [paintHistoryLoading, setPaintHistoryLoading] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [gHits, setGHits] = useState<ClaimRecord[]>([]);
@@ -1455,6 +1461,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setDocsReady(true);
       }).catch(() => { if (live()) { setDocs({ requests: [], files: [] }); setDocsReady(true); } }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
+      loadPaintCalcHistory(id).then((ph) => { if (live()) { setPaintHistory(ph); setPaintHistoryLoading(false); } }).catch(() => { if (live()) { setPaintHistory([]); setPaintHistoryLoading(false); } }),
       apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
       apiRef.current.invokeDocs('get_garage_assignment', { claim_id: id }).then((g) => {
         if (!live()) return;
@@ -3796,6 +3803,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
+                <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }} data-testid="claims-paint-calc-btn" onClick={() => { setCardMore(false); setPaintCalcInitial(null); setPaintCalcOpen(true); }}>🎨 מחשבון צבע והערכת עלויות</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
@@ -5105,6 +5113,64 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       ))}
                     </div>
                   )
+              )}
+              {cardTab === 'paint_history' && (
+                <div data-testid="claim-paint-calc-history">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>🎨 היסטוריית חישובי צבע</div>
+                    <button
+                      type="button"
+                      className="btn btn-p btn-sm"
+                      onClick={() => { setPaintCalcInitial(null); setPaintCalcOpen(true); }}
+                    >
+                      + פתח מחשבון צבע
+                    </button>
+                  </div>
+                  {paintHistoryLoading ? (
+                    <div className="empty">טוען חישובי צבע…</div>
+                  ) : paintHistory.length === 0 ? (
+                    <div className="empty">אין חישובי צבע רשמיים שמורים בתיק זה.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {paintHistory.map((ph) => (
+                        <div
+                          key={ph.id}
+                          style={{
+                            background: 'var(--bg2)',
+                            border: '1px solid var(--br)',
+                            borderRadius: 8,
+                            padding: '12px 14px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#56ccf2', fontSize: 13 }}>גרסה {ph.version}</div>
+                            <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>
+                              נשמר ע"י {ph.created_by_name || 'משתמש'} · {new Date(ph.created_at).toLocaleString('he-IL')}
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+                              סה"כ לתשלום: ₪{Number(ph.total_amount || 0).toLocaleString('he-IL')}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              className="btn btn-g btn-sm"
+                              onClick={() => {
+                                setPaintCalcInitial(ph);
+                                setPaintCalcOpen(true);
+                              }}
+                            >
+                              פתח חישוב
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -6701,7 +6767,40 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         onOpenClaim={(targetClaimId) => {
           void openCard(targetClaimId);
         }}
+        onOpenPaintCalc={(targetClaimId) => {
+          if (targetClaimId) {
+            void openCard(targetClaimId).then(() => {
+              setPaintCalcInitial(null);
+              setPaintCalcOpen(true);
+            });
+          } else {
+            setPaintCalcInitial(null);
+            setPaintCalcOpen(true);
+          }
+        }}
       />
+
+      {paintCalcOpen && cur && (
+        <div
+          className="pc-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPaintCalcOpen(false);
+          }}
+        >
+          <div className="pc-modal-content">
+            <PaintCalculator
+              claim={cur}
+              actor={{ id: actor.id, full_name: actor.full_name || 'משתמש', company_name: companyName }}
+              initialCalc={paintCalcInitial}
+              onClose={() => {
+                setPaintCalcOpen(false);
+                setPaintCalcInitial(null);
+                if (cur.id) void loadCardData(cur.id);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="toasts">
         {toasts.map((t) => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'err' ? '❌ ' : t.type === 'inf' ? 'ℹ️ ' : '✅ '}{t.msg}</div>)}

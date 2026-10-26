@@ -2750,6 +2750,7 @@ export function ClaimsAiWorkspace({
   documentActions,
   onActionExecuted,
   onOpenClaim,
+  onOpenPaintCalc,
   module = 'claims',
   garageCase = null,
   onOpenGarageCase,
@@ -2765,6 +2766,8 @@ export function ClaimsAiWorkspace({
   onActionExecuted?: (pending: ClaimsAiPendingAction) => void;
   /** Opens the specified claim card directly in the main screen without losing chat. */
   onOpenClaim?: (claimId: string) => void;
+  /** Opens the paint cost calculator for the specified claim */
+  onOpenPaintCalc?: (claimId: string | null) => void;
   module?: 'claims' | 'garage' | 'reports' | 'dashboard';
   garageCase?: GarageCaseAiContext | null;
   onOpenGarageCase?: (caseId: string) => void;
@@ -7138,6 +7141,18 @@ const toggleVoiceMute = useCallback(() => {
           )
         ) : null}
 
+        {onOpenPaintCalc && claim && (
+          <div style={{ padding: '6px 14px', background: 'var(--bg2)', display: 'flex', gap: 8, alignItems: 'center', borderTop: '1px solid var(--br)' }}>
+            <button
+              type="button"
+              className="btn btn-p btn-sm"
+              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', fontSize: 12, padding: '4px 10px', borderRadius: 8 }}
+              onClick={() => onOpenPaintCalc(claim.claimId)}
+            >
+              ?? ��� ������ ��� ���� ��
+            </button>
+          </div>
+        )}
         <form
           ref={composerRef}
           className={`claims-ai-composer${daliaComposerUi ? ' dalia-composer' : ''}${daliaComposerUi && composerExpanded ? ' is-expanded' : ''}`}
