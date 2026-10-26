@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { canDownloadTriForm, TRI_FORM_DOWNLOAD_LABEL } from '@/lib/triInspectionFormModel';
+import { downloadTriInspectionForm } from '@/lib/triInspectionFormPdf';
 import { SearchableFilterField } from '@/components/SearchableFilterField';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import {
@@ -134,6 +136,7 @@ export default function Reports() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [downloadingInspectionId, setDownloadingInspectionId] = useState<string | null>(null);
 
   const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('month');
   const [filterCompany, setFilterCompany] = useState('');
@@ -282,6 +285,14 @@ export default function Reports() {
     if (vehicleId) query.set('vehicleId', vehicleId);
     query.set('context', 'vehicle');
     return `/vehicle-inspections?${query.toString()}`;
+  };
+  const downloadInspectionForm = (inspectionId: string) => {
+    if (downloadingInspectionId) return;
+    setDownloadingInspectionId(inspectionId);
+    void downloadTriInspectionForm(inspectionId)
+      .then(() => toast.success('הטופס ירד למחשב'))
+      .catch(() => toast.error('ההורדה נכשלה. הטופס עצמו לא שונה'))
+      .finally(() => setDownloadingInspectionId(null));
   };
 
   const driverById = useMemo(() => {
@@ -1045,14 +1056,30 @@ export default function Reports() {
                     fmtDate(i.inspection_date),
                     i.next_due_date ? fmtDate(i.next_due_date) : '—',
                     statusLabel(i.overall_status),
-                    <button
-                      key={`inspection-${i.id}`}
-                      type="button"
-                      className="font-bold text-primary underline"
-                      onClick={() => navigate(inspectionPath(i))}
-                    >
-                      פתח ביקורת
-                    </button>,
+                    <div key={`inspection-${i.id}`} className="flex flex-col items-start gap-1">
+                      <button
+                        type="button"
+                        data-testid="open-inspection-link"
+                        className="font-bold text-primary underline text-right"
+                        onClick={() => navigate(inspectionPath(i))}
+                      >
+                        פתח ביקורת
+                      </button>
+                      {canDownloadTriForm(i.inspection_type) && (
+                        <button
+                          type="button"
+                          data-testid="download-tri-form"
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold whitespace-nowrap disabled:opacity-60"
+                          disabled={downloadingInspectionId === i.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            downloadInspectionForm(i.id);
+                          }}
+                        >
+                          {downloadingInspectionId === i.id ? 'מוריד...' : TRI_FORM_DOWNLOAD_LABEL}
+                        </button>
+                      )}
+                    </div>,
                     getVehicleId(i.vehicle_plate, i.vehicle_id) ? (
                       <button
                         key={`vehicle-${i.id}`}
