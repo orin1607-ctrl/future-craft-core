@@ -71,9 +71,10 @@ jobs:
       - name: Backup + rsync frontend to Production
         run: |
           STAMP=$(date -u +%F-%H%M)
+          COMMIT=$(git rev-parse HEAD)
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"
+            "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && if [ -d /root/future-craft-core/site-static ]; then tar czf /root/pre-deploy-site-static-${STAMP}.tgz -C /root/future-craft-core site-static; fi && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"
           rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             --delete \
             --filter="P orin-marketing/" \
@@ -82,13 +83,7 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p /root/future-craft-core/site-static"
-          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            public/site/ \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/future-craft-core/site-static/
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=oren-car-code-only-2026-08-10' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+            "printf 'commit=%s\nbundle=%s\nat=%s\nreason=tri-semi-form-download-only\nfullMerge=NO\nschemaChange=NO\nbackup=/root/pre-deploy-dist-%s.tgz\n' '${COMMIT}' '${{ steps.bundle.outputs.name }}' '$(date -u +%Y-%m-%dT%H:%M:%SZ)' '${STAMP}' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "nginx -t && systemctl reload nginx"

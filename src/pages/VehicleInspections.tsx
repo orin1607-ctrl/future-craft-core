@@ -13,6 +13,8 @@ import {
   checklistItemsWithoutSignature,
   findInspectionSignatureUrl,
 } from '@/lib/inspectionSignature';
+import { canDownloadTriForm, TRI_FORM_DOWNLOAD_LABEL } from '@/lib/triInspectionFormModel';
+import { downloadTriInspectionForm } from '@/lib/triInspectionFormPdf';
 
 interface InspectionRow {
   id: string;
@@ -384,6 +386,7 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
   const [items, setItems] = useState<InspectionItemRow[]>([]);
   const [internalNumber, setInternalNumber] = useState<string | null>(null);
   const [relatedTasks, setRelatedTasks] = useState<{ id: string; title: string; description: string; status: string }[]>([]);
+  const [downloadingForm, setDownloadingForm] = useState(false);
 
   useEffect(() => {
     void supabase.from('inspection_items').select('*').eq('inspection_id', inspection.id)
@@ -444,11 +447,31 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
       </button>
 
       <div className="card-elevated mb-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-3">
           <h1 className="text-2xl font-bold">ביקורת רכב {inspection.vehicle_plate}</h1>
-          <span className={`status-badge ${inspection.overall_status === 'passed' ? 'status-active' : 'status-inactive'}`}>
-            {inspection.overall_status === 'passed' ? 'תקין' : 'ליקויים'}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {canDownloadTriForm(inspection.inspection_type) && (
+              <button
+                type="button"
+                data-testid="download-tri-form"
+                className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-60"
+                disabled={downloadingForm}
+                onClick={() => {
+                  if (downloadingForm) return;
+                  setDownloadingForm(true);
+                  void downloadTriInspectionForm(inspection.id)
+                    .then(() => toast.success('הטופס ירד למחשב'))
+                    .catch(() => toast.error('ההורדה נכשלה. הטופס עצמו לא שונה'))
+                    .finally(() => setDownloadingForm(false));
+                }}
+              >
+                {downloadingForm ? 'מוריד...' : TRI_FORM_DOWNLOAD_LABEL}
+              </button>
+            )}
+            <span className={`status-badge ${inspection.overall_status === 'passed' ? 'status-active' : 'status-inactive'}`}>
+              {inspection.overall_status === 'passed' ? 'תקין' : 'ליקויים'}
+            </span>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4 text-lg">
           <div><span className="text-muted-foreground text-sm">מספר רכב</span><p className="font-bold">{inspection.vehicle_plate || '—'}</p></div>
