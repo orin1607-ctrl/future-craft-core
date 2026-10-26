@@ -88,7 +88,7 @@ export default function FleetDaliaAiPage() {
 
   useEffect(() => {
     sessionStorage.setItem(THREAD_KEY, JSON.stringify(messages.slice(-30)));
-    scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight });
+    scrollerRef.current?.scrollTo?.({ top: scrollerRef.current.scrollHeight });
   }, [messages]);
 
   useEffect(() => {
@@ -262,9 +262,19 @@ export default function FleetDaliaAiPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-3 pb-64 md:pb-0" dir="rtl" data-testid="fleet-dalia-ai" style={{ paddingBottom: keyboardInset ? keyboardInset + 220 : undefined }}>
       <header className="rounded-2xl bg-gradient-to-l from-[hsl(218,58%,27%)] to-[hsl(218,58%,35%)] text-white p-4 sm:p-5">
-        <h1 className="text-2xl font-black flex items-center gap-2">
-          <Sparkles size={22} /> דליה AI · ניהול צי
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-black flex items-center gap-2">
+            <Sparkles size={22} /> דליה AI · ניהול צי
+          </h1>
+          <button
+            type="button"
+            data-testid="fleet-dalia-back-dashboard"
+            className="min-h-12 shrink-0 rounded-xl bg-white/15 px-3 text-sm font-bold"
+            onClick={() => navigate('/dashboard')}
+          >
+            חזרה לדשבורד
+          </button>
+        </div>
         <p className="text-sm mt-1 opacity-90">סביבת בדיקות בלבד · קריאה לפי החברה שנבחרה · בלי שינוי במסכים הקיימים</p>
         <p className="text-xs mt-2 opacity-80">
           חברה: {company || 'לא נבחרה — קריאות נעצרות'} · {voiceNote}

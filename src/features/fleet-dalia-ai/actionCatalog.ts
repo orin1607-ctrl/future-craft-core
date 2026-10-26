@@ -63,7 +63,7 @@ export const FLEET_ACTIONS: FleetAction[] = [
     mode: 'read',
     needsConfirm: false,
     enabled: true,
-    phrases: ['חפש רכב', 'חיפוש רכב', 'מצא רכב', 'לוחית'],
+    phrases: ['חפש רכב', 'חיפוש רכב', 'מצא רכב', 'לוחית', 'נתונים של רכב', 'הצג רכב'],
     primary: true,
   },
   {
@@ -210,7 +210,7 @@ export const FLEET_ACTIONS: FleetAction[] = [
     mode: 'read',
     needsConfirm: false,
     enabled: true,
-    phrases: ['דורשים טיפול', 'רכבים לטיפול'],
+    phrases: ['דורשים טיפול', 'רכבים לטיפול', 'צריכים טיפול'],
     primary: true,
   },
   {
@@ -280,7 +280,7 @@ export const FLEET_ACTIONS: FleetAction[] = [
     mode: 'read',
     needsConfirm: false,
     enabled: true,
-    phrases: ['תוקף רישיון', 'רישיונות', 'רישיון פג'],
+    phrases: ['תוקף רישיון', 'רישיונות', 'רישיון פג', 'רישיונות נהיגה', 'רישיון נהיגה'],
     primary: true,
   },
   {

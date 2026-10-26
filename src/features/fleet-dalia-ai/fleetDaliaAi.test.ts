@@ -57,6 +57,15 @@ describe('fleet dalia intent', () => {
     expect(extractQuery('חפש נהג יוסי כהן')).toContain('יוסי');
   });
 
+  it('answers the fleet questions from existing read actions', () => {
+    expect(matchIntent('כמה רכבים יש בחברה?').actionId).toBe('vehicle_status_counts');
+    expect(matchIntent('אילו רכבים צריכים טיפול?').actionId).toBe('tracking_attention');
+    expect(matchIntent('אילו רישיונות נהיגה עומדים לפוג?').actionId).toBe('driver_license_watch');
+    expect(matchIntent('אילו משימות פתוחות?').actionId).toBe('open_tasks');
+    expect(matchIntent('הצג לי נתונים של רכב 12-345-67').actionId).toBe('search_vehicles');
+    expect(matchIntent('אילו התראות דורשות טיפול?').actionId).toBe('open_alerts_screen');
+  });
+
   it('does not treat a category name as a write', () => {
     const intent = matchIntent('רכבים');
     expect(intent.category).toBe('vehicles');
