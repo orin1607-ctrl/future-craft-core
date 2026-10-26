@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bot, Mic, MicOff, Paperclip, Send, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
+import { supabase } from '@/integrations/supabase/client';
 import {
   FLEET_ACTIONS,
   FLEET_CATEGORIES,
@@ -31,37 +32,60 @@ function loadThread(): ChatMessage[] {
   }
 }
 
-async function askGeneral(text: string, history: ChatMessage[]): Promise<string> {
-  const system = [
-    'אתה דליה AI לניהול צי רכב בסביבת בדיקות.',
-    'ענה בעברית, קצר וברור.',
-    'אין בהודעה נתוני לקוחות. אל תמציא כמויות, לוחיות או שמות.',
-    'לבקשת נתון, הפנה לכפתורי רכבים, נהגים, מעקב, דוחות או משימות.',
-    'פעולות כתיבה אינן פעילות.',
-  ].join('\n');
+async function askGeneral(text: string, history: ChatMessage[], companyName?: string): Promise<string> {
   try {
-    const response = await fetch('/api/ai/chat', {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return 'יש להתחבר למערכת כדי לשוחח עם דליה AI.';
+    }
+
+    const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/help-ai-chat`;
+    const response = await fetch(chatUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+      },
       body: JSON.stringify({
-        assistant: true,
-        module: 'fleet-dalia-ai',
-        system,
-        prompt: text,
-        history: history.filter((item) => item.role === 'user').slice(-6).map((item) => ({
-          role: item.role,
-          content: item.content.slice(0, 400),
-        })),
-        max_tokens: 600,
+        module: 'fleet',
+        company_name: companyName || undefined,
+        messages: [
+          ...history.slice(-6).map((item) => ({
+            role: item.role === 'assistant' ? 'assistant' : 'user',
+            content: item.content,
+          })),
+          { role: 'user', content: text },
+        ],
       }),
     });
-    const data = await response.json();
-    if (!response.ok || !data.ok || !data.text) {
-      return 'המודל החי לא מחובר עכשיו. אפשר לבקש חיפוש, מעקב, דוח או משימות, או להשתמש בכפתורים. לא המצאתי נתונים.';
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (response.status === 402 || String(err?.error || '').includes('קרדיטים')) {
+        return err?.error || 'יתרת הקרדיטים של שירות ה-AI אזלה. יש לטעון קרדיטים ב-Google AI Studio כדי להמשיך בשירות.';
+      }
+      return err?.error || `שגיאה בתקשורת עם דליה AI (${response.status}).`;
     }
-    return String(data.text);
+
+    const raw = await response.text();
+    const lines = raw.split('\n');
+    let fullText = '';
+    for (const line of lines) {
+      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        try {
+          const json = JSON.parse(line.slice(6));
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) fullText += delta;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return fullText.trim() || 'דליה AI השיבה ללא תוכן.';
   } catch {
-    return 'המודל החי לא מחובר עכשיו. אפשר לבקש חיפוש, מעקב, דוח או משימות, או להשתמש בכפתורים.';
+    return 'שגיאה בתקשורת עם שירות ה-AI. אנא בדוק את החיבור לרשת ונסה שוב בעוד מספר רגעים.';
   }
 }
 
@@ -193,7 +217,7 @@ export default function FleetDaliaAiPage() {
       const intent = matchIntent(trimmed);
       if (intent.category) setCategory(intent.category);
       if (intent.category === 'chat' && !intent.actionId) {
-        reply(await askGeneral(trimmed, messages));
+        reply(await askGeneral(trimmed, messages, company));
         return;
       }
       if (intent.actionId) {
@@ -209,7 +233,7 @@ export default function FleetDaliaAiPage() {
         reply(`נפתח הדשבורד «${FLEET_CATEGORIES.find((item) => item.id === intent.category)?.label}». פעולות קריאה: ${names.join(', ') || 'אין'}.`);
         return;
       }
-      reply(await askGeneral(trimmed, messages));
+      reply(await askGeneral(trimmed, messages, company));
     } finally {
       setBusy(false);
     }
