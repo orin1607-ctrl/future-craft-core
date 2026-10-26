@@ -1,15 +1,17 @@
 /* Claim quote editor — uses the claims screen tokens (claims.css), with fallbacks. */
 .cq-backdrop {
-  position: fixed; inset: 0; z-index: 9000;
+  position: fixed; top: 0; right: 0; left: 0; z-index: 9000;
+  height: 100dvh; max-height: 100dvh; overflow: hidden;
   background: rgba(4, 9, 20, .82); backdrop-filter: blur(3px);
-  display: flex; align-items: stretch; justify-content: center; padding: 16px;
+  display: flex; flex-direction: column; align-items: center; padding: 16px;
 }
 .cq-root {
   --cq-bg: var(--bg, #04091a); --cq-bg2: var(--bg2, #071022); --cq-bg3: var(--bg3, #0a1830);
   --cq-br: var(--br2, rgba(255,255,255,.13)); --cq-t: var(--t, #fff); --cq-t2: var(--t2, rgba(255,255,255,.68));
   --cq-ac: var(--ac, #1d4ed8); --cq-gn: var(--gn2, #22c55e); --cq-yn: var(--yn2, #f59e0b); --cq-rd: var(--rd2, #ef4444);
   width: 100%; max-width: 1320px; background: var(--cq-bg); color: var(--cq-t);
-  border: 1px solid var(--cq-br); border-radius: 14px; overflow: auto;
+  border: 1px solid var(--cq-br); border-radius: 14px;
+  flex: 1 1 auto; min-height: 0; max-height: 100%; overflow: auto; -webkit-overflow-scrolling: touch;
   font-family: Heebo, "Arial Hebrew", Arial, sans-serif; font-size: 13px;
 }
 .cq-head {
@@ -244,33 +246,45 @@ textarea.cq-in { width: 100%; resize: vertical; }
   .cq-tr { grid-template-columns: minmax(150px, 2fr) 80px 110px 130px 105px 36px; }
   .cq-tr-part { grid-template-columns: minmax(140px, 2fr) 60px 95px 95px 130px 100px 70px; }
 }
-/* Phone: two lines per row — the name on top, the numbers under it, a label above each field */
-@media (max-width: 640px) {
-  .cq-th { display: none; }
-  .cq-tr { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas: "desc desc desc act" "hours price disc final"; gap: 6px; padding: 10px 8px; }
-  .cq-tr-part { grid-template-areas: "desc desc before act" "qty unit disc final"; }
-  .cq-a-desc { grid-area: desc; } .cq-a-act { grid-area: act; align-self: start; }
-  .cq-a-hours { grid-area: hours; } .cq-a-price { grid-area: price; } .cq-a-disc { grid-area: disc; } .cq-a-final { grid-area: final; }
-  .cq-a-qty { grid-area: qty; } .cq-a-unit { grid-area: unit; } .cq-a-before { grid-area: before; }
-  .cq-td::before { content: attr(data-label); font-size: 10.5px; color: var(--cq-t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cq-td-desc::before { content: none; }
-  .cq-td-act::before { content: none; }
-  .cq-td .cq-in { padding: 7px 5px; font-size: 14px; }
-  .cq-unit-sel { width: 34px !important; flex-basis: 34px; padding: 6px 1px; }
-  .cq-td-final b { font-size: 14px; padding-top: 6px; }
-  .cq-td-calc b { padding-top: 2px; }
-  .cq-td-act .cq-icon { min-width: 34px; min-height: 36px; }
-}
 /* %/₪ choice: a plain compact box showing just the symbol */
 .cq-unit-sel { appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; font-weight: 800; background-image: none; cursor: pointer; }
 .cq-manual { white-space: nowrap; }
+.cq-price-hint { display: none; }
+.cq-tr, .cq-tr-wrap { scroll-margin-top: 76px; }
+/* Phone: one full-width field per line, so the price box is visible and tappable */
 @media (max-width: 640px) {
-  .cq-tr { grid-template-columns: 0.8fr 1.1fr 1.35fr 1.15fr; }
-  .cq-tr-part { grid-template-columns: 0.8fr 1.1fr 1.35fr 1.15fr; }
-  .cq-unit-sel { width: 30px !important; flex: 0 0 30px; padding: 6px 0; }
-  .cq-disc-cell .cq-in:first-child { padding-inline: 4px; }
-  .cq-manual { padding: 4px 6px; font-size: 11.5px; }
-  .cq-manual small { font-size: 10.5px; }
+  .cq-th { display: none; }
+  .cq-table, .cq-cat { overflow: visible; }
+  .cq-tr, .cq-tr-part {
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 10px; padding: 12px;
+  }
+  .cq-td { width: 100%; }
+  .cq-td::before {
+    content: attr(data-label);
+    font-size: 13px; font-weight: 800; color: var(--cq-t);
+    white-space: normal; overflow: visible;
+  }
+  .cq-td-act::before { content: none; }
+  .cq-td .cq-in, .cq-rate .cq-in {
+    font-size: 16px; min-height: 44px; padding: 10px 12px;
+  }
+  .cq-rate { width: 100%; padding: 10px 12px; }
+  .cq-rate .cq-in { width: 140px; }
+  .cq-sec-head { align-items: stretch; }
+  .cq-unit-sel { width: 76px !important; flex: 0 0 76px; min-height: 44px; font-size: 16px; padding: 8px 4px; }
+  .cq-disc-cell .cq-in:first-child { padding-inline: 12px; font-size: 16px; }
+  .cq-td-final {
+    background: rgba(29, 78, 216, .22); border-radius: 8px; padding: 8px 12px;
+  }
+  .cq-td-final b, .cq-td-calc b { font-size: 22px; padding-top: 0; }
+  .cq-td-act { flex-direction: row; justify-content: flex-end; }
+  .cq-td-act .cq-icon { min-width: 44px; min-height: 44px; }
+  .cq-manual { min-height: 44px; width: 100%; align-items: center; padding: 8px 12px; font-size: 15px; white-space: normal; }
+  .cq-manual small { font-size: 13px; }
+  .cq-price-hint { display: block; font-size: 12.5px; color: var(--cq-t2); line-height: 1.4; }
+  .cq-tr.cq-th { display: none; }
+  .cq-rate, .cq-sec-head { scroll-margin-top: 88px; }
 }
 .cq-desc-line { display: flex; gap: 4px; align-items: center; }
 .cq-desc-line .cq-in { flex: 1 1 auto; min-width: 0; }
