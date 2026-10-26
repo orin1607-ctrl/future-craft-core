@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale, Warehouse, Sparkles, ClipboardList } from 'lucide-react';
+import { Bot, Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale, Warehouse, Sparkles, ClipboardList } from 'lucide-react';
+import { isFleetDaliaAiEnabled } from '@/features/fleet-dalia-ai/stagingGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +16,7 @@ export default function HomeDashboard() {
   const { selectedCompany } = useCompanyScope();
   const isSuperAdmin = user?.role === 'super_admin';
   const canFleetOS = user?.role === 'super_admin' || user?.role === 'fleet_manager';
+  const canFleetDalia = canFleetOS && isFleetDaliaAiEnabled();
   const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
   const companyFilter = isSuperAdmin ? selectedCompany : user?.company_name || null;
   const { prefs, setPrefs } = useHomeAlertPrefs(user?.id);
@@ -98,6 +100,17 @@ export default function HomeDashboard() {
       <HomeAlertsWidget companyFilter={companyFilter} prefs={prefs} onPrefsChange={setPrefs} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        {canFleetDalia && (
+          <DashboardCardGate
+            path="/fleet-dalia-ai"
+            to="/fleet-dalia-ai"
+            icon={Bot}
+            title="AI דליה"
+            subtitle="עוזרת לצי · רכבים, נהגים, מעקב, דוחות ומשימות"
+            accent="primary"
+            testId="dashboard-ai-dalia"
+          />
+        )}
         <DashboardCardGate
           path="/vehicles"
           to="/vehicles"

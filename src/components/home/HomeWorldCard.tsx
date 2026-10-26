@@ -10,6 +10,7 @@ export default function HomeWorldCard({
   badge,
   accent = 'primary',
   className,
+  testId,
 }: {
   to: string;
   icon: LucideIcon;
@@ -18,6 +19,7 @@ export default function HomeWorldCard({
   badge?: string | number;
   accent?: 'primary' | 'info' | 'warning' | 'success';
   className?: string;
+  testId?: string;
 }) {
   const accentRing =
     accent === 'info'
@@ -31,6 +33,7 @@ export default function HomeWorldCard({
   return (
     <Link
       to={to}
+      data-testid={testId}
       className={cn(
         'home-world-card group flex flex-col justify-between min-h-[132px] md:min-h-[148px]',
         accentRing,

@@ -136,6 +136,7 @@ import DriverTracking from "@/pages/DriverTracking";
 import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
+import FleetDaliaAiPage from "@/features/fleet-dalia-ai/FleetDaliaAiPage";
 import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
@@ -279,6 +280,7 @@ function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
+        <Route path="/fleet-dalia-ai" element={<FleetDaliaAiPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />

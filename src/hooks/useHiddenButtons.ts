@@ -61,6 +61,7 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/vehicle-tracking', label: 'מעקב רכבים', category: 'כרטיסי דשבורด' },
   { path: '/driver-tracking', label: 'מעקב נהגים', category: 'כרטיסי דשבורด' },
   { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'כרטיסי דשבורד' },
+  { path: '/fleet-dalia-ai', label: 'AI דליה', category: 'כרטיסי דשבורד' },
   { path: '/transport', label: 'חברות הסעות', category: 'כרטיסי דשבורד' },
   { path: '/reports', label: 'דוחות', category: 'כרטיסי דשבורד' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'כרטיסי דשבורד' },

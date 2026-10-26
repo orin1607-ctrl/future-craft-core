@@ -135,7 +135,7 @@ async function executeFleetTool(
     switch (name) {
       case "get_vehicles_stats": {
         const days = (args.days_until_expiry as number) || 30;
-        let q = supabase.from("vehicles").select("id, status, test_expiry, insurance_expiry, license_expiry, plate_number, manufacturer, model");
+        let q = supabase.from("vehicles").select("id, status, test_expiry, license_plate, manufacturer, model");
         if (company) q = q.eq("company_name", company);
         const { data, error } = await q;
         if (error) return JSON.stringify({ error: error.message });
@@ -143,19 +143,15 @@ async function executeFleetTool(
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() + days);
         const statusBreakdown: Record<string, number> = {};
-        let testExpiringSoon = 0, insuranceExpiringSoon = 0, licenseExpiringSoon = 0;
+        let testExpiringSoon = 0;
         for (const v of data || []) {
-          statusBreakdown[v.status || "unknown"] = (statusBreakdown[v.status || "unknown"] || 0) + 1;
+          statusBreakdown[v.status || "פעיל"] = (statusBreakdown[v.status || "פעיל"] || 0) + 1;
           if (v.test_expiry && new Date(v.test_expiry) <= cutoff) testExpiringSoon++;
-          if (v.insurance_expiry && new Date(v.insurance_expiry) <= cutoff) insuranceExpiringSoon++;
-          if (v.license_expiry && new Date(v.license_expiry) <= cutoff) licenseExpiringSoon++;
         }
         return JSON.stringify({
           total: (data || []).length,
           status_breakdown: statusBreakdown,
           test_expiring_in_days: { days, count: testExpiringSoon },
-          insurance_expiring_in_days: { days, count: insuranceExpiringSoon },
-          license_expiring_in_days: { days, count: licenseExpiringSoon },
         });
       }
 
@@ -181,40 +177,40 @@ async function executeFleetTool(
 
       case "get_faults_stats": {
         const days = (args.days as number) || 7;
-        let q = supabase.from("faults").select("id, status, urgency, created_at, vehicle_plate, description");
+        let q = supabase.from("faults").select("id, status, fault_type, created_at, description");
         if (company) q = q.eq("company_name", company);
         const { data, error } = await q;
         if (error) return JSON.stringify({ error: error.message });
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const recent = (data || []).filter((f) => new Date(f.created_at) >= cutoff);
+        const recent = (data || []).filter((f) => f.created_at && new Date(f.created_at) >= cutoff);
         const statusBreakdown: Record<string, number> = {};
-        const urgencyBreakdown: Record<string, number> = {};
+        const typeBreakdown: Record<string, number> = {};
         for (const f of data || []) {
-          statusBreakdown[f.status || "unknown"] = (statusBreakdown[f.status || "unknown"] || 0) + 1;
-          urgencyBreakdown[f.urgency || "unknown"] = (urgencyBreakdown[f.urgency || "unknown"] || 0) + 1;
+          statusBreakdown[f.status || "פתוח"] = (statusBreakdown[f.status || "פתוח"] || 0) + 1;
+          if (f.fault_type) typeBreakdown[f.fault_type] = (typeBreakdown[f.fault_type] || 0) + 1;
         }
         return JSON.stringify({
           total: (data || []).length,
           recent_count: recent.length,
           recent_days: days,
           status_breakdown: statusBreakdown,
-          urgency_breakdown: urgencyBreakdown,
+          type_breakdown: typeBreakdown,
         });
       }
 
       case "get_accidents_stats": {
         const days = (args.days as number) || 30;
-        let q = supabase.from("accidents").select("id, status, date, created_at, vehicle_plate, driver_name");
+        let q = supabase.from("accidents").select("id, status, date, created_at, driver_name");
         if (company) q = q.eq("company_name", company);
         const { data, error } = await q;
         if (error) return JSON.stringify({ error: error.message });
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const recent = (data || []).filter((a) => new Date(a.created_at) >= cutoff);
+        const recent = (data || []).filter((a) => (a.created_at || a.date) && new Date(a.created_at || a.date) >= cutoff);
         const statusBreakdown: Record<string, number> = {};
         for (const a of data || []) {
-          statusBreakdown[a.status || "unknown"] = (statusBreakdown[a.status || "unknown"] || 0) + 1;
+          statusBreakdown[a.status || "בטיפול"] = (statusBreakdown[a.status || "בטיפול"] || 0) + 1;
         }
         return JSON.stringify({
           total: (data || []).length,
@@ -225,20 +221,17 @@ async function executeFleetTool(
       }
 
       case "get_service_orders_stats": {
-        let q = supabase.from("service_orders").select("id, treatment_status, urgency, towing_requested");
+        let q = supabase.from("service_orders").select("id, status, manager_approval");
         if (company) q = q.eq("company_name", company);
         const { data, error } = await q;
         if (error) return JSON.stringify({ error: error.message });
         const statusBreakdown: Record<string, number> = {};
-        let towingCount = 0;
         for (const s of data || []) {
-          statusBreakdown[s.treatment_status || "pending"] = (statusBreakdown[s.treatment_status || "pending"] || 0) + 1;
-          if (s.towing_requested) towingCount++;
+          statusBreakdown[s.status || "ממתין"] = (statusBreakdown[s.status || "ממתין"] || 0) + 1;
         }
         return JSON.stringify({
           total: (data || []).length,
           status_breakdown: statusBreakdown,
-          requiring_towing: towingCount,
         });
       }
 
@@ -382,11 +375,8 @@ async function callGemini(
   const modelCandidates = Array.from(new Set([
     preferredModel,
     "gemini-3.8-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.7-flash",
-    "gemini-flash-latest",
-    "gemini-flash-lite-latest",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
   ].filter(Boolean)));
 
   const initialContents: Array<any> = [];
@@ -479,6 +469,13 @@ async function callGemini(
           const errText = await res.text();
           console.error(`Gemini error with model ${model} (${res.status}):`, errText.slice(0, 250));
           attemptErrors.push({ model, status: res.status, text: errText.slice(0, 200) });
+          if (res.status === 402 || /prepayment|credits|billing/i.test(errText)) {
+            return {
+              error: "יתרת הקרדיטים של Gemini ב-Google AI Studio אזלה. יש לטעון קרדיטים כדי להמשיך בשירות.",
+              status: 402,
+              details: errText.slice(0, 300),
+            };
+          }
           if (res.status === 429) {
             return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
           }
@@ -612,7 +609,19 @@ async function callGemini(
   }
 
   console.error("Gemini all candidates failed:", attemptErrors);
-  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", details: attemptErrors, status: 500 };
+  const isBillingIssue = attemptErrors.some((e) => e.status === 402 || /prepayment|credits|billing/i.test(e.text));
+  if (isBillingIssue) {
+    return {
+      error: "יתרת הקרדיטים של Gemini ב-Google AI Studio אזלה. יש לטעון קרדיטים כדי להמשיך בשירות.",
+      status: 402,
+      details: attemptErrors,
+    };
+  }
+  return {
+    error: `שגיאה בתקשורת עם שירות ה-AI (Gemini: ${attemptErrors[0]?.status || 500}). אנא נסה שוב בעוד מספר רגעים.`,
+    status: attemptErrors[0]?.status || 500,
+    details: attemptErrors,
+  };
 }
 
 function convertGeminiPropToAnthropic(v: any): any {
@@ -970,6 +979,7 @@ Deno.serve(async (req) => {
     const effectiveGarageCaseId = String(body.garage_case_id || body.garageCaseId || "").trim();
     const effectivePageContext = String(body.page_context || body.pageContext || "").trim();
     const effectiveModule = String(body.module || "").trim();
+      const isFleetModule = effectiveModule === "fleet";
     const { action, messages, company_name, pending_action, conversation_id, attachments } = body;
 
     const supabase = ctx.supabaseUser;
@@ -1187,14 +1197,14 @@ Deno.serve(async (req) => {
     };
 
     // Fast-Path 1: Automatic trigger for New Claim Package Preparation Card
-    const isNewClaimPackageTrigger = !isGarageModule && /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
+    const isNewClaimPackageTrigger = !isGarageModule && !isFleetModule && /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
     if (isNewClaimPackageTrigger) {
       const catRes = await onToolCall("list_available_claim_documents_and_forms", {});
       return streamTextAsSse("📦 הכנת חבילת פתיחת תיק חדש ללקוח:", catRes.preview || null, documentCards, toolsUsed);
     }
 
     // Fast-Path 2: Package Approval & Link Generation from ClaimsCatalogWidget
-    if (!isGarageModule && (body.package_approval || lastUserText.startsWith("דליה, אשר את חבילת פתיחת התיק והפיקי קישור"))) {
+    if (!isGarageModule && !isFleetModule && (body.package_approval || lastUserText.startsWith("דליה, אשר את חבילת פתיחת התיק והפיקי קישור"))) {
       let reqDocs: string[] = [];
       let provForms: string[] = [];
       let expiresHours = 24;
@@ -1249,7 +1259,7 @@ Deno.serve(async (req) => {
 
     // Fast-Path 3: Prepare Complete Claim Package for Insurance Company
     const isInsurancePkgTrigger = /(?:תכיני|הכיני|הכן|תכין|אספי|תאספי|רכזי)\s+(?:לי\s+)?(?:את\s+)?(?:כל\s+)?(?:תיק\s+התביעה|חבילת\s+תביעה|מסמכי\s+התביעה).*(?:לחברת\s+הביטוח|לביטוח|לשליחה)/i.test(lastUserText);
-    if (isInsurancePkgTrigger) {
+    if (!isFleetModule && isInsurancePkgTrigger) {
       const explicitDalMatch = lastUserText.match(/DAL-\d{4}-\d+/i);
       const refArg = explicitDalMatch ? explicitDalMatch[0].toUpperCase() : (claimId || "");
       const pkgRes = await onToolCall("prepare_insurance_claim_package", refArg ? { claim_ref: refArg } : {});
@@ -1288,32 +1298,8 @@ Deno.serve(async (req) => {
       temperature,
     );
 
-    let finalResult = geminiResult;
-    if ("error" in finalResult && CLAUDE_API_KEY) {
-      console.warn("Gemini call returned error, falling back to Claude:", finalResult.error);
-      const claudeResult = await callClaude(
-        CLAUDE_API_KEY,
-        "claude-3-5-haiku-20241022",
-        fullSysPrompt,
-        messages,
-        tools,
-        onToolCall,
-        attachments,
-        temperature,
-      );
-      if (!("error" in claudeResult)) {
-        finalResult = claudeResult;
-      } else {
-        finalResult = {
-          error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.",
-          details: {
-            gemini: (geminiResult as any).details,
-            claude: (claudeResult as any).details,
-          },
-          status: 500,
-        };
-      }
-    }
+    // Gemini only as requested (no automatic fallback to Claude or OpenAI)
+    const finalResult = geminiResult;
 
     if ("error" in finalResult) {
       return new Response(JSON.stringify({ error: finalResult.error, details: (finalResult as any).details }), {
