@@ -116,11 +116,11 @@ async function main() {
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const bodyRow = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]').first();
   await bodyRow.locator('input[aria-label="שעות"]').fill('2.5');
-  check('hours pricing 2.5 × 380 = 950', (await bodyRow.locator('[data-testid="cq-breakdown"]').innerText()).includes('950.00'));
+  check('hours pricing 2.5 × 380 = 950', (await bodyRow.locator('[data-testid="cq-final"]').innerText()).includes('950.00'));
   // Same job on the other side
   await bodyRow.locator('button[title="הוסף את אותה עבודה בצד השני"]').click();
   const bodyRows = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]');
-  check('duplicate to other side', (await bodyRows.nth(1).locator('input.cq-in-label').inputValue()).includes('ימין'));
+  check('duplicate to other side', (await bodyRows.nth(1).locator('input[aria-label="תיאור העבודה"]').inputValue()).includes('ימין'));
   await bodyRows.nth(1).locator('button[title="מחק שורה"]').click();
 
   // 4. Extra category (front alignment), global price with ₪ discount
@@ -131,18 +131,16 @@ async function main() {
   await dlg.locator('button.cq-chip', { hasText: 'כיוון פרונט' }).click();
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const alignRow = page.locator('[data-testid="cq-cat-alignment"] [data-testid="cq-work-row"]').first();
-  await alignRow.locator('[data-testid="cq-price-fixed"]').click();
   await alignRow.locator('input[aria-label="מחיר גלובלי"]').fill('250');
   await alignRow.locator('select[aria-label="סוג הנחה"]').selectOption('amount');
   await alignRow.locator('input[aria-label="ערך הנחה"]').fill('50');
-  check('global price with ₪50 discount shows original and final', /250\.00[\s\S]*200\.00/.test(await alignRow.locator('[data-testid="cq-breakdown"]').innerText()));
+  check('global price with ₪50 discount shows original and final', (await alignRow.locator('input[aria-label="מחיר גלובלי"]').inputValue()) === '250' && (await alignRow.locator('[data-testid="cq-final"]').innerText()).includes('200.00'));
 
   // 5. Free-text mechanics job (saved to library), global 1000 with 10% discount
   await page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-add-item"]').first().click();
   await page.locator('[data-testid="cq-picker-input"]').fill('בדיקת מערכת בלמים E2E');
   await page.locator('[data-testid="cq-picker-ok"]').click();
   const mechRow = page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-work-row"]').first();
-  await mechRow.locator('[data-testid="cq-price-fixed"]').click();
   await mechRow.locator('input[aria-label="מחיר גלובלי"]').fill('1000');
   await mechRow.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
   await mechRow.locator('input[aria-label="ערך הנחה"]').fill('10');
@@ -152,6 +150,9 @@ async function main() {
   const fillPart = async (i, v) => {
     const r = partRows.nth(i);
     await r.locator('input[aria-label="שם החלק"]').fill(v.name);
+    // מק״ט, supplier net and "included" live in the row's ⋯ details.
+    const more = r.locator('[data-testid="cq-part-more"]');
+    if ((await more.getAttribute('aria-expanded')) !== 'true') await more.click();
     if (v.sku) await r.locator('input[aria-label="מק״ט"]').fill(v.sku);
     const nums = r.locator('input[aria-label="כמות"], input[aria-label="ברוטו ליחידה"], input[aria-label="נטו לספק"]');
     await nums.nth(0).fill(String(v.qty));

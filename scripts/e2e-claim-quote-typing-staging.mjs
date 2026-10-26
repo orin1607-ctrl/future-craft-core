@@ -74,38 +74,37 @@ async function run(page, label, mobile) {
     return rows.nth(before);
   };
 
-  // Hours × rate in פחחות, with a decimal and a changed hourly rate
+  // Hour rate at the top (400) × typed hours in פחחות
+  const rate = await typeInto(page, page.locator('[data-testid="cq-hour-rate"] input'), '400');
   const body = await addItem('cq-cat-body', `פחחות לפי שעות ${label}`);
   // The phone types a comma as the decimal point, as Hebrew phone keyboards often do.
   const hoursText = mobile ? '2,5' : '2.5';
   const h = await typeInto(page, body.locator('input[aria-label="שעות"]'), hoursText);
-  const rate = await typeInto(page, body.locator('input[aria-label="מחיר שעה"]'), '400');
-  const bodyPrice = money(await body.locator('.cq-price b').innerText());
-  check(`${label}: פחחות — typed hours "${hoursText}" and rate "400" → 1,000`, h === '2.5' && rate === '400' && bodyPrice === 1000, `hours="${h}" rate="${rate}" price=${bodyPrice}`);
-  await body.locator('[data-testid="cq-price-fixed"]').click();
+  const bodyPrice = money(await body.locator('[data-testid="cq-final"]').innerText());
+  check(`${label}: פחחות — typed hours "${hoursText}" × rate at the top "400" → 1,000`, h === '2.5' && rate === '400' && bodyPrice === 1000, `hours="${h}" rate="${rate}" price=${bodyPrice}`);
   const pre = await body.locator('input[aria-label="מחיר גלובלי"]').inputValue();
-  check(`${label}: switching the same line to סכום קבוע starts from its hours amount`, pre === '1000', `fixed="${pre}"`);
+  check(`${label}: the price box shows the hours amount (1000)`, pre === '1000', `price="${pre}"`);
+  await typeInto(page, body.locator('input[aria-label="מחיר גלובלי"]'), '1100');
+  check(`${label}: typing a price makes the line manual (1,100)`, (await body.locator('[data-testid="cq-price-hours"]').count()) === 1 && money(await body.locator('[data-testid="cq-final"]').innerText()) === 1100);
   await body.locator('[data-testid="cq-price-hours"]').click();
-  check(`${label}: and back to לפי שעות keeps hours and rate`, (await body.locator('input[aria-label="שעות"]').inputValue()) === '2.5' && money(await body.locator('.cq-price b').innerText()) === 1000);
+  check(`${label}: and back to hours keeps 2.5 h → 1,000`, (await body.locator('input[aria-label="שעות"]').inputValue()) === '2.5' && money(await body.locator('[data-testid="cq-final"]').innerText()) === 1000);
 
   // Fixed price in צבע (manual line next to the paint calculator)
   const paint = await addItem('cq-cat-paint', `צבע ידני ${label}`);
-  await paint.locator('[data-testid="cq-price-fixed"]').click();
   const gp = await typeInto(page, paint.locator('input[aria-label="מחיר גלובלי"]'), '1250.50');
-  check(`${label}: צבע — typed fixed price "1250.50"`, gp === '1250.50' && money(await paint.locator('.cq-price b').innerText()) === 1250.5, `value="${gp}"`);
+  check(`${label}: צבע — typed fixed price "1250.50"`, gp === '1250.50' && money(await paint.locator('[data-testid="cq-final"]').innerText()) === 1250.5, `value="${gp}"`);
 
   // Fixed price in מכונאות with a % discount, then back to hours (each line chooses on its own)
   const mech = await addItem('cq-cat-mech', `מכונאות ${label}`);
-  await mech.locator('[data-testid="cq-price-fixed"]').click();
   await typeInto(page, mech.locator('input[aria-label="מחיר גלובלי"]'), '800');
   await mech.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
   const zero = await typeInto(page, mech.locator('input[aria-label="ערך הנחה"]'), '0');
   check(`${label}: "0" can be typed`, zero === '0', `value="${zero}"`);
   const disc = await typeInto(page, mech.locator('input[aria-label="ערך הנחה"]'), '10');
-  check(`${label}: מכונאות — fixed 800 with typed 10% discount → 720`, disc === '10' && money(await mech.locator('.cq-price b').innerText()) === 720);
+  check(`${label}: מכונאות — fixed 800 with typed 10% discount → 720`, disc === '10' && money(await mech.locator('[data-testid="cq-final"]').innerText()) === 720);
   const mech2 = await addItem('cq-cat-mech', `מכונאות שעות ${label}`);
   const h2 = await typeInto(page, mech2.locator('input[aria-label="שעות"]'), '0.5');
-  check(`${label}: מכונאות — hours "0.5" can be typed (starts with 0) → 190`, h2 === '0.5' && money(await mech2.locator('.cq-price b').innerText()) === 190, `hours="${h2}"`);
+  check(`${label}: מכונאות — hours "0.5" can be typed (starts with 0) → 200`, h2 === '0.5' && money(await mech2.locator('[data-testid="cq-final"]').innerText()) === 200, `hours="${h2}"`);
 
   // A new work area: both methods
   await page.locator('[data-testid="cq-add-domain"]').click();
@@ -115,23 +114,22 @@ async function run(page, label, mobile) {
   const n1 = await addItem(areaId, 'לפי שעות');
   await typeInto(page, n1.locator('input[aria-label="שעות"]'), '3');
   const n2 = await addItem(areaId, 'סכום קבוע');
-  await n2.locator('[data-testid="cq-price-fixed"]').click();
   await typeInto(page, n2.locator('input[aria-label="מחיר גלובלי"]'), '450');
-  check(`${label}: new area — hours 3 × 380 = 1,140 and fixed 450`, money(await n1.locator('.cq-price b').innerText()) === 1140 && money(await n2.locator('.cq-price b').innerText()) === 450);
+  check(`${label}: new area — hours 3 × 400 = 1,200 and fixed 450`, money(await n1.locator('[data-testid="cq-final"]').innerText()) === 1200 && money(await n2.locator('[data-testid="cq-final"]').innerText()) === 450);
 
   // Delete-and-retype: clearing a field to empty and typing a new value
   const cleared = await typeInto(page, n2.locator('input[aria-label="מחיר גלובלי"]'), '');
   const retyped = await typeInto(page, n2.locator('input[aria-label="מחיר גלובלי"]'), '460');
   check(`${label}: field can be cleared and retyped`, cleared === '' && retyped === '460');
 
-  // Totals: works = 1000 + 1250.5 + 720 + 190 + 1140 + 460 (+ starter empty part = 0)
-  const works = 1000 + 1250.5 + 720 + 190 + 1140 + 460;
+  // Totals: works = 1000 + 1250.5 + 720 + 200 + 1200 + 460 (+ starter empty part = 0)
+  const works = 1000 + 1250.5 + 720 + 200 + 1200 + 460;
   const total = money(await page.locator('[data-testid="cq-total"]').innerText());
   const exp = Math.round(works * 1.18 * 100) / 100;
   check(`${label}: totals incl. discount and 18% VAT`, total === exp, `${total} vs ${exp}`);
   const sum = await page.locator('[data-testid="cq-summary"]').innerText();
-  // Per-area totals are before discounts (מכונאות 800 + 190 = 990); the 10% (₪80) is its own line.
-  check(`${label}: summary per area (before discounts) and the discount line`, sum.includes('1,000.00') && sum.includes('1,250.50') && sum.includes('990.00') && sum.includes('1,600.00') && sum.includes('-₪80.00'), sum.replace(/\s+/g, ' '));
+  // Per-area totals are before discounts (מכונאות 800 + 200 = 1,000); the 10% (₪80) is its own line.
+  check(`${label}: summary per area (before discounts) and the discount line`, sum.includes('1,000.00') && sum.includes('1,250.50') && sum.includes('1,660.00') && sum.includes('-₪80.00'), sum.replace(/\s+/g, ' '));
   await page.screenshot({ path: path.join(OUT, `${label}-typed.png`) });
 
   // Save, reopen, PDF

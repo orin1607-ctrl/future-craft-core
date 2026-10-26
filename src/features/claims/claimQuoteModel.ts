@@ -278,6 +278,14 @@ export function newPartLine(extra: Partial<QuotePartLine> = {}): QuotePartLine {
   };
 }
 
+/**
+ * The hour rate at the top of the quote is the rate of every line priced by hours.
+ * Lines with a manual amount, and the paint-calculator line, keep their own amount.
+ */
+export function applyHourRate(d: QuoteData, rate: number): QuoteData {
+  return { ...d, hourRate: rate, works: d.works.map((w) => (w.pricing === 'hours' ? { ...w, hourRate: rate } : w)) };
+}
+
 export function newQuoteData(claim: Record<string, string | undefined>): QuoteData {
   return {
     schema: 1,

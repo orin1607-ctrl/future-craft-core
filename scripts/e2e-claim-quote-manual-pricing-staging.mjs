@@ -1,8 +1,9 @@
 /**
- * Manual pricing on every line, typed key by key (STAGING only, never Production):
- * "+ הוסף עבודה" with a fixed price and 10% discount, a line by hours, "+ הוסף חלק / חומר" with a ₪ discount,
- * price ← discount ← final on each line, totals / VAT / save / reopen / versions / PDF / report,
- * all in one quote together with the paint calculator and a supplier invoice. Desktop and phone.
+ * The simple quote table, typed key by key (STAGING only, never Production):
+ * hour rate at the top drives every hours line; each work row is פירוט | שעות | מחיר לפני הנחה | הנחה | מחיר סופי,
+ * a manual amount can replace hours on a row; parts rows are שם | כמות | מחיר ליחידה | לפני הנחה | הנחה | סופי.
+ * Totals / VAT / save / reopen / versions / PDF / report, together with the paint calculator and a supplier
+ * invoice in the same quote. Desktop and phone (phone screenshots of the tables).
  *   node scripts/e2e-claim-quote-manual-pricing-staging.mjs [baseUrl]
  * Creates one test claim per device and soft-deletes them at the end.
  */
@@ -69,14 +70,14 @@ async function typeInto(page, locator, text) {
   return locator.inputValue();
 }
 
-async function breakdown(row) {
-  const b = row.locator('[data-testid="cq-breakdown"]');
-  return {
-    before: money(await b.locator('[data-testid="cq-before"]').innerText()),
-    discount: money(await b.locator('[data-testid="cq-discount"]').innerText()),
-    final: money(await b.locator('[data-testid="cq-final"]').innerText()),
-    text: (await b.innerText()).replace(/\s+/g, ' '),
-  };
+/** before / discount / final of a table row. Work rows hold "before" in the editable price box. */
+async function rowVals(row) {
+  const priceBox = row.locator('input[aria-label="מחיר גלובלי"]');
+  const before = (await priceBox.count()) ? money(await priceBox.inputValue()) : money(await row.locator('[data-testid="cq-before"]').first().innerText());
+  const discEl = row.locator('[data-testid="cq-discount"]');
+  const discount = (await discEl.count()) ? money(await discEl.first().innerText()) : 0;
+  const final = money(await row.locator('[data-testid="cq-final"]').first().innerText());
+  return { before, discount, final, text: `${before} / ${discount} / ${final}` };
 }
 
 async function run(page, label, mobile) {
@@ -127,59 +128,85 @@ async function run(page, label, mobile) {
   await openQuote();
   check(`${label}: paint works filled from the calculator (${L} + materials ${M})`, money(await page.locator('[data-testid="cq-cat-paint"] .cq-cat-head b').first().innerText()) === L);
 
-  // 1. "+ הוסף עבודה" → priced line right away, fixed amount 1,000, 10% discount → 900
+  // Hour rate at the top: 400
+  const rateBox = page.locator('[data-testid="cq-hour-rate"] input[aria-label="מחיר שעת עבודה"]');
+  await typeInto(page, rateBox, '400');
+  check(`${label}: hour rate at the top set to 400`, (await rateBox.inputValue()) === '400');
+
   const bodyRows = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]');
-  await page.locator('[data-testid="cq-cat-body"] [data-testid="cq-add-work-line"]').first().click();
-  const w1 = bodyRows.nth(0);
-  const focused = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
-  check(`${label}: "+ הוסף עבודה" adds a priced line and puts the cursor in its description`, (await bodyRows.count()) === 1 && focused === 'תיאור העבודה', `focused=${focused}`);
-  await page.keyboard.type('עבודת פחחות ידנית', { delay: 30 });
-  await w1.locator('[data-testid="cq-price-fixed"]').click();
-  await typeInto(page, w1.locator('input[aria-label="מחיר גלובלי"]'), '1000');
-  await w1.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
+  const addBody = async (desc) => {
+    const n = await bodyRows.count();
+    await page.locator('[data-testid="cq-cat-body"] [data-testid="cq-add-work-line"]').first().click();
+    await page.keyboard.type(desc, { delay: 25 });
+    return bodyRows.nth(n);
+  };
+
+  // 1. The example: פירוק והרכבת פגוש קדמי | 3 שעות | 1,200 | 10% | 1,080
+  const w1 = await addBody('פירוק והרכבת פגוש קדמי');
+  const focusedOk = (await w1.locator('input[aria-label="תיאור העבודה"]').inputValue()) === 'פירוק והרכבת פגוש קדמי';
+  check(`${label}: "+ הוסף עבודה" adds a table row and the description is typed straight into it`, focusedOk);
+  await typeInto(page, w1.locator('input[aria-label="שעות"]'), '3');
+  let v1 = await rowVals(w1);
+  check(`${label}: 3 hours × 400 (rate at the top) → price before discount 1,200`, v1.before === 1200, v1.text);
   await typeInto(page, w1.locator('input[aria-label="ערך הנחה"]'), '10');
-  const b1 = await breakdown(w1);
-  check(`${label}: work line fixed 1,000 → discount 10% (₪100) → final 900`, b1.before === 1000 && b1.discount === -100 && b1.final === 900, b1.text);
+  v1 = await rowVals(w1);
+  check(`${label}: discount 10% → -120 → final 1,080`, v1.discount === -120 && v1.final === 1080, v1.text);
 
-  // 2. Line by hours: 2.5 × 400 = 1,000 (no discount)
-  await page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-add-work-line"]').first().click();
-  await page.keyboard.type('עבודת מכונאות לפי שעות', { delay: 30 });
-  const w2 = page.locator('[data-testid="cq-cat-mech"] [data-testid="cq-work-row"]').nth(0);
-  await typeInto(page, w2.locator('input[aria-label="שעות"]'), '2.5');
-  await typeInto(page, w2.locator('input[aria-label="מחיר שעה"]'), '400');
-  const b2 = await breakdown(w2);
-  check(`${label}: work line by hours 2.5 × 400 → 1,000 before, no discount, final 1,000`, b2.before === 1000 && b2.final === 1000 && b2.text.includes('—'), b2.text);
+  // 2. Manual price on a row instead of hours, with a ₪ discount
+  const w2 = await addBody('יישור דופן ימין');
+  await typeInto(page, w2.locator('input[aria-label="מחיר גלובלי"]'), '1000');
+  await w2.locator('select[aria-label="סוג הנחה"]').selectOption('amount');
+  await typeInto(page, w2.locator('input[aria-label="ערך הנחה"]'), '100');
+  const v2 = await rowVals(w2);
+  const manualShown = (await w2.locator('[data-testid="cq-price-hours"]').innerText()).includes('ידני');
+  check(`${label}: manual price 1,000 on a row (hours cell says "ידני"), discount ₪100 → 900`, manualShown && v2.before === 1000 && v2.discount === -100 && v2.final === 900, v2.text);
 
-  // 4. "+ הוסף חלק / חומר": 600, ₪100 discount → 500 (supplier net 450 kept internal)
+  // 3. Another hours row without discount
+  const w3 = await addBody('החלפת פנס קדמי');
+  await typeInto(page, w3.locator('input[aria-label="שעות"]'), '1.5');
+  const v3 = await rowVals(w3);
+  check(`${label}: 1.5 hours × 400 → 600, no discount → 600`, v3.before === 600 && v3.discount === 0 && v3.final === 600, v3.text);
+
+  // Changing the rate at the top recalculates the hours rows only
+  await typeInto(page, rateBox, '420');
+  const r1 = await rowVals(w1);
+  const r2v = await rowVals(w2);
+  check(`${label}: rate 420 → 3 h = 1,260, 10% → 1,134; manual row stays 1,000`, r1.before === 1260 && r1.final === 1134 && r2v.before === 1000, `${r1.text} | ${r2v.text}`);
+  await typeInto(page, rateBox, '400');
+
+  // 4. Parts row: name | qty | unit price | before | discount ₪100 | final; supplier net in the row details
   const partRows = page.locator('[data-testid="cq-pgroup-חלקים"] [data-testid="cq-part-row"]');
   const before = await partRows.count();
   await page.locator('[data-testid="cq-add-part"]').click();
   const p1 = partRows.nth(before);
-  const pf = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
-  check(`${label}: "+ הוסף חלק / חומר" adds a line and puts the cursor in its name`, pf === 'שם החלק', `focused=${pf}`);
-  await page.keyboard.type('חלק חילוף ידני', { delay: 30 });
+  await page.keyboard.type('חלק חילוף ידני', { delay: 25 });
   await typeInto(page, p1.locator('input[aria-label="כמות"]'), '1');
   await typeInto(page, p1.locator('input[aria-label="ברוטו ליחידה"]'), '600');
-  await typeInto(page, p1.locator('input[aria-label="נטו לספק"]'), '450');
   await p1.locator('select[aria-label="סוג הנחה"]').selectOption('amount');
   await typeInto(page, p1.locator('input[aria-label="ערך הנחה"]'), '100');
-  const b3 = await breakdown(p1);
-  check(`${label}: part line 1 × 600 → discount ₪100 → final 500`, b3.before === 600 && b3.discount === -100 && b3.final === 500, b3.text);
-  // A material line with quantity
+  await p1.locator('[data-testid="cq-part-more"]').click();
+  await typeInto(page, p1.locator('input[aria-label="נטו לספק"]'), '450');
+  const pv = await rowVals(p1);
+  check(`${label}: part row 1 × 600 → before 600, discount ₪100 → final 500`, pv.before === 600 && pv.discount === -100 && pv.final === 500, pv.text);
+  await p1.locator('[data-testid="cq-part-more"]').click();
+
+  // Material row: 3 × 40
   await page.locator('[data-testid="cq-pgroup-חומרים"] [data-testid="cq-add-part-item"]').click();
   const mats = page.locator('[data-testid="cq-pgroup-חומרים"] [data-testid="cq-part-row"]');
   const m1 = mats.nth((await mats.count()) - 1);
-  await page.keyboard.type('חומר איטום', { delay: 30 });
+  await page.keyboard.type('חומר איטום', { delay: 25 });
   await typeInto(page, m1.locator('input[aria-label="כמות"]'), '3');
   await typeInto(page, m1.locator('input[aria-label="ברוטו ליחידה"]'), '40');
-  const b4 = await breakdown(m1);
-  check(`${label}: material line 3 × 40 → 120 before discount`, b4.before === 120 && b4.final === 120, b4.text);
+  const mv = await rowVals(m1);
+  check(`${label}: material row 3 × 40 → 120`, mv.before === 120 && mv.final === 120, mv.text);
 
   if (mobile) {
-    await w1.scrollIntoViewIfNeeded();
-    await w1.screenshot({ path: path.join(OUT, 'phone-work-row-price-discount-final.png') });
-    await p1.scrollIntoViewIfNeeded();
-    await p1.screenshot({ path: path.join(OUT, 'phone-part-row-price-discount-final.png') });
+    const bodyTable = page.locator('[data-testid="cq-cat-body"] .cq-table').first();
+    await bodyTable.scrollIntoViewIfNeeded();
+    await bodyTable.screenshot({ path: path.join(OUT, 'phone-works-table.png') });
+    const partsTable = page.locator('[data-testid="cq-pgroup-חלקים"] .cq-table').first();
+    await partsTable.scrollIntoViewIfNeeded();
+    await partsTable.screenshot({ path: path.join(OUT, 'phone-parts-table.png') });
   }
 
   // 7. Supplier invoice from the claim gallery into the same quote
@@ -188,22 +215,27 @@ async function run(page, label, mobile) {
   await review.waitFor({ timeout: 60000 });
   await page.locator('[data-testid="cq-invoice-approve"]').click();
   const head = page.locator('[data-testid="cq-part-row"]').filter({ has: page.locator('input[value="Headlamp right"]') });
-  const b5 = await breakdown(head);
+  const b5 = await rowVals(head);
   check(`${label}: supplier invoice line added (2 × 900 = 1,800) next to the manual lines`, (await head.count()) === 1 && b5.final === 1800, b5.text);
 
   // 5–6. Totals, discounts once, VAT
-  const worksBefore = 1000 + 1000 + L;
+  const worksBefore = 1200 + 1000 + 600 + L;
   const partsBefore = 600 + 120 + 1800 + M;
-  const discounts = 100 + 100;
+  const discounts = 120 + 100 + 100;
   const after = r2(worksBefore + partsBefore - discounts);
   const vat = r2(after * 0.18);
   const total = r2(after + vat);
   const sum = page.locator('[data-testid="cq-summary"]');
   const sumText = (await sum.innerText()).replace(/\s+/g, ' ');
-  check(`${label}: summary — before discounts, customer discounts once (-₪200), after discounts, VAT, total`,
-    sumText.includes(`-₪200.00`) && money(await page.locator('[data-testid="cq-total"]').innerText()) === total && sumText.includes(vat.toLocaleString('en-US', { minimumFractionDigits: 2 })),
+  check(`${label}: summary — before discounts, customer discounts once (-₪320), after discounts, VAT, total`,
+    sumText.includes(`-₪320.00`) && money(await page.locator('[data-testid="cq-total"]').innerText()) === total && sumText.includes(vat.toLocaleString('en-US', { minimumFractionDigits: 2 })),
     `${sumText.slice(0, 300)} | expected total ${total}, vat ${vat}`);
-  await page.screenshot({ path: path.join(OUT, `${label}-quote.png`) });
+  await page.screenshot({ path: path.join(OUT, `${label}-quote.png`), fullPage: false });
+  if (mobile) {
+    const sumBox = page.locator('[data-testid="cq-summary"]');
+    await sumBox.scrollIntoViewIfNeeded();
+    await sumBox.screenshot({ path: path.join(OUT, 'phone-summary.png') });
+  }
 
   // Save → reopen → values and discounts kept; change → version 2
   await page.locator('[data-testid="cq-save"]').click();
@@ -211,17 +243,18 @@ async function run(page, label, mobile) {
   await page.locator('.cq-close').click();
   await openClaim();
   await openQuote();
-  const w1r = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]').nth(0);
+  const w1r = page.locator('[data-testid="cq-cat-body"] [data-testid="cq-work-row"]').filter({ has: page.locator('input[value="פירוק והרכבת פגוש קדמי"]') });
   const p1r = page.locator('[data-testid="cq-part-row"]').filter({ has: page.locator('input[value="חלק חילוף ידני"]') });
-  const rb1 = await breakdown(w1r);
-  const rb3 = await breakdown(p1r);
-  check(`${label}: reopened — work line 1,000 / -100 / 900 and part line 600 / -100 / 500 kept`, rb1.final === 900 && rb1.discount === -100 && rb3.final === 500 && rb3.discount === -100, `${rb1.text} | ${rb3.text}`);
+  const rv1 = await rowVals(w1r);
+  const rv3 = await rowVals(p1r);
+  check(`${label}: reopened — 1,200 / -120 / 1,080 and part 600 / -100 / 500 kept`, rv1.before === 1200 && rv1.final === 1080 && rv3.final === 500 && rv3.discount === -100, `${rv1.text} | ${rv3.text}`);
+  check(`${label}: reopened — rate at the top still 400`, (await page.locator('[data-testid="cq-hour-rate"] input').inputValue()) === '400');
   check(`${label}: reopened — same total`, money(await page.locator('[data-testid="cq-total"]').innerText()) === total);
   await typeInto(page, w1r.locator('input[aria-label="ערך הנחה"]'), '20');
-  check(`${label}: changing the discount to 20% updates the line (1,000 → 800)`, (await breakdown(w1r)).final === 800);
+  check(`${label}: discount changed to 20% → 1,200 → 960`, (await rowVals(w1r)).final === 960);
   await page.locator('[data-testid="cq-save"]').click();
   await page.locator('.cq-sub', { hasText: 'גרסה 2' }).waitFor({ timeout: 20000 });
-  const total2 = r2((after - 100) * 1.18);
+  const total2 = r2((after - 120) * 1.18);
   check(`${label}: version 2 saved with the new total`, money(await page.locator('[data-testid="cq-total"]').innerText()) === total2, `${total2}`);
 
   // PDF

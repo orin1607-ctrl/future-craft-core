@@ -178,3 +178,20 @@ describe('typing prices and hours', () => {
     expect(typed('')).toEqual({ box: '', value: 0 });
   });
 });
+
+describe('hour rate at the top of the quote', () => {
+  it('prices every hours line by it; manual and paint-calculator lines keep their amount', async () => {
+    const { applyHourRate, newQuoteData, newWorkLine, workPricing, applyPaintCalc } = await import('./claimQuoteModel');
+    let d = newQuoteData({ id: 'C' });
+    d.works = [
+      newWorkLine('body', 'פירוק והרכבת פגוש קדמי', 380, { hours: 3, discountType: 'percent', discountValue: 10 }),
+      newWorkLine('body', 'עבודה במחיר ידני', 380, { pricing: 'global', globalPrice: 1000 }),
+    ];
+    d = applyPaintCalc(d, { laborCost: 500, materialsCost: 100, adjustedHours: 1 } as never, { id: 'p', version: 1 });
+    d = applyHourRate(d, 400);
+    expect(d.hourRate).toBe(400);
+    expect(workPricing(d.works[0])).toEqual({ original: 1200, discount: 120, final: 1080 });
+    expect(workPricing(d.works[1]).original).toBe(1000);
+    expect(workPricing(d.works.find((w) => w.source === 'paint_calc')!).original).toBe(500);
+  });
+});

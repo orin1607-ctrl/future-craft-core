@@ -177,7 +177,6 @@ async function main() {
   await grp.locator('[data-testid="cq-add-item"]').click();
   await pickerSet(ITEM);
   const itemRow = grp.locator('[data-testid="cq-work-row"]').first();
-  await itemRow.locator('[data-testid="cq-price-fixed"]').click();
   await itemRow.locator('input[aria-label="מחיר גלובלי"]').fill('600');
   check(3, 'item added inside the category with a global price', money(await itemRow.locator('[data-testid="cq-final"]').innerText()) === 600);
 
@@ -192,7 +191,6 @@ async function main() {
   await mech.locator('[data-testid="cq-add-item"]').first().click();
   await pickerSet(`בדיקת בלמים E2E ${RUN}`);
   const mrow = mech.locator('[data-testid="cq-work-row"]').first();
-  await mrow.locator('[data-testid="cq-price-fixed"]').click();
   await mrow.locator('input[aria-label="מחיר גלובלי"]').fill('1000');
   await mrow.locator('select[aria-label="סוג הנחה"]').selectOption('percent');
   await mrow.locator('input[aria-label="ערך הנחה"]').fill('10');
@@ -204,6 +202,8 @@ async function main() {
   const p0 = parts.locator('[data-testid="cq-part-row"]').first();
   const fillPart = async (row, v) => {
     await row.locator('input[aria-label="שם החלק"]').fill(v.name);
+    const more = row.locator('[data-testid="cq-part-more"]');
+    if ((await more.getAttribute('aria-expanded')) !== 'true') await more.click();
     if (v.sku) await row.locator('input[aria-label="מק״ט"]').fill(v.sku);
     if (v.desc) await row.locator('input[aria-label="תיאור"]').fill(v.desc);
     const f = row.locator('input[aria-label="כמות"], input[aria-label="ברוטו ליחידה"], input[aria-label="נטו לספק"]');

@@ -15,6 +15,7 @@ import {
   CORE_CATEGORIES,
   EXTRA_CATEGORIES,
   PART_TYPES,
+  applyHourRate,
   applyInvoiceMatches,
   applyPaintCalc,
   MATERIALS_GROUP,
@@ -154,41 +155,6 @@ function NumField({ value, onValue, className = 'cq-in cq-in-num', label, placeh
   );
 }
 
-function DiscountInputs({ type, value, onChange }: { type: DiscountType; value: number; onChange: (type: DiscountType, value: number) => void }) {
-  return (
-    <span className="cq-disc">
-      <label className="cq-f"><span>הנחה</span>
-        <select className="cq-in cq-in-sm" value={type} aria-label="סוג הנחה" onChange={(e) => onChange(e.target.value as DiscountType, e.target.value === 'none' ? 0 : value)}>
-          <option value="none">ללא הנחה</option>
-          <option value="percent">באחוזים (%)</option>
-          <option value="amount">בשקלים (₪)</option>
-        </select>
-      </label>
-      {type !== 'none' && (
-        <label className="cq-f"><span>{type === 'percent' ? 'אחוז הנחה' : 'סכום הנחה ₪'}</span>
-          <NumField value={value} label="ערך הנחה" placeholder={type === 'percent' ? '%' : '₪'} onValue={(v) => onChange(type, v)} />
-        </label>
-      )}
-    </span>
-  );
-}
-
-/** Original price ← discount ← final price, the order the line is calculated in. */
-function PriceBreakdown({ original, discount, final, type, value }: { original: number; discount: number; final: number; type: DiscountType; value: number }) {
-  return (
-    <div className="cq-breakdown" data-testid="cq-breakdown">
-      <span className="cq-bd-cell"><small>לפני הנחה</small><b dir="ltr" data-testid="cq-before">{formatIls(original)}</b></span>
-      <span className="cq-bd-arrow" aria-hidden="true">←</span>
-      <span className="cq-bd-cell cq-bd-disc">
-        <small>הנחה{type === 'percent' && value ? ` ${value}%` : ''}</small>
-        <b dir="ltr" data-testid="cq-discount">{discount > 0 ? `-${formatIls(discount)}` : '—'}</b>
-      </span>
-      <span className="cq-bd-arrow" aria-hidden="true">←</span>
-      <span className="cq-bd-cell cq-bd-final"><small>אחרי הנחה</small><b dir="ltr" data-testid="cq-final">{formatIls(final)}</b></span>
-    </div>
-  );
-}
-
 export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const { claim, actor, recipients, uploadFile, getSignedUrl, logHistory, onOpenEmail, toast, onClose } = props;
   const claimInvoiceFiles = props.claimInvoiceFiles || [];
@@ -205,6 +171,8 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const [picker, setPicker] = useState<Picker | null>(null);
   /** Row just added with "+ הוסף עבודה" / "+ הוסף חלק / חומר": its first field gets the cursor. */
   const [focusId, setFocusId] = useState('');
+  /** Part rows whose internal details (מק״ט, type, supplier net…) are expanded. */
+  const [partOpen, setPartOpen] = useState<Record<string, boolean>>({});
   const [paintOpen, setPaintOpen] = useState(false);
   const [paintPick, setPaintPick] = useState<PaintCalcRow[] | null>(null);
   const [paintNotice, setPaintNotice] = useState<PaintNotice | null>(null);
@@ -669,107 +637,139 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
   const c = data.claim;
   const busyLabel = busy === 'save' ? 'שומר…' : busy === 'pdf' ? 'מפיק PDF…' : busy === 'invoice' ? 'קורא חשבונית…' : busy === 'paint' ? 'טוען…' : '';
 
+  /** Discount cell: one number and a %/₪ choice. An empty number means no discount. */
+  const discountCell = (type: DiscountType, value: number, amount: number, set: (t: DiscountType, v: number) => void) => (
+    <span className="cq-td cq-a-disc" data-label="הנחה">
+      <span className="cq-disc-cell">
+        <NumField value={value} label="ערך הנחה" placeholder="0" onValue={(v) => set(type === 'none' ? 'percent' : type, v)} />
+        <select className="cq-in cq-unit-sel" aria-label="סוג הנחה" value={type === 'amount' ? 'amount' : 'percent'}
+          onChange={(e) => set(e.target.value as DiscountType, value)}>
+          <option value="percent">%</option>
+          <option value="amount">₪</option>
+        </select>
+      </span>
+      {amount > 0 && <small className="cq-disc-amt" dir="ltr" data-testid="cq-discount">-{formatIls(amount)}</small>}
+    </span>
+  );
+
   const workRow = (w: QuoteWorkLine) => {
     const pr = workPricing(w);
+    const manual = w.pricing === 'global';
+    const fromPaint = w.source === 'paint_calc';
     const opts = [...new Set(workLabels.filter((l) => splitLibraryWorkCategory(l.category).domain === w.category).map((l) => l.label))];
     return (
-      <div className="cq-row" key={w.id} data-testid="cq-work-row">
-        <label className="cq-f cq-f-wide"><span>תיאור העבודה</span>
-          <span className="cq-row-main">
-            <input className="cq-in cq-in-label" list={`cq-wl-${w.category}`} value={w.label} placeholder="הקלד תיאור עבודה" aria-label="תיאור העבודה"
+      <div className="cq-tr" key={w.id} data-testid="cq-work-row">
+        <span className="cq-td cq-td-desc cq-a-desc" data-label="פירוט העבודה">
+          <span className="cq-desc-line">
+            <input className="cq-in" list={`cq-wl-${w.category}`} value={w.label} placeholder="למשל: פירוק והרכבת פגוש קדמי" aria-label="תיאור העבודה"
               autoFocus={focusId === w.id} onChange={(e) => setWork(w.id, { label: e.target.value })} />
-            <datalist id={`cq-wl-${w.category}`}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
             {/ימין|שמאל/.test(w.label) && (
-              <button type="button" className="cq-icon" title="החלף צד ימין/שמאל" onClick={() => setWork(w.id, { label: swapSide(w.label) })}>⇄</button>
-            )}
-            {/ימין|שמאל/.test(w.label) && (
-              <button type="button" className="cq-icon" title="הוסף את אותה עבודה בצד השני"
-                onClick={() => update((d) => ({ ...d, works: [...d.works, { ...w, id: newWorkLine(w.category).id, label: swapSide(w.label), source: 'manual' }] }))}>⧉</button>
+              <>
+                <button type="button" className="cq-icon" title="החלף צד ימין/שמאל" onClick={() => setWork(w.id, { label: swapSide(w.label) })}>⇄</button>
+                <button type="button" className="cq-icon" title="הוסף את אותה עבודה בצד השני"
+                  onClick={() => update((d) => ({ ...d, works: [...d.works, { ...w, id: newWorkLine(w.category).id, label: swapSide(w.label), source: 'manual' }] }))}>⧉</button>
+              </>
             )}
           </span>
-        </label>
-        <div className="cq-row-fields">
-          <span className="cq-f"><span>שיטת תמחור</span>
-            <span className="cq-seg" role="group" aria-label="שיטת תמחור">
-              <button type="button" className={w.pricing === 'hours' ? 'on' : ''} aria-pressed={w.pricing === 'hours'} data-testid="cq-price-hours" onClick={() => setWork(w.id, { pricing: 'hours' })}>לפי שעות</button>
-              <button type="button" className={w.pricing === 'global' ? 'on' : ''} aria-pressed={w.pricing === 'global'} data-testid="cq-price-fixed"
-                onClick={() => setWork(w.id, { pricing: 'global', ...(!w.globalPrice && w.hours && w.hourRate ? { globalPrice: Math.round(w.hours * w.hourRate * 100) / 100 } : {}) })}>סכום קבוע</button>
-            </span>
-          </span>
-          {w.pricing === 'hours' ? (
-            <span className="cq-hours">
-              <label className="cq-f"><span>שעות</span>
-                <NumField key="hours" value={w.hours} label="שעות" placeholder="0" onValue={(v) => setWork(w.id, { hours: v })} />
-              </label>
-              <span className="cq-x">×</span>
-              <label className="cq-f"><span>מחיר לשעה ₪</span>
-                <NumField key="rate" value={w.hourRate} label="מחיר שעה" placeholder="0" onValue={(v) => setWork(w.id, { hourRate: v })} />
-              </label>
-            </span>
+          <datalist id={`cq-wl-${w.category}`}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
+          {fromPaint && <small className="cq-tag">🎨 ממחשבון הצבע · חומרי הצבע בשורה נפרדת בחלקים וחומרים</small>}
+        </span>
+        <span className="cq-td cq-a-hours" data-label="שעות">
+          {manual ? (
+            <button type="button" className="cq-manual" data-testid="cq-price-hours" title="חזרה לחישוב לפי שעות"
+              onClick={() => setWork(w.id, { pricing: 'hours', hourRate: data.hourRate })}>
+              {fromPaint ? '🎨 מחשבון' : 'ידני'}<small>⟲ שעות</small>
+            </button>
           ) : (
-            <label className="cq-f"><span>סכום ₪</span>
-              <NumField key="fixed" className="cq-in cq-in-money" value={w.globalPrice} label="מחיר גלובלי" placeholder="0" onValue={(v) => setWork(w.id, { globalPrice: v })} />
-            </label>
+            <>
+              <NumField key="hours" value={w.hours} label="שעות" placeholder="0" onValue={(v) => setWork(w.id, { hours: v, hourRate: data.hourRate })} />
+              {w.hourRate !== data.hourRate && <small className="cq-note">לפי {formatIls(w.hourRate)}/ש׳</small>}
+            </>
           )}
-          <DiscountInputs type={w.discountType} value={w.discountValue} onChange={(t, v) => setWork(w.id, { discountType: t, discountValue: v })} />
-          <button type="button" className="cq-icon cq-del" title="מחק שורה" onClick={() => update((d) => ({ ...d, works: d.works.filter((x) => x.id !== w.id) }))}>🗑</button>
-        </div>
-        <PriceBreakdown original={pr.original} discount={pr.discount} final={pr.final} type={w.discountType} value={w.discountValue} />
-        {w.source === 'paint_calc' && <div className="cq-tag">מחושב ממחשבון הצבע · אפשר לשנות את הסכום ידנית · חומרי הצבע מופיעים בנפרד בחלקים וחומרים</div>}
+        </span>
+        <span className="cq-td cq-a-price" data-label="מחיר לפני הנחה">
+          {/* Typing here sets a manual amount for this line instead of hours × rate. */}
+          <NumField key="price" className="cq-in cq-in-money" value={pr.original} label="מחיר גלובלי" placeholder="0"
+            onValue={(v) => setWork(w.id, { pricing: 'global', globalPrice: v })} />
+        </span>
+        {discountCell(w.discountType, w.discountValue, pr.discount, (t, v) => setWork(w.id, { discountType: t, discountValue: v }))}
+        <span className="cq-td cq-td-final cq-a-final" data-label="מחיר סופי"><b dir="ltr" data-testid="cq-final">{formatIls(pr.final)}</b></span>
+        <span className="cq-td cq-td-act cq-a-act">
+          <button type="button" className="cq-icon cq-del" title="מחק שורה" aria-label="מחק שורה" onClick={() => update((d) => ({ ...d, works: d.works.filter((x) => x.id !== w.id) }))}>🗑</button>
+        </span>
       </div>
     );
   };
 
   const partRow = (p: QuotePartLine) => {
     const pr = partPricing(p);
+    const open = partOpen[p.id] ?? !!(p.sku || p.unitNet || p.invoiceDocId || !p.included);
     return (
-      <div className={`cq-row cq-part${p.included ? '' : ' cq-excluded'}`} key={p.id} data-testid="cq-part-row">
-        <div className="cq-row-main">
-          <label className="cq-f cq-f-wide"><span>שם החלק / החומר</span>
-            <input className="cq-in cq-in-label" list={`cq-pn-${partGroupOf(p)}`} value={p.name} placeholder={partGroupOf(p) === MATERIALS_GROUP ? 'הקלד שם חומר' : 'הקלד שם חלק'} aria-label="שם החלק"
+      <div className={`cq-tr-wrap${p.included ? '' : ' cq-excluded'}`} key={p.id} data-testid="cq-part-row">
+        <div className="cq-tr cq-tr-part">
+          <span className="cq-td cq-td-desc cq-a-desc" data-label="שם החלק / החומר">
+            <input className="cq-in" list={`cq-pn-${partGroupOf(p)}`} value={p.name} placeholder={partGroupOf(p) === MATERIALS_GROUP ? 'שם החומר' : 'שם החלק'} aria-label="שם החלק"
               autoFocus={focusId === p.id} onChange={(e) => setPart(p.id, { name: e.target.value })} />
-          </label>
-          <select className="cq-in cq-in-sm" value={p.partType} aria-label="סוג החלק" onChange={(e) => setPart(p.id, { partType: e.target.value })}>
-            {PART_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-          </select>
-          <input className="cq-in cq-in-sku" value={p.sku} placeholder="מק״ט" aria-label="מק״ט" onChange={(e) => setPart(p.id, { sku: e.target.value })} />
+          </span>
+          <span className="cq-td cq-a-qty" data-label="כמות">
+            <NumField value={p.qty} label="כמות" placeholder="1" onValue={(v) => setPart(p.id, { qty: v })} />
+          </span>
+          <span className="cq-td cq-a-unit" data-label="מחיר ליחידה">
+            <NumField className="cq-in cq-in-money" value={p.unitGross} label="ברוטו ליחידה" placeholder="0" onValue={(v) => setPart(p.id, { unitGross: v })} />
+          </span>
+          <span className="cq-td cq-td-calc cq-a-before" data-label="לפני הנחה"><b dir="ltr" data-testid="cq-before">{formatIls(pr.original)}</b></span>
+          {discountCell(p.discountType, p.discountValue, pr.discount, (t, v) => setPart(p.id, { discountType: t, discountValue: v }))}
+          <span className="cq-td cq-td-final cq-a-final" data-label="מחיר סופי"><b dir="ltr" data-testid="cq-final">{formatIls(p.included ? pr.final : 0)}</b></span>
+          <span className="cq-td cq-td-act cq-a-act">
+            <button type="button" className="cq-icon" data-testid="cq-part-more" aria-expanded={open} title="פרטים נוספים: מק״ט, סוג, עלות ספק"
+              onClick={() => setPartOpen((o) => ({ ...o, [p.id]: !open }))}>{open ? '▴' : '⋯'}</button>
+            <button type="button" className="cq-icon cq-del" title="מחק שורה" aria-label="מחק שורה" onClick={() => update((d) => ({ ...d, parts: d.parts.filter((x) => x.id !== p.id) }))}>🗑</button>
+          </span>
         </div>
-        <input className="cq-in cq-in-desc" value={p.description || ''} placeholder="תיאור (לא חובה)" aria-label="תיאור"
-          onChange={(e) => setPart(p.id, { description: e.target.value })} />
-        <div className="cq-row-fields">
-          <label className="cq-f"><span>כמות</span>
-            <NumField value={p.qty} label="כמות" onValue={(v) => setPart(p.id, { qty: v })} />
-          </label>
-          <label className="cq-f"><span>מחיר ליחידה ₪</span>
-            <NumField className="cq-in cq-in-money" value={p.unitGross} label="ברוטו ליחידה" onValue={(v) => setPart(p.id, { unitGross: v })} />
-          </label>
-          <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>נטו לספק 🔒</span>
-            <NumField className="cq-in cq-in-money" value={p.unitNet} label="נטו לספק" onValue={(v) => setPart(p.id, { unitNet: v })} />
-          </label>
-          <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>הנחת ספק % 🔒</span>
-            <NumField value={p.supplierDiscountPct} label="הנחת ספק" onValue={(v) => setPart(p.id, { supplierDiscountPct: Math.min(v, 100) })} />
-          </label>
-          <DiscountInputs type={p.discountType} value={p.discountValue} onChange={(t, v) => setPart(p.id, { discountType: t, discountValue: v })} />
-          <label className="cq-incl" title="כלול בחישוב">
-            <input type="checkbox" checked={p.included} onChange={(e) => setPart(p.id, { included: e.target.checked })} />
-            <span>{p.included ? 'כלול בחישוב' : 'לא כלול'}</span>
-          </label>
-          <button type="button" className="cq-icon cq-del" title="מחק שורה" onClick={() => update((d) => ({ ...d, parts: d.parts.filter((x) => x.id !== p.id) }))}>🗑</button>
-        </div>
-        <PriceBreakdown original={pr.original} discount={pr.discount} final={pr.final} type={p.discountType} value={p.discountValue} />
-        {!p.included && <div className="cq-note">החלק מסומן "לא כלול" — אינו נכנס לסיכום.</div>}
-        {p.invoiceDocId && <div className="cq-tag">🧾 מקושר לחשבונית: {p.invoiceName || p.invoiceDocId}</div>}
-        {partGroupsOf(data).length > 2 && (
-          <label className="cq-f cq-move"><span>קטגוריה</span>
-            <select className="cq-in cq-in-sm" value={partGroupOf(p)} aria-label="קטגוריית חלק" onChange={(e) => setPart(p.id, { group: e.target.value })}>
-              {partGroupsOf(data).map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </label>
+        {open && (
+          <div className="cq-part-more">
+            <label className="cq-f"><span>מק״ט</span><input className="cq-in cq-in-sku" value={p.sku} aria-label="מק״ט" onChange={(e) => setPart(p.id, { sku: e.target.value })} /></label>
+            <label className="cq-f"><span>סוג</span>
+              <select className="cq-in cq-in-sm" value={p.partType} aria-label="סוג החלק" onChange={(e) => setPart(p.id, { partType: e.target.value })}>
+                {PART_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+              </select>
+            </label>
+            <label className="cq-f cq-f-grow"><span>תיאור</span><input className="cq-in" value={p.description || ''} aria-label="תיאור" onChange={(e) => setPart(p.id, { description: e.target.value })} /></label>
+            <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>נטו לספק 🔒</span>
+              <NumField className="cq-in cq-in-money" value={p.unitNet} label="נטו לספק" onValue={(v) => setPart(p.id, { unitNet: v })} />
+            </label>
+            <label className="cq-f cq-internal-f" title="פנימי — לא מוצג ללקוח"><span>הנחת ספק % 🔒</span>
+              <NumField value={p.supplierDiscountPct} label="הנחת ספק" onValue={(v) => setPart(p.id, { supplierDiscountPct: Math.min(v, 100) })} />
+            </label>
+            {partGroupsOf(data).length > 2 && (
+              <label className="cq-f"><span>קטגוריה</span>
+                <select className="cq-in cq-in-sm" value={partGroupOf(p)} aria-label="קטגוריית חלק" onChange={(e) => setPart(p.id, { group: e.target.value })}>
+                  {partGroupsOf(data).map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="cq-incl" title="כלול בחישוב">
+              <input type="checkbox" checked={p.included} onChange={(e) => setPart(p.id, { included: e.target.checked })} />
+              <span>{p.included ? 'כלול בחישוב' : 'לא כלול בחישוב'}</span>
+            </label>
+            {p.invoiceDocId && <div className="cq-tag">🧾 מקושר לחשבונית: {p.invoiceName || p.invoiceDocId}</div>}
+            {p.source === 'paint_materials' && <div className="cq-tag">ממחשבון הצבע — לא כלול בעלות עבודת הצבע</div>}
+          </div>
         )}
-        {p.source === 'paint_materials' && <div className="cq-tag">ממחשבון הצבע — לא כלול בעלות עבודת הצבע</div>}
       </div>
     );
   };
+
+  const workHead = (
+    <div className="cq-tr cq-th" aria-hidden="true">
+      <span>פירוט העבודה</span><span>שעות</span><span>מחיר לפני הנחה</span><span>הנחה</span><span>מחיר סופי</span><span />
+    </div>
+  );
+  const partHead = (
+    <div className="cq-tr cq-tr-part cq-th" aria-hidden="true">
+      <span>שם החלק / החומר</span><span>כמות</span><span>מחיר ליחידה</span><span>לפני הנחה</span><span>הנחה</span><span>מחיר סופי</span><span />
+    </div>
+  );
 
   return (
     <div className="cq-backdrop" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
@@ -816,9 +816,10 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
               <section className="cq-card">
                 <div className="cq-sec-head">
                   <h3>עבודות</h3>
-                  <span className="cq-rate">מחיר שעה בהצעה:
-                    <NumField value={data.hourRate} label="מחיר שעת עבודה" onValue={(v) => update((d) => ({ ...d, hourRate: v }))} /> ₪ לפני מע״מ (לסעיפים חדשים)
-                  </span>
+                  <label className="cq-rate" data-testid="cq-hour-rate"><b>מחיר שעת עבודה</b>
+                    <NumField value={data.hourRate} label="מחיר שעת עבודה" onValue={(v) => update((d) => applyHourRate(d, v))} />
+                    <span>₪ לפני מע״מ · חל על כל העבודות לפי שעות</span>
+                  </label>
                   <button type="button" className="cq-btn cq-btn-p" data-testid="cq-add-domain" onClick={() => setPicker({ mode: 'domain', label: '', saveToLib: true })}>➕ הוסף תחום עבודה</button>
                 </div>
                 {visibleCats.map((cat) => {
@@ -860,7 +861,10 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                             return (
                               <div className={g ? 'cq-group' : 'cq-group cq-group-plain'} key={g || '__general'} data-testid={`cq-group-${cat.key}-${g || 'general'}`}>
                                 {(g || hasGroups) && <div className="cq-group-head"><span>{g || 'כללי'}</span><b>{formatIls(glines.reduce((s2, w) => s2 + workPricing(w).final, 0))}</b></div>}
-                                {glines.map(workRow)}
+                                <div className="cq-table">
+                                  {glines.length > 0 && workHead}
+                                  {glines.map(workRow)}
+                                </div>
                                 <div className="cq-add-row">
                                   <button type="button" className="cq-btn cq-btn-p cq-btn-add" data-testid="cq-add-work-line"
                                     onClick={() => {
@@ -898,7 +902,10 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                       <div className="cq-cat-head cq-cat-static"><span>{g}{g === MATERIALS_GROUP ? ' (קבוע)' : ''} <small>({glines.length})</small></span><b>{formatIls(sum)}</b></div>
                       <div className="cq-cat-body">
                         <datalist id={`cq-pn-${g}`}>{partLabelsFor(g).map((l) => <option key={l} value={l} />)}</datalist>
-                        {glines.map(partRow)}
+                        <div className="cq-table">
+                          {glines.length > 0 && partHead}
+                          {glines.map(partRow)}
+                        </div>
                         {!glines.length && <div className="cq-note">אין פריטים בקטגוריה.</div>}
                         <button type="button" className="cq-btn cq-btn-p cq-btn-add" data-testid="cq-add-part-item"
                           onClick={() => {

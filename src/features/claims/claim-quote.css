@@ -211,3 +211,66 @@ textarea.cq-in { width: 100%; resize: vertical; }
   .cq-btn-add { flex: 1 1 auto; }
 }
 .cq-bd-cell b, .cq-sum-disc b { unicode-bidi: isolate; text-align: right; }
+
+/* Simple quote table: one line per work / part, every field visible */
+.cq-rate { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 9px; background: rgba(59,130,246,.10); border: 1px solid rgba(59,130,246,.45); color: var(--cq-t); }
+.cq-rate b { font-size: 13.5px; }
+.cq-rate .cq-in { width: 90px; font-size: 15px; font-weight: 700; }
+.cq-rate span { font-size: 11.5px; color: var(--cq-t2); }
+.cq-table { display: flex; flex-direction: column; border: 1px solid var(--cq-br); border-radius: 9px; overflow: hidden; }
+.cq-table:empty { display: none; }
+.cq-tr { display: grid; grid-template-columns: minmax(190px, 2.6fr) 92px 130px 150px 120px 40px; gap: 8px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--cq-br); }
+.cq-tr-part { grid-template-columns: minmax(170px, 2.2fr) 70px 110px 110px 150px 115px 76px; }
+.cq-table > .cq-tr:first-child, .cq-table > .cq-tr-wrap:first-child > .cq-tr { border-top: none; }
+.cq-tr-wrap { border-top: 1px solid var(--cq-br); }
+.cq-tr-wrap > .cq-tr { border-top: none; }
+.cq-th { background: var(--cq-bg3); font-size: 11.5px; font-weight: 700; color: var(--cq-t2); padding-top: 6px; padding-bottom: 6px; }
+.cq-td { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cq-td .cq-in { width: 100%; }
+.cq-td-desc .cq-in { font-size: 13.5px; }
+.cq-td-final b { font-size: 15px; text-align: start; }
+.cq-td-calc b { font-size: 13.5px; text-align: start; }
+.cq-td-act { flex-direction: row; gap: 4px; justify-content: flex-end; }
+.cq-disc-cell { display: flex; gap: 4px; }
+.cq-disc-cell .cq-in:first-child { flex: 1 1 auto; min-width: 0; }
+.cq-unit-sel { width: 52px !important; flex: 0 0 52px; padding: 6px 4px; }
+.cq-disc-amt { color: var(--cq-gn); font-size: 11.5px; text-align: start; }
+.cq-manual { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: transparent; border: 1px dashed var(--cq-br); color: var(--cq-t); border-radius: 7px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.cq-manual small { color: var(--ac3, #60a5fa); font-size: 11px; }
+.cq-part-more { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 8px 10px 10px; background: rgba(255,255,255,.02); border-top: 1px dashed var(--cq-br); }
+.cq-f-grow { flex: 1 1 160px; }
+.cq-excluded .cq-tr { opacity: .55; }
+@media (max-width: 980px) and (min-width: 641px) {
+  .cq-tr { grid-template-columns: minmax(150px, 2fr) 80px 110px 130px 105px 36px; }
+  .cq-tr-part { grid-template-columns: minmax(140px, 2fr) 60px 95px 95px 130px 100px 70px; }
+}
+/* Phone: two lines per row — the name on top, the numbers under it, a label above each field */
+@media (max-width: 640px) {
+  .cq-th { display: none; }
+  .cq-tr { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-areas: "desc desc desc act" "hours price disc final"; gap: 6px; padding: 10px 8px; }
+  .cq-tr-part { grid-template-areas: "desc desc before act" "qty unit disc final"; }
+  .cq-a-desc { grid-area: desc; } .cq-a-act { grid-area: act; align-self: start; }
+  .cq-a-hours { grid-area: hours; } .cq-a-price { grid-area: price; } .cq-a-disc { grid-area: disc; } .cq-a-final { grid-area: final; }
+  .cq-a-qty { grid-area: qty; } .cq-a-unit { grid-area: unit; } .cq-a-before { grid-area: before; }
+  .cq-td::before { content: attr(data-label); font-size: 10.5px; color: var(--cq-t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cq-td-desc::before { content: none; }
+  .cq-td-act::before { content: none; }
+  .cq-td .cq-in { padding: 7px 5px; font-size: 14px; }
+  .cq-unit-sel { width: 34px !important; flex-basis: 34px; padding: 6px 1px; }
+  .cq-td-final b { font-size: 14px; padding-top: 6px; }
+  .cq-td-calc b { padding-top: 2px; }
+  .cq-td-act .cq-icon { min-width: 34px; min-height: 36px; }
+}
+/* %/₪ choice: a plain compact box showing just the symbol */
+.cq-unit-sel { appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; font-weight: 800; background-image: none; cursor: pointer; }
+.cq-manual { white-space: nowrap; }
+@media (max-width: 640px) {
+  .cq-tr { grid-template-columns: 0.8fr 1.1fr 1.35fr 1.15fr; }
+  .cq-tr-part { grid-template-columns: 0.8fr 1.1fr 1.35fr 1.15fr; }
+  .cq-unit-sel { width: 30px !important; flex: 0 0 30px; padding: 6px 0; }
+  .cq-disc-cell .cq-in:first-child { padding-inline: 4px; }
+  .cq-manual { padding: 4px 6px; font-size: 11.5px; }
+  .cq-manual small { font-size: 10.5px; }
+}
+.cq-desc-line { display: flex; gap: 4px; align-items: center; }
+.cq-desc-line .cq-in { flex: 1 1 auto; min-width: 0; }
