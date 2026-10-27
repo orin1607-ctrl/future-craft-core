@@ -11,13 +11,18 @@ export function homePathForRole(role?: string, extras?: PostLoginExtras): string
 }
 
 /** Agents always land on the caller home after login — never a chat overlay. */
+/** Files shared to Dalia wait on the device until this page opens — keep it through login. */
+export function isShareInboxPath(path: string) {
+  return /^\/claims\/share(\?|$)/.test(path);
+}
+
 export function postLoginPathForRole(
   role: string | undefined,
   intended: string,
   extras?: PostLoginExtras,
 ): string {
   if (extras?.garagePhotographer) return '/garage';
-  if (extras?.claimsWorkerOnly) return '/claims';
+  if (extras?.claimsWorkerOnly) return isShareInboxPath(intended) ? intended : '/claims';
   if (role === 'telemarketing_agent') return '/telemarketing';
   return intended;
 }
