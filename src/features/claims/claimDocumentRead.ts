@@ -66,7 +66,7 @@ async function loadPdfjs() {
   return pdfjs;
 }
 
-async function readPdfText(bytes: Uint8Array) {
+export async function readPdfText(bytes: Uint8Array) {
   return readPdfTextLayer(await loadPdfjs(), bytes);
 }
 
