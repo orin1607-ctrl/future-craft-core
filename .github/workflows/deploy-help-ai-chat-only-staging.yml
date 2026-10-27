@@ -1,13 +1,12 @@
 name: Staging help-ai-chat only
 
 # Deploys help-ai-chat to dalia-staging (usfeoerkpcafxxlyuldl) only.
-# Runs ONLY when a matching tag is pushed — pushing the branch never runs it.
+# Runs when a matching tag is pushed, or via manual workflow_dispatch.
 # No migration, no other function, no Pages, no Production.
-#   deploy/help-ai-chat-staging/<name>    → help-ai-chat from the tagged commit
-#   rollback/help-ai-chat-staging/<name>  → help-ai-chat as live before (v149 = 00ac6c73)
 # Keeps verify_jwt off, as live (config.toml says true; the function checks auth itself).
 
 on:
+  workflow_dispatch: {}
   push:
     tags:
       - 'deploy/help-ai-chat-staging/*'
@@ -33,20 +32,22 @@ jobs:
       - name: Guard Staging only
         run: |
           set -euo pipefail
-          test "${GITHUB_REF_TYPE}" = "tag"
-          case "${GITHUB_REF_NAME}" in
-            deploy/help-ai-chat-staging/*|rollback/help-ai-chat-staging/*) ;;
-            *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
-          esac
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            test "${GITHUB_REF_TYPE}" = "tag"
+            case "${GITHUB_REF_NAME}" in
+              deploy/help-ai-chat-staging/*|rollback/help-ai-chat-staging/*) ;;
+              *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+            esac
+          fi
           test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
 
       - name: Prepare help-ai-chat files
         run: |
           set -euo pipefail
-          case "${GITHUB_REF_NAME}" in
-            rollback/*) MODE=rollback ;;
-            *) MODE=deploy ;;
-          esac
+          MODE=deploy
+          if [ "${GITHUB_REF_NAME:-}" = "rollback" ] || [[ "${GITHUB_REF_NAME:-}" =~ ^rollback/ ]]; then
+            MODE=rollback
+          fi
           bash scripts/help-ai-chat-staging-prepare-deploy.sh "$MODE" .
 
       - name: Deploy help-ai-chat to Staging
@@ -58,8 +59,7 @@ jobs:
           set -euo pipefail
           deployed=0
           for tok in "$TOKEN_3" "$TOKEN_2" "$TOKEN_1"; do
-            clean="$(printf '%s' "$tok" | tr -d '
-' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            clean="$(printf '%s' "$tok" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
             if [ -z "$clean" ]; then continue; fi
             echo "Attempting deploy with token candidate (length ${#clean})..."
             if SUPABASE_ACCESS_TOKEN="$clean" npx --yes supabase functions deploy help-ai-chat --project-ref usfeoerkpcafxxlyuldl --use-api --no-verify-jwt; then
