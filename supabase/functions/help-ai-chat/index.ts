@@ -459,12 +459,13 @@ async function callGemini(
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
-    "gemini-3.8-flash",
+    "gemini-2.5-flash",
     "gemini-2.0-flash",
+    "gemini-1.5-flash-002",
     "gemini-1.5-flash-latest",
-    "gemini-1.5-flash",
+    "gemini-1.5-pro-002",
     "gemini-1.5-pro-latest",
-    "gemini-1.5-pro",
+    "gemini-3.8-flash",
   ].filter(Boolean)));
 
   const initialContents: Array<any> = [];
