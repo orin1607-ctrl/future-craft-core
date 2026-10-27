@@ -455,11 +455,15 @@ async function callGemini(
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
   temperature = 0.65,
+  isGarageModule = false,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
     "gemini-3.8-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
     "gemini-1.5-flash",
+    "gemini-1.5-pro-latest",
     "gemini-1.5-pro",
   ].filter(Boolean)));
 
@@ -480,7 +484,7 @@ async function callGemini(
         if (att.data_base64) {
           let mime = att.mime_type.toLowerCase();
           if (mime === "image/jpg") mime = "image/jpeg";
-          const cleanBase64 = att.data_base64.replace(/^data:[^;]+;base64,/, "");
+          const cleanBase64 = att.data_base64.replace(/^data:[^;]+;base64,/, "").trim();
           if (["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(mime)) {
             parts.push({
               inlineData: {
@@ -543,10 +547,11 @@ async function callGemini(
         const res = await fetch(url, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "x-goog-api-key": apiKey,
           },
           body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(45000),
         });
 
         if (!res.ok) {
@@ -781,6 +786,7 @@ async function callClaude(
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
   _temperature = 0.65,
+  isGarageModule = false,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     "claude-3-5-haiku-20241022",
@@ -881,7 +887,7 @@ async function callClaude(
         const res = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
           },
@@ -1043,7 +1049,7 @@ function streamTextAsSse(
   return new Response(stream, {
     headers: {
       ...corsHeaders,
-      "Content-Type": "text/event-stream",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
     },
@@ -1076,7 +1082,7 @@ Deno.serve(async (req) => {
       if (!pending_action || !pending_action.action_type) {
         return new Response(JSON.stringify({ error: "Missing pending_action" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
         });
       }
       const isGarageBatch = pending_action.action_type === "batch_action"
@@ -1091,7 +1097,7 @@ Deno.serve(async (req) => {
         );
         return new Response(JSON.stringify(garageResult), {
           status: garageResult.success ? 200 : 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
         });
       }
       const claimTarget = String(effectiveClaimId || pending_action?.parameters?.claim_id || "");
@@ -1104,7 +1110,7 @@ Deno.serve(async (req) => {
       );
       return new Response(JSON.stringify(execResult), {
         status: execResult.success ? 200 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       });
     }
 
@@ -1124,7 +1130,7 @@ Deno.serve(async (req) => {
       });
       return new Response(JSON.stringify({ success: true, message: "הפעולה בוטלה" }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       });
     }
 
@@ -1139,7 +1145,7 @@ Deno.serve(async (req) => {
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       });
     }
 
@@ -1163,7 +1169,7 @@ Deno.serve(async (req) => {
       if ("error" in loaded) {
         return new Response(JSON.stringify({ error: loaded.message }), {
           status: loaded.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
         });
       }
       claimBlock = loaded.text;
@@ -1380,6 +1386,7 @@ Deno.serve(async (req) => {
       onToolCall,
       attachments,
       temperature,
+      isGarageModule,
     );
 
     // Gemini only as requested (no automatic fallback to Claude or OpenAI)
@@ -1388,7 +1395,7 @@ Deno.serve(async (req) => {
     if ("error" in finalResult) {
       return new Response(JSON.stringify({ error: finalResult.error, details: (finalResult as any).details }), {
         status: finalResult.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       });
     }
 
@@ -1397,7 +1404,7 @@ Deno.serve(async (req) => {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
     });
   }
 });
