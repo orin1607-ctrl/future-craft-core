@@ -12,7 +12,7 @@
 .claims-root .claims-ai-workspace {
   position: fixed;
   inset: 0;
-  z-index: 6000;
+  z-index: 8000;
   background: var(--bg);
   color: var(--t);
   display: grid;
@@ -422,7 +422,7 @@
   }
 }
 
-/* Modal overlay must be above Claims AI workspace when opened */
+/* The claim card stays under the full-screen Dalia chat, and under the quote (9000) and paint calculator. */
 .claims-root .ov {
   z-index: 6500;
 }

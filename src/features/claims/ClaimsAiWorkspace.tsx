@@ -39,6 +39,8 @@ import {
   type ClaimsAiPendingAction,
   type ClaimsAiToolTrace,
 } from './claimsAiModel';
+import { applyClaimQuoteImport } from './claimQuoteImportApply';
+import { buildClaimQuoteImportPreview, readQuoteSources, type ParsedQuoteImport } from './claimQuoteImport';
 import {
   archiveClaimsAiConversation,
   claimsAiSchemaMissing,
@@ -3916,9 +3918,10 @@ const toggleVoiceMute = useCallback(() => {
       const ext = f.name.split('.').pop()?.toLowerCase() || '';
       const isImageExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
       const isPdfExt = ext === 'pdf';
+      const isDocx = ext === 'docx' || mime.includes('wordprocessingml');
 
-      if (!allowed.includes(mime) && !isImageExt && !isPdfExt) {
-        errors.push(`הקובץ "${f.name}" אינו נתמך (נתמכים: JPG, PNG, WEBP, PDF)`);
+      if (!allowed.includes(mime) && !isImageExt && !isPdfExt && !isDocx) {
+        errors.push(`הקובץ "${f.name}" אינו נתמך (נתמכים: JPG, PNG, WEBP, PDF, Word)`);
         continue;
       }
       if (f.size > 25 * 1024 * 1024) {
@@ -3934,7 +3937,7 @@ const toggleVoiceMute = useCallback(() => {
         file: f,
         name: f.name,
         size: f.size,
-        mimeType: mime || (isPdfExt ? 'application/pdf' : 'image/jpeg'),
+        mimeType: mime || (isPdfExt ? 'application/pdf' : isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'image/jpeg'),
         previewUrl,
       });
     }
@@ -4325,6 +4328,33 @@ const toggleVoiceMute = useCallback(() => {
       userSavedSuccessfully = true;
       const history = deduplicateMessages([...messages, userSaved.data]);
       setMessages(history);
+
+      if (module === 'claims' && claimId) {
+        const read = await readQuoteSources(effectiveText, filesToUpload.map((f) => f.file));
+        const preview = buildClaimQuoteImportPreview(read.text, claimId);
+        const fileOnly = filesToUpload.length > 0 && !trimmed;
+        if (preview || read.errors.length || fileOnly) {
+          const content = preview
+            ? `קראתי את הצעת המחיר מתוך מה שהודבק${filesToUpload.length ? ' ומהמסמכים שצורפו' : ''}.\nזו תצוגה מקדימה בלבד. אחרי אישור, שורה חדשה תתווסף ושורה עם אותו שם תתעדכן. שורות אחרות לא יימחקו, ומחיר מחשבון הצבע לא ישתנה ולא יוכפל.${read.errors.length ? `\n\nקבצים שלא נקראו:\n${read.errors.join('\n')}` : ''}`
+            : read.errors.length
+              ? `לא עדכנתי את הצעת המחיר, כי לא הצלחתי לקרוא נתונים מהקובץ:\n${read.errors.join('\n')}`
+              : `קראתי את הקובץ, אבל לא זיהיתי בו שורות של הצעת מחיר. לא שמרתי כלום.\nהטקסט שחולץ:\n${(read.text || '(ריק)').slice(0, 800)}`;
+          const local = await insertClaimsAiMessage({
+            conversationId,
+            role: 'assistant',
+            content,
+            tool_name: preview?.tool_name || null,
+            metadata: {
+              claim_id: claimId,
+              model: 'claim-quote-import',
+              ...(preview ? { pending_action: preview } : { error: true }),
+            },
+          });
+          if (local.error || !local.data) throw new Error(local.error?.message || 'שמירת התצוגה המקדימה נכשלה');
+          setMessages(deduplicateMessages([...history, local.data]));
+          return;
+        }
+      }
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
       let quoteCardFromStream: GarageQuoteCardData | null = null;
@@ -4768,6 +4798,33 @@ const toggleVoiceMute = useCallback(() => {
       }
       if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
+      if (pending.tool_name === 'preview_import_claim_quote') {
+        const targetClaim = String((pending.parameters as Record<string, unknown>)?.claim_id || claimId || '');
+        const parsed = (pending.parameters as Record<string, unknown>)?.parsed as ParsedQuoteImport | undefined;
+        if (!targetClaim || !parsed) throw new Error('חסרים נתוני ההצעה לאישור');
+        const user = session.user;
+        const applied = await applyClaimQuoteImport({
+          claimId: targetClaim,
+          parsed,
+          companyName,
+          actor: { id: userId || user?.id || 'dalia', full_name: String(user?.user_metadata?.full_name || user?.email || 'דליה AI') },
+        });
+        const confirmText = `✅ הצעת המחיר ${applied.quoteNo} עודכנה (גרסה ${applied.version}). מחשבון הצבע לא שונה.`;
+        let confirmedRow: ClaimsAiMessage | null = null;
+        if (activeId) {
+          const confirmed = await insertClaimsAiMessage({
+            conversationId: activeId,
+            role: 'assistant',
+            content: confirmText,
+            metadata: { claim_id: targetClaim, executed_action: pending.action_type, preview_id: pending.preview_id },
+          });
+          confirmedRow = confirmed.data || null;
+        }
+        setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, metadata: { ...m.metadata, pending_action: { ...pending, status: 'executed' as const } } } : m).concat(confirmedRow ? [confirmedRow] : []));
+        onActionExecuted?.(pending);
+        return;
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
@@ -4861,7 +4918,7 @@ const toggleVoiceMute = useCallback(() => {
     } finally {
       setExecutingActionId(null);
     }
-  }, [activeId, claimId, onActionExecuted]);
+  }, [activeId, claimId, companyName, onActionExecuted, userId]);
 
   const handleCancelPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
     setBanner('');
@@ -6756,6 +6813,11 @@ const toggleVoiceMute = useCallback(() => {
                           onPackageSent={() => onActionExecuted?.(pending)}
                         />
                       ) : null}
+                      {pending.action_type === 'import_claim_quote' && Array.isArray(pending.parameters?.lines) ? (
+                        <ul data-testid="claims-ai-quote-import-preview" style={{ margin: '8px 0', paddingInlineStart: 18, lineHeight: 1.55 }}>
+                          {(pending.parameters.lines as string[]).map((line) => <li key={line}>{line}</li>)}
+                        </ul>
+                      ) : null}
                       {pending.status === 'executed' ? (
                         <div style={{ color: 'var(--c-emerald, #10b981)', fontSize: '0.85rem', marginTop: 6 }}>
                           הפעולה בוצעה במערכת ונשמרה בתיק.
@@ -7166,7 +7228,7 @@ const toggleVoiceMute = useCallback(() => {
             ref={fileInputRef}
             style={{ display: 'none' }}
             multiple
-            accept="image/jpeg,image/png,image/webp,image/jpg,application/pdf"
+            accept="image/jpeg,image/png,image/webp,image/jpg,application/pdf,.doc,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             data-testid="claims-ai-file-input"
             onChange={handleFilesSelected}
           />
