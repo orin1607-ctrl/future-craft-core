@@ -58,16 +58,26 @@ jobs:
         run: |
           set -euo pipefail
           deployed=0
-          for tok in "$TOKEN_3" "$TOKEN_2" "$TOKEN_1"; do
+          for tok in "$TOKEN_1" "$TOKEN_2" "$TOKEN_3"; do
             clean="$(printf '%s' "$tok" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
             if [ -z "$clean" ]; then continue; fi
             echo "Attempting deploy with token candidate (length ${#clean})..."
+            
+            # Verify access to staging project and ensure never targeting production
+            PROBE_STATUS=$(curl -s -o /tmp/proj_info.json -w "%{http_code}" -H "Authorization: Bearer $clean" https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl)
+            if [ "$PROBE_STATUS" != "200" ]; then
+              echo "Token probe returned status $PROBE_STATUS, checking next candidate..."
+              continue
+            fi
+            PROJ_NAME=$(node -e "try { const d=JSON.parse(fs.readFileSync('/tmp/proj_info.json','utf8')); console.log(d.name || d.id || ''); } catch { console.log(''); }")
+            echo "Token verified for staging project ($PROJ_NAME). Deploying help-ai-chat to usfeoerkpcafxxlyuldl..."
+            
             if SUPABASE_ACCESS_TOKEN="$clean" npx --yes supabase functions deploy help-ai-chat --project-ref usfeoerkpcafxxlyuldl --use-api --no-verify-jwt; then
               echo "Deployment succeeded!"
               deployed=1
               break
             else
-              echo "Token candidate failed, trying next..."
+              echo "Token candidate deploy failed, trying next..."
             fi
           done
           if [ "$deployed" -ne 1 ]; then
