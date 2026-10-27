@@ -1,7 +1,7 @@
 /* Claim quote editor — uses the claims screen tokens (claims.css), with fallbacks. */
 .cq-backdrop {
-  position: fixed; top: 0; right: 0; left: 0; z-index: 9000;
-  height: 100dvh; max-height: 100dvh; overflow: hidden;
+  position: fixed; top: var(--cq-vvt, 0px); right: 0; left: 0; z-index: 9000;
+  height: var(--cq-vvh, 100dvh); max-height: var(--cq-vvh, 100dvh); overflow: hidden;
   background: rgba(4, 9, 20, .82); backdrop-filter: blur(3px);
   display: flex; flex-direction: column; align-items: center; padding: 16px;
 }
@@ -63,7 +63,10 @@ textarea.cq-in { width: 100%; resize: vertical; }
 .cq-del:hover { color: var(--cq-rd); border-color: var(--cq-rd); }
 
 .cq-cat { border: 1px solid var(--cq-br); border-radius: 10px; margin-top: 8px; overflow: hidden; }
-.cq-cat-head { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: var(--cq-bg3); color: var(--cq-t); border: none; font: inherit; font-weight: 800; font-size: 13.5px; cursor: pointer; text-align: start; }
+.cq-cat-head { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 12px; background: var(--cq-bg3); color: var(--cq-t); border: none; font: inherit; font-weight: 800; font-size: 13.5px; text-align: start; }
+.cq-cat-toggle { flex: 1 1 160px; display: flex; align-items: center; min-height: 44px; background: transparent; color: inherit; border: none; font: inherit; font-weight: 800; text-align: start; cursor: pointer; padding: 0; }
+.cq-cat-sum { margin-inline-start: auto; }
+.cq-cat-add { display: none; }
 .cq-cat-head small { color: var(--cq-t2); font-weight: 600; }
 .cq-cat-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .cq-cat-body > .cq-btn-sm { align-self: flex-start; }
@@ -285,6 +288,8 @@ textarea.cq-in { width: 100%; resize: vertical; }
   .cq-price-hint { display: block; font-size: 12.5px; color: var(--cq-t2); line-height: 1.4; }
   .cq-tr.cq-th { display: none; }
   .cq-rate, .cq-sec-head { scroll-margin-top: 88px; }
+  .cq-cat-add { display: inline-flex; flex: 1 1 100%; min-height: 48px; font-size: 16px; justify-content: center; }
+  .cq-group-plain > .cq-add-row [data-testid="cq-add-work-line"] { display: none; }
 }
 .cq-desc-line { display: flex; gap: 4px; align-items: center; }
 .cq-desc-line .cq-in { flex: 1 1 auto; min-width: 0; }

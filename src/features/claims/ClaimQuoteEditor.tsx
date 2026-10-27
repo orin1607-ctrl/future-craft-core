@@ -230,14 +230,50 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     setDirty(!row || action !== 'none');
   };
 
-  /** Keep a newly added line on screen. The claims page itself does not scroll. */
+  /** The quote sits in a fixed panel. Scroll that panel, not the page behind it. */
   useEffect(() => {
     if (!focusId) return;
-    const timer = window.setTimeout(() => {
-      document.querySelector(`[data-line-id="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'start', inline: 'nearest' });
-    }, 60);
-    return () => window.clearTimeout(timer);
+    const scroll = () => {
+      const root = document.querySelector('.cq-root');
+      const el = document.querySelector(`[data-line-id="${CSS.escape(focusId)}"]`);
+      if (!root || !(el instanceof HTMLElement)) return;
+      const rr = root.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      root.scrollTo({ top: Math.max(0, root.scrollTop + (er.top - rr.top) - 72) });
+    };
+    const t1 = window.setTimeout(scroll, 60);
+    const t2 = window.setTimeout(scroll, 400);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, [focusId]);
+
+  /** Shrink the panel to the visible screen when the phone keyboard opens. */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const apply = () => {
+      document.documentElement.style.setProperty('--cq-vvh', `${Math.round(vv.height)}px`);
+      document.documentElement.style.setProperty('--cq-vvt', `${Math.round(vv.offsetTop)}px`);
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.closest('.cq-root')) {
+        const root = document.querySelector('.cq-root');
+        if (!root) return;
+        const rr = root.getBoundingClientRect();
+        const er = active.getBoundingClientRect();
+        if (er.bottom > rr.bottom - 12 || er.top < rr.top + 64) {
+          root.scrollTo({ top: Math.max(0, root.scrollTop + (er.top - rr.top) - 80) });
+        }
+      }
+    };
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+      document.documentElement.style.removeProperty('--cq-vvh');
+      document.documentElement.style.removeProperty('--cq-vvt');
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -671,7 +707,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
         <span className="cq-td cq-td-desc cq-a-desc" data-label="פירוט העבודה">
           <span className="cq-desc-line">
             <input className="cq-in" list={`cq-wl-${w.category}`} value={w.label} placeholder="למשל: פירוק והרכבת פגוש קדמי" aria-label="תיאור העבודה"
-              autoFocus={focusId === w.id && window.innerWidth > 640} onChange={(e) => setWork(w.id, { label: e.target.value })} />
+              autoFocus={focusId === w.id} onChange={(e) => setWork(w.id, { label: e.target.value })} />
             {/ימין|שמאל/.test(w.label) && (
               <>
                 <button type="button" className="cq-icon" title="החלף צד ימין/שמאל" onClick={() => setWork(w.id, { label: swapSide(w.label) })}>⇄</button>
@@ -720,7 +756,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
         <div className="cq-tr cq-tr-part">
           <span className="cq-td cq-td-desc cq-a-desc" data-label="שם החלק / החומר">
             <input className="cq-in" list={`cq-pn-${partGroupOf(p)}`} value={p.name} placeholder={partGroupOf(p) === MATERIALS_GROUP ? 'שם החומר' : 'שם החלק'} aria-label="שם החלק"
-              autoFocus={focusId === p.id && window.innerWidth > 640} onChange={(e) => setPart(p.id, { name: e.target.value })} />
+              autoFocus={focusId === p.id} onChange={(e) => setPart(p.id, { name: e.target.value })} />
           </span>
           <span className="cq-td cq-a-qty" data-label="כמות">
             <NumField value={p.qty} label="כמות" placeholder="1" onValue={(v) => setPart(p.id, { qty: v })} />
@@ -782,6 +818,39 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     </div>
   );
 
+  const addWorkLine = (category: string, group = '') => {
+    const line = newWorkLine(category, '', data.hourRate, { group });
+    update((d) => ({ ...d, works: [...d.works, line] }));
+    setCollapsed((s) => ({ ...s, [category]: false }));
+    setFocusId(line.id);
+  };
+
+  /** A tap on the area title reveals its rows. It closes only when those rows are already on screen. */
+  const revealCategory = (key: string, isOpen: boolean) => {
+    const root = document.querySelector('.cq-root');
+    const body = document.querySelector(`[data-testid="cq-cat-${CSS.escape(key)}"] .cq-cat-body`);
+    if (isOpen && root && body) {
+      const br = body.getBoundingClientRect();
+      const rr = root.getBoundingClientRect();
+      const inView = br.top < rr.bottom - 48 && br.bottom > rr.top + 48;
+      if (!inView) {
+        root.scrollTo({ top: Math.max(0, root.scrollTop + (br.top - rr.top) - 8) });
+        return;
+      }
+    }
+    setCollapsed((s) => ({ ...s, [key]: isOpen }));
+    if (!isOpen) {
+      window.setTimeout(() => {
+        const scroller = document.querySelector('.cq-root');
+        const row = document.querySelector(`[data-testid="cq-cat-${CSS.escape(key)}"] .cq-add-row`);
+        if (!scroller || !row) return;
+        const rr = scroller.getBoundingClientRect();
+        const er = row.getBoundingClientRect();
+        scroller.scrollTo({ top: Math.max(0, scroller.scrollTop + (er.top - rr.top) - 8) });
+      }, 60);
+    }
+  };
+
   return (
     <div className="cq-backdrop" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="cq-root" dir="rtl" data-testid="claim-quote-editor">
@@ -839,10 +908,14 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                   const isOpen = !collapsed[cat.key];
                   return (
                     <div className="cq-cat" key={cat.key} data-testid={`cq-cat-${cat.key}`}>
-                      <button type="button" className="cq-cat-head" aria-expanded={isOpen} onClick={() => setCollapsed((s) => ({ ...s, [cat.key]: isOpen }))}>
-                        <span>{isOpen ? '▾' : '◂'} {cat.label} <small>({lines.length})</small></span>
-                        <b>{formatIls(sum)}</b>
-                      </button>
+                      <div className="cq-cat-head">
+                        <button type="button" className="cq-cat-toggle" aria-expanded={isOpen} onClick={() => revealCategory(cat.key, isOpen)}>
+                          <span>{isOpen ? '▾' : '◂'} {cat.label} <small>({lines.length})</small></span>
+                        </button>
+                        <b className="cq-cat-sum">{formatIls(sum)}</b>
+                        <button type="button" className="cq-btn cq-btn-p cq-btn-add cq-cat-add" data-testid="cq-add-work-head"
+                          onClick={() => addWorkLine(cat.key)}>+ הוסף עבודה</button>
+                      </div>
                       {isOpen && (
                         <div className="cq-cat-body">
                           {cat.key === 'paint' && (
@@ -878,11 +951,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                                 </div>
                                 <div className="cq-add-row">
                                   <button type="button" className="cq-btn cq-btn-p cq-btn-add" data-testid="cq-add-work-line"
-                                    onClick={() => {
-                                      const line = newWorkLine(cat.key, '', data.hourRate, { group: g });
-                                      update((d) => ({ ...d, works: [...d.works, line] }));
-                                      setFocusId(line.id);
-                                    }}>+ הוסף עבודה{g ? ` ב${g}` : ''}</button>
+                                    onClick={() => addWorkLine(cat.key, g)}>+ הוסף עבודה{g ? ` ב${g}` : ''}</button>
                                   <button type="button" className="cq-btn cq-btn-g cq-btn-sm" data-testid="cq-add-item" title="בחירה מעבודות שנשמרו"
                                     onClick={() => setPicker({ mode: 'item', domain: cat.key, group: g, label: '', saveToLib: true })}>📋 מהרשימה</button>
                                 </div>
