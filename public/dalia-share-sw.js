@@ -50,7 +50,7 @@ async function receiveShare(request) {
   const target = sharePageUrl();
   try {
     const form = await request.formData();
-    const files = form.getAll('files')
+    const files = [...form.getAll('files'), ...form.getAll('shared_files')]
       .filter((f) => f && typeof f === 'object' && typeof f.size === 'number')
       .slice(0, MAX_FILES);
     const id = `S${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -69,9 +69,15 @@ async function receiveShare(request) {
   return Response.redirect(target.href, 303);
 }
 
+/** Phones that installed the earlier staging share app still post to ./?action=share-target (field shared_files). */
+function isLegacyShare(url) {
+  return url.searchParams.get('action') === 'share-target' && url.pathname === new URL(self.registration.scope).pathname;
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'POST') return;
-  if (new URL(req.url).pathname !== sharePageUrl().pathname) return;
+  const url = new URL(req.url);
+  if (url.pathname !== sharePageUrl().pathname && !isLegacyShare(url)) return;
   event.respondWith(receiveShare(req));
 });

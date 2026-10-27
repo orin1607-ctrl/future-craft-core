@@ -9,6 +9,8 @@ import { STAGING_PROJECT_ID } from '@/features/fleet-dalia-ai/stagingGate';
 export const SHARE_KILL_KEY = 'dalia-share-target';
 export const SHARE_SW_FILE = 'dalia-share-sw.js';
 export const SHARE_MANIFEST_FILE = 'dalia-share.webmanifest';
+/** The earlier staging share worker (registered from index.html). Replaced by SHARE_SW_FILE at the same scope. */
+export const LEGACY_SW_FILE = 'sw-share.js';
 
 function killed() {
   try {
@@ -30,7 +32,7 @@ async function removeShareWorker() {
   const regs = await navigator.serviceWorker.getRegistrations();
   for (const reg of regs) {
     const url = reg.active?.scriptURL || reg.waiting?.scriptURL || reg.installing?.scriptURL || '';
-    if (url.endsWith(`/${SHARE_SW_FILE}`)) await reg.unregister();
+    if (url.endsWith(`/${SHARE_SW_FILE}`) || url.endsWith(`/${LEGACY_SW_FILE}`)) await reg.unregister();
   }
 }
 

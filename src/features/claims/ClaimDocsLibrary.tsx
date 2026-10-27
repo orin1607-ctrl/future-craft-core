@@ -29,6 +29,8 @@ type Props = {
   onPreview: (f: LibFile, list: LibFile[]) => void;
   onDownload: (f: LibFile) => void;
   onPrint: (f: LibFile) => void;
+  onWhatsApp?: (f: LibFile) => void;
+  onEmail?: (f: LibFile) => void;
   onShareTopic: (ids: string[]) => void;
   onRename: (f: LibFile, title: string) => void;
   onPrepareRead?: (f: LibFile) => string | Promise<string>;
@@ -113,7 +115,7 @@ function DocumentReadNote({ f, onPrepareRead }: { f: LibFile; onPrepareRead?: (f
 }
 
 export default function ClaimDocsLibrary({
-  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic, onRename, onPrepareRead,
+  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onWhatsApp, onEmail, onShareTopic, onRename, onPrepareRead,
 }: Props) {
   const visible = filesForLibCategory(files, category);
   const visibleDocs = visible.filter((f) => !isImage(f));
@@ -150,10 +152,16 @@ export default function ClaimDocsLibrary({
               <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
               <DocumentReadNote f={f} onPrepareRead={onPrepareRead} />
             </div>
-            <div className="doc-lib-acts">
-              <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
-              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
-              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>Print</button>
+            <div className="doc-lib-acts" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>👁️ צפייה</button>
+              {onWhatsApp && (
+                <button type="button" className="btn btn-sm" data-testid={`docs-wa-${f.id}`} style={{ background: 'rgba(37, 211, 102, 0.16)', color: '#4ade80', borderColor: 'rgba(37, 211, 102, 0.4)' }} onClick={() => onWhatsApp(f)}>💬 WhatsApp</button>
+              )}
+              {onEmail && (
+                <button type="button" className="btn btn-sm" data-testid={`docs-email-${f.id}`} style={{ background: 'rgba(59, 130, 246, 0.16)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.4)' }} onClick={() => onEmail(f)}>✉️ אימייל</button>
+              )}
+              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>📥 הורדה</button>
+              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>🖨️ Print</button>
               <DocRename f={f} label={fileLabel(f)} onRename={onRename} />
             </div>
           </div>
@@ -171,10 +179,16 @@ export default function ClaimDocsLibrary({
                 </button>
                 <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
                 <DocumentReadNote f={f} onPrepareRead={onPrepareRead} />
-                <div className="doc-lib-acts">
-                  <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>Preview</button>
-                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
-                  <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
+                <div className="doc-lib-acts" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>👁️ צפייה</button>
+                  {onWhatsApp && (
+                    <button type="button" className="btn btn-sm" data-testid={`docs-wa-${f.id}`} style={{ background: 'rgba(37, 211, 102, 0.16)', color: '#4ade80', borderColor: 'rgba(37, 211, 102, 0.4)' }} onClick={() => onWhatsApp(f)}>💬 WhatsApp</button>
+                  )}
+                  {onEmail && (
+                    <button type="button" className="btn btn-sm" data-testid={`docs-email-${f.id}`} style={{ background: 'rgba(59, 130, 246, 0.16)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.4)' }} onClick={() => onEmail(f)}>✉️ אימייל</button>
+                  )}
+                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>📥 הורדה</button>
+                  <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>🖨️ Print</button>
                   <DocRename f={f} label={fileLabel(f)} onRename={onRename} />
                 </div>
               </div>

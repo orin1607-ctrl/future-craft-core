@@ -104,6 +104,18 @@ describe('service worker and manifest stay in step with the app', () => {
     expect(sw).toContain(`const SHARE_PATH = '${SHARE_PATH}'`);
   });
 
+  it('worker still accepts shares from the earlier staging app', () => {
+    const sw = pub(SHARE_SW_FILE);
+    expect(sw).toContain("form.getAll('shared_files')");
+    expect(sw).toContain("searchParams.get('action') === 'share-target'");
+  });
+
+  it('index.html registers no worker or manifest of its own — only the staging-gated code does', () => {
+    const html = readFileSync(resolve(__dirname, '../../../../index.html'), 'utf8');
+    expect(html).not.toMatch(/rel="manifest"/);
+    expect(html).not.toMatch(/serviceWorker/);
+  });
+
   it('manifest posts multiple files to the share page', () => {
     const m = JSON.parse(pub(SHARE_MANIFEST_FILE));
     expect(m.share_target.action).toBe(`./${SHARE_PATH}`);

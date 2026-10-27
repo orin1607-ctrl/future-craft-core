@@ -201,6 +201,67 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+async function compressImageForUpload(file: File, maxDimension = 1600, quality = 0.85): Promise<{ file: File; base64: string }> {
+  if (!file.type.startsWith('image/') || file.type.includes('svg') || file.type.includes('gif')) {
+    const base64 = file.size <= 8 * 1024 * 1024 ? await readFileAsBase64(file) : '';
+    return { file, base64 };
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          readFileAsBase64(file).then((b64) => resolve({ file, base64: b64 }));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        canvas.toBlob(
+          (blob) => {
+            if (!blob || blob.size >= file.size) {
+              readFileAsBase64(file).then((b64) => resolve({ file, base64: b64 }));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: mime,
+              lastModified: Date.now(),
+            });
+            const dataUrl = canvas.toDataURL(mime, quality);
+            const base64 = dataUrl.split(',')[1] || '';
+            resolve({ file: compressedFile, base64 });
+          },
+          mime,
+          quality
+        );
+      };
+      img.onerror = () => {
+        readFileAsBase64(file).then((b64) => resolve({ file, base64: b64 }));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+      readFileAsBase64(file).then((b64) => resolve({ file, base64: '' }));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadChatAttachmentToClaim(
   claimId: string,
   file: File,
@@ -4163,7 +4224,7 @@ const toggleVoiceMute = useCallback(() => {
       try {
         controller.abort();
       } catch {}
-    }, 35000);
+    }, 90000);
     let conversationId = activeId;
     let draft = '';
     let userSavedSuccessfully = false;
@@ -4284,10 +4345,15 @@ const toggleVoiceMute = useCallback(() => {
               }
             }
             let base64: string | undefined = undefined;
-            if (filesToUpload.length <= 5 && staged.size < 4 * 1024 * 1024) {
-              base64 = await readFileAsBase64(staged.file);
-            } else if (globalIdx < 3 && staged.mimeType.startsWith('image/') && staged.size < 2 * 1024 * 1024) {
-              base64 = await readFileAsBase64(staged.file);
+            if (staged.mimeType.startsWith('image/')) {
+              try {
+                const compressed = await compressImageForUpload(staged.file);
+                base64 = compressed.base64;
+              } catch {
+                base64 = await readFileAsBase64(staged.file).catch(() => undefined);
+              }
+            } else if (staged.size <= 8 * 1024 * 1024) {
+              base64 = await readFileAsBase64(staged.file).catch(() => undefined);
             }
             finalAttachments[globalIdx] = {
               name: staged.name,

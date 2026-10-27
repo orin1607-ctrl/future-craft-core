@@ -1,0 +1,350 @@
+/**
+ * claim-share-modal.css
+ * Styling for ClaimShareConfirmModal (Android Web Share Target & desktop quick import).
+ */
+
+.csm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 100050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: csmFadeIn 0.2s ease-out;
+}
+
+@keyframes csmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.csm-container {
+  background: #ffffff;
+  color: #0f172a;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+}
+
+.csm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #334155;
+  border-radius: 16px 16px 0 0;
+}
+
+.csm-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.csm-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.csm-brand h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.csm-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #e2e8f0;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.csm-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.csm-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.csm-doc-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.csm-doc-icon {
+  font-size: 28px;
+}
+
+.csm-doc-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.csm-doc-details b {
+  font-size: 14px;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.csm-doc-details span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.csm-target-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.csm-target-box h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.csm-hint {
+  font-size: 12px;
+  color: #475569;
+  margin: 0 0 10px 0;
+}
+
+.csm-claim-selector {
+  margin-bottom: 10px;
+}
+
+.csm-select {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+}
+
+.csm-claim-card {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+
+.csm-kv {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.csm-kv span {
+  color: #64748b;
+  font-size: 11.5px;
+}
+
+.csm-kv b {
+  color: #0f172a;
+}
+
+.csm-warn {
+  padding: 10px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 12px;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
+.csm-notice {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+
+.csm-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.csm-fg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.csm-input {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+}
+
+.csm-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.csm-foot {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.csm-btn {
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.csm-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.csm-btn-pri {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  flex: 1;
+}
+
+.csm-btn-pri:hover:not(:disabled) {
+  background: #0369a1;
+}
+
+.csm-btn-wa {
+  background: #25d366;
+  color: #ffffff;
+  border-color: #25d366;
+}
+
+.csm-btn-wa:hover:not(:disabled) {
+  background: #1eb956;
+}
+
+.csm-btn-mail {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+}
+
+.csm-btn-mail:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+/* Success View */
+.csm-success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.csm-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.csm-success-title {
+  margin: 0 0 6px 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.csm-success-sub {
+  margin: 0 0 14px 0;
+  font-size: 13.5px;
+  color: #475569;
+}
+
+.csm-file-pill {
+  background: #f1f5f9;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #0f172a;
+  margin-bottom: 20px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.csm-acts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}

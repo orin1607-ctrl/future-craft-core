@@ -1,13 +1,17 @@
 /**
  * CarPartPanel.tsx
- * "Car-Part – מכרז חלקי חילוף" workspace inside a claim card (STAGING).
- * Opens Car-Part in a side window with the user's own subscription, remembers the claim,
- * and saves the produced tender document into this claim's documents (existing claims-docs upload).
+ * Car-Part parts tender integration panel inside Dalia Claims module.
+ *
+ * Requirements:
+ * - Clear section: "שמירת הצעות מחיר לתיק התביעה"
+ * - Immediate success message: "המסמך נשמר בהצלחה בתיק התביעה"
+ * - 4 immediate actions: View (👁️), WhatsApp (💬), Email (✉️), Download (📥)
+ * - Desktop quick paste (Ctrl+V & Clipboard API)
+ * - Duplicate warning before overwrite
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  CARPART_FIND_PARTS_URL,
-  CARPART_REQUESTS_URL,
   CARPART_STAFF_TYPE,
   buildTenderFileName,
   buildTenderNote,
@@ -16,12 +20,21 @@ import {
   carPartWindowFeatures,
   carPartWindowName,
   clearSession,
+  getCarPartRequestsUrl,
+  getCarPartTenderUrl,
   isAcceptedTenderFile,
+  isCarPartMobileClient,
   readSession,
   rememberSession,
   type CarPartClaimContext,
   type CarPartFileLike,
 } from './carPartBridge';
+import {
+  shareDocToEmail,
+  shareDocToWhatsApp,
+  type DocShareContext,
+  type DocShareFile,
+} from './claimDocShare';
 import './carpart.css';
 
 type UploadResult = { success: boolean; file_id?: string; reused?: boolean; error?: string };
@@ -34,6 +47,8 @@ type Props = {
   logHistory: (action: string, note: string) => Promise<unknown> | void;
   onOpenFile: (fileId: string) => void;
   onDownloadFile: (fileId: string) => void;
+  getFileSignedUrl?: (fileId: string) => Promise<string>;
+  onInternalEmail?: (seed: { to: string; subject: string; body: string; file_ids: string[] }) => void;
   onSaved: () => void;
   onClose: () => void;
   toast: (msg: string, type?: string) => void;
@@ -47,7 +62,20 @@ function fmtDate(iso: string) {
   }
 }
 
-export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHistory, onOpenFile, onDownloadFile, onSaved, onClose, toast }: Props) {
+export default function CarPartPanel({
+  ctx,
+  files,
+  uploadFile,
+  updateMeta,
+  logHistory,
+  onOpenFile,
+  onDownloadFile,
+  getFileSignedUrl,
+  onInternalEmail,
+  onSaved,
+  onClose,
+  toast,
+}: Props) {
   const winRef = useRef<Window | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [opened, setOpened] = useState(() => readSession()?.claimId === ctx.claimId);
@@ -61,6 +89,8 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<{ id: string; title: string } | null>(null);
   const saved = carPartFiles(files);
 
   const copyPlate = useCallback(async () => {
@@ -75,21 +105,26 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
     }
   }, [ctx.plate]);
 
-  const openCarPart = useCallback(async (url: string) => {
+  const openCarPart = useCallback(async (targetType: 'tender' | 'requests') => {
     rememberSession(ctx);
     setOpened(true);
+
+    const isMobile = isCarPartMobileClient();
+    const url = targetType === 'tender' ? getCarPartTenderUrl(isMobile) : getCarPartRequestsUrl(isMobile);
     const name = carPartWindowName(ctx.claimId);
-    const w = window.open(url, name, carPartWindowFeatures(window.screen?.availWidth || 0, window.screen?.availHeight || 0));
+    const features = carPartWindowFeatures(window.screen?.availWidth || 0, window.screen?.availHeight || 0, isMobile);
+
+    const w = features ? window.open(url, name, features) : window.open(url, '_blank');
     if (!w) {
       toast('הדפדפן חסם את החלון — אפשרו חלונות קופצים לאתר זה ונסו שוב', 'err');
       return;
     }
-    // Keep our handle but cut Car-Part's access back to this page (no reverse tab-nabbing).
     try { w.opener = null; } catch { /* ignore */ }
     winRef.current = w;
     try { w.focus(); } catch { /* ignore */ }
+
     const ok = await copyPlate();
-    toast(ok ? `Car-Part נפתח · מספר הרכב ${ctx.plate} הועתק — הדביקו בשדה "מספר רישוי"` : 'Car-Part נפתח בחלון נפרד', 'inf');
+    toast(ok ? `Car-Part נפתח · מספר הרכב ${ctx.plate} הועתק — הדביקו בשדה "מספר רישוי"` : 'Car-Part נפתח', 'inf');
     void logHistory('Car-Part נפתח מהתיק', `רכב ${ctx.plate || '—'} · תביעה ${ctx.claimNum || ctx.claimId}`);
   }, [ctx, copyPlate, logHistory, toast]);
 
@@ -102,15 +137,40 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
     setPending(f);
   };
 
-  // Paste a screenshot / file straight from the clipboard while the panel is open.
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard?.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          for (const type of item.types) {
+            if (type.startsWith('image/') || type === 'application/pdf') {
+              const blob = await item.getType(type);
+              const ext = type.includes('pdf') ? 'pdf' : type.replace('image/', '') || 'png';
+              const f = new File([blob], `carpart_clipboard_${Date.now()}.${ext}`, { type });
+              pickFile(f);
+              toast('הקובץ נדבק מהלוח בהצלחה', 'ok');
+              return;
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    inputRef.current?.click();
+  };
+
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const f = Array.from(e.clipboardData?.files || [])[0];
-      if (f) { e.preventDefault(); pickFile(f); }
+      if (f) {
+        e.preventDefault();
+        pickFile(f);
+        toast(`הקובץ ${f.name} נקלט מהלוח`, 'ok');
+      }
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const save = async () => {
@@ -132,7 +192,9 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
       });
       if (meta && meta.success === false) toast('הקובץ נשמר, אך פרטי השיוך לא עודכנו', 'err');
       void logHistory('מסמך מכרז Car-Part נשמר בתיק', title);
-      toast(up.reused ? 'המסמך כבר קיים בתיק — פרטי השיוך עודכנו' : 'מסמך המכרז נשמר בתיק התביעה');
+
+      setLastSaved({ id: up.file_id, title });
+      toast('המסמך נשמר בהצלחה בתיק התביעה', 'ok');
       setPending(null);
       setTenderRef('');
       setUserNote('');
@@ -143,6 +205,64 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
       setBusy(false);
     }
   };
+
+  const shareWhatsApp = async (f: CarPartFileLike) => {
+    if (sharingId) return;
+    setSharingId(f.id);
+    try {
+      const url = getFileSignedUrl ? await getFileSignedUrl(f.id) : '';
+      const docShareFile: DocShareFile = {
+        id: f.id,
+        name: f.doc_meta?.staff_title || f.original_name,
+        url: url || '',
+        mime: f.mime_type,
+      };
+      const res = await shareDocToWhatsApp(
+        docShareFile,
+        ctx as DocShareContext,
+        '',
+        (msg) => toast(msg, 'inf')
+      );
+      if (res.method === 'native') toast('שותף בהצלחה לוואטסאפ', 'ok');
+      else if (res.method === 'wa_link') toast('נפתח WhatsApp', 'ok');
+    } catch {
+      toast('השיתוף לוואטסאפ נכשל', 'err');
+    } finally {
+      setSharingId(null);
+    }
+  };
+
+  const shareEmail = async (f: CarPartFileLike) => {
+    if (sharingId) return;
+    setSharingId(f.id);
+    try {
+      const url = getFileSignedUrl ? await getFileSignedUrl(f.id) : '';
+      const docShareFile: DocShareFile = {
+        id: f.id,
+        name: f.doc_meta?.staff_title || f.original_name,
+        url: url || '',
+        mime: f.mime_type,
+      };
+      const res = await shareDocToEmail(docShareFile, ctx as DocShareContext, {
+        onInternalCompose: onInternalEmail,
+      });
+      if (res.method === 'internal') {
+        toast('נפתח עורך המייל עם הקובץ המצורף', 'ok');
+        onClose();
+      } else if (res.method === 'native') {
+        toast('שותף בהצלחה לאימייל', 'ok');
+      } else {
+        toast('נפתחה תוכנת האימייל', 'ok');
+      }
+    } catch {
+      toast('השליחה לאימייל נכשלה', 'err');
+    } finally {
+      setSharingId(null);
+    }
+  };
+
+  // Duplicate check
+  const duplicate = pending ? files.find((f) => f.original_name.toLowerCase() === pending.name.toLowerCase()) : null;
 
   return (
     <div className="cp-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} data-testid="carpart-panel">
@@ -170,12 +290,12 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
           <section className="cp-card">
             <h3>1 · פתיחת מכרז ב-Car-Part</h3>
             <p className="cp-help">
-              Car-Part ייפתח בחלון צדדי. בכניסה הראשונה מתחברים עם שם המשתמש והסיסמה של המנוי — הדפדפן זוכר את החיבור.
+              Car-Part ייפתח בהתאמה למכשיר (מובייל בטלפון, חלון צדדי במחשב).
               מספר הרכב מועתק אוטומטית, כך שרק מדביקים אותו בשדה "מספר רישוי".
             </p>
             <div className="cp-acts">
-              <button type="button" className="cp-btn cp-pri" data-testid="carpart-open" onClick={() => void openCarPart(CARPART_FIND_PARTS_URL)}>🔧 פתח מכרז חלקים ב-Car-Part</button>
-              <button type="button" className="cp-btn" data-testid="carpart-open-requests" onClick={() => void openCarPart(CARPART_REQUESTS_URL)}>📋 הבקשות שלי / תשובות ספקים</button>
+              <button type="button" className="cp-btn cp-pri" data-testid="carpart-open" onClick={() => void openCarPart('tender')}>🔧 פתח מכרז חלקים ב-Car-Part</button>
+              <button type="button" className="cp-btn" data-testid="carpart-open-requests" onClick={() => void openCarPart('requests')}>📋 הבקשות שלי / תשובות ספקים</button>
               {ctx.plate ? (
                 <button type="button" className="cp-btn" data-testid="carpart-copy-plate" onClick={() => void copyPlate()}>{copied ? '✓ הועתק' : `העתק מספר רכב ${ctx.plate}`}</button>
               ) : null}
@@ -188,12 +308,35 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
             ) : null}
           </section>
 
-          <section className="cp-card">
-            <h3>2 · שמירת מסמך המכרז בתיק</h3>
+          {/* Section 2: שמירת הצעות מחיר לתיק התביעה */}
+          <section className="cp-card" data-testid="carpart-intake-section">
+            <h3>שמירת הצעות מחיר לתיק התביעה</h3>
             <p className="cp-help">
-              ב-Car-Part לוחצים "הדפס" על הבקשה / הצעות המחיר ובוחרים <b>"שמור כ-PDF"</b>. אחר כך גוררים את הקובץ לכאן (או בוחרים / מדביקים Ctrl+V).
-              המסמך יישמר בגלריית המסמכים של התיק עם מספר התביעה ומספר הרכב.
+              ב-Car-Part לוחצים "הדפס" ובוחרים <b>"שמור כ-PDF"</b>. 
+              במחשב ניתן לגרור לכאן, ללחוץ לבחירה או להדביק ב-<b>Ctrl+V</b>. 
+              בטלפון ניתן ללחוץ על "שתף" ולבחור <b>"דליה"</b>.
             </p>
+
+            {/* Success notification banner */}
+            {lastSaved ? (
+              <div className="cp-success-banner" data-testid="carpart-success-banner">
+                <div className="cp-sb-title">✓ המסמך נשמר בהצלחה בתיק התביעה</div>
+                <div className="cp-sb-name">{lastSaved.title}</div>
+                <div className="cp-sb-acts">
+                  <button type="button" className="cp-btn cp-sm cp-btn-view" data-testid="carpart-last-view" onClick={() => onOpenFile(lastSaved.id)}>👁️ צפייה</button>
+                  <button type="button" className="cp-btn cp-sm cp-btn-wa" data-testid="carpart-last-wa" onClick={() => {
+                    const f = saved.find((x) => x.id === lastSaved.id) || { id: lastSaved.id, original_name: lastSaved.title, created_at: new Date().toISOString() };
+                    void shareWhatsApp(f as any);
+                  }}>💬 WhatsApp</button>
+                  <button type="button" className="cp-btn cp-sm cp-btn-mail" data-testid="carpart-last-mail" onClick={() => {
+                    const f = saved.find((x) => x.id === lastSaved.id) || { id: lastSaved.id, original_name: lastSaved.title, created_at: new Date().toISOString() };
+                    void shareEmail(f as any);
+                  }}>✉️ אימייל</button>
+                  <button type="button" className="cp-btn cp-sm" data-testid="carpart-last-dl" onClick={() => onDownloadFile(lastSaved.id)}>📥 הורדה</button>
+                </div>
+              </div>
+            ) : null}
+
             <div
               className={`cp-drop ${drag ? 'on' : ''} ${pending ? 'has' : ''}`}
               data-testid="carpart-drop"
@@ -210,7 +353,7 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
               ) : (
                 <>
                   <b>גררו לכאן את קובץ המכרז מ-Car-Part</b>
-                  <span>PDF / PNG / JPG · או לחצו לבחירת קובץ</span>
+                  <span>PDF / PNG / JPG · או לחצו לבחירת קובץ מהמכשיר</span>
                 </>
               )}
               <input
@@ -222,7 +365,23 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
                 onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }}
               />
             </div>
-            <div className="cp-row">
+
+            <div className="cp-drop-acts">
+              <button type="button" className="cp-btn cp-sm" data-testid="carpart-paste-btn" onClick={(e) => { e.stopPropagation(); void handlePasteClipboard(); }}>
+                📋 הדבק מהלוח (Ctrl+V)
+              </button>
+              <button type="button" className="cp-btn cp-sm" onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}>
+                📁 בחר קובץ מהמחשב
+              </button>
+            </div>
+
+            {duplicate ? (
+              <div className="cp-warn" data-testid="carpart-dup-warn">
+                ⚠️ שים לב: מסמך בשם <b>{duplicate.original_name}</b> כבר קיים בתיק זה. השמירה תעדכן אותו.
+              </div>
+            ) : null}
+
+            <div className="cp-row" style={{ marginTop: 10 }}>
               <label className="cp-fg">
                 <span>מספר בקשה ב-Car-Part (לא חובה)</span>
                 <input className="cp-in" value={tenderRef} onChange={(e) => setTenderRef(e.target.value)} placeholder="לדוגמה 845512" data-testid="carpart-ref" />
@@ -245,14 +404,24 @@ export default function CarPartPanel({ ctx, files, uploadFile, updateMeta, logHi
             {saved.length ? (
               <ul className="cp-list">
                 {saved.map((f) => (
-                  <li key={f.id} data-testid={`carpart-file-${f.id}`}>
+                  <li key={f.id} data-testid={`carpart-file-${f.id}`} className="cp-item-row">
                     <div className="cp-li-main">
                       <b>{f.doc_meta?.staff_title || f.original_name}</b>
                       <span><bdi dir="ltr">{f.original_name}</bdi> · {fmtDate(f.created_at)}</span>
                     </div>
                     <div className="cp-li-acts">
-                      <button type="button" className="cp-btn cp-sm" onClick={() => onOpenFile(f.id)}>צפייה</button>
-                      <button type="button" className="cp-btn cp-sm" onClick={() => onDownloadFile(f.id)}>הורדה</button>
+                      <button type="button" className="cp-btn cp-sm cp-btn-view" data-testid={`carpart-view-${f.id}`} onClick={() => onOpenFile(f.id)}>
+                        👁️ צפייה
+                      </button>
+                      <button type="button" className="cp-btn cp-sm cp-btn-wa" data-testid={`carpart-wa-${f.id}`} onClick={() => void shareWhatsApp(f)} disabled={sharingId === f.id}>
+                        💬 WhatsApp
+                      </button>
+                      <button type="button" className="cp-btn cp-sm cp-btn-mail" data-testid={`carpart-email-${f.id}`} onClick={() => void shareEmail(f)} disabled={sharingId === f.id}>
+                        ✉️ אימייל
+                      </button>
+                      <button type="button" className="cp-btn cp-sm" data-testid={`carpart-dl-${f.id}`} onClick={() => onDownloadFile(f.id)}>
+                        📥 הורדה
+                      </button>
                     </div>
                   </li>
                 ))}
