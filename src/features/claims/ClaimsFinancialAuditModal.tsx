@@ -533,7 +533,7 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                     color: '#92400e',
                   }}
                 >
-                  <AlertTriangle size={22} color="#d97706" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>⚠️</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>
                       חסר דוח שמאי בתיק זה
