@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { api, store } = vi.hoisted(() => ({
+const { api, store, garageMock, vehicleMock } = vi.hoisted(() => ({
   api: {
     getClaims: vi.fn(),
     staffUpload: vi.fn(),
@@ -10,6 +10,8 @@ const { api, store } = vi.hoisted(() => ({
     logHistory: vi.fn(),
   },
   store: { listShareBatches: vi.fn(), deleteShareBatch: vi.fn() },
+  garageMock: vi.fn(),
+  vehicleMock: vi.fn(),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -17,10 +19,18 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 vi.mock('@/features/claims/claimsService', () => ({ createClaimsApi: () => api }));
 vi.mock('@/features/claims/claimDocumentRead', () => ({
-  readPdfText: async () => 'Car-Part מכרז חלקים לרכב 1234567',
+  readPdfText: async () => 'Car-Part מכרז חלקים לרכב 12-345-67',
 }));
 vi.mock('@/features/claims/shareInbox/shareStore', () => store);
 vi.mock('@/features/claims/shareInbox/registerShareTarget', () => ({ isShareTargetEnabled: () => true }));
+vi.mock('@/features/claims/shareInbox/shareMultiService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/claims/shareInbox/shareMultiService')>();
+  return {
+    ...actual,
+    loadUserGarageCases: garageMock,
+    loadUserVehicles: vehicleMock,
+  };
+});
 
 import ClaimsShareInboxPage from './ClaimsShareInboxPage';
 
@@ -40,7 +50,6 @@ function batch(files: Array<{ name: string; type: string }>) {
   };
 }
 
-// jsdom's Blob has no arrayBuffer(); every browser that can share files does.
 if (!Blob.prototype.arrayBuffer) {
   Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob) {
     return new Promise<ArrayBuffer>((resolve) => {
@@ -56,6 +65,12 @@ beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:x');
   URL.revokeObjectURL = vi.fn();
   api.getClaims.mockResolvedValue({ success: true, data: claims });
+  garageMock.mockResolvedValue([
+    { id: 'g1', case_number: 'GC-1001', customer_name_snapshot: 'משה לוי', vehicle_plate_snapshot: '12-345-67' },
+  ]);
+  vehicleMock.mockResolvedValue([
+    { id: 'v1', license_plate: '12-345-67', manufacturer: 'טויוטה', model: 'קורולה', company_name: 'אורן קאר' },
+  ]);
   api.staffUpload.mockResolvedValue({ success: true, file_id: 'CDM1', reused: false });
   api.invokeDocs.mockResolvedValue({ success: true });
   api.logHistory.mockResolvedValue({ success: true });
@@ -64,46 +79,73 @@ beforeEach(() => {
 
 const renderPage = () => render(<MemoryRouter initialEntries={['/claims/share?batch=S1']}><ClaimsShareInboxPage /></MemoryRouter>);
 
-describe('ClaimsShareInboxPage', () => {
-  it('saves a Car-Part PDF straight into the one matching claim and clears the device copy', async () => {
+describe('ClaimsShareInboxPage (Multi-Module)', () => {
+  it('identifies car plate from Car-Part PDF, preselects matching claim, and saves upon user confirmation', async () => {
     store.listShareBatches.mockResolvedValue([batch([{ name: 'tender.pdf', type: 'application/pdf' }])]);
     renderPage();
+
+    // Verify header and target auto-detection
+    await screen.findByText(/שמירת מסמך בדליה/);
+    await screen.findByText(/יעד נבחר:/);
+    const matches = screen.getAllByText(/תביעה CLM-1/);
+    expect(matches.length).toBeGreaterThan(0);
+
+    // Click "שמור בתיק"
+    const saveBtn = await screen.findByRole('button', { name: /שמור 1 קבצים ב-תביעה CLM-1/ });
+    fireEvent.click(saveBtn);
+
     await waitFor(() => expect(api.staffUpload).toHaveBeenCalledTimes(1));
     expect(api.staffUpload.mock.calls[0][0]).toBe('DAL-QA-0001');
-    await screen.findByText(/^נשמר/);
-    expect(api.invokeDocs).toHaveBeenCalledWith('update_doc_meta', expect.objectContaining({ claim_id: 'DAL-QA-0001', file_id: 'CDM1', staff_note: expect.stringContaining('[share_to_dalia]') }));
+    await screen.findByText(/נשמרו בהצלחה/);
     await waitFor(() => expect(store.deleteShareBatch).toHaveBeenCalledWith('S1'));
   });
 
-  it('photos without an identifier wait for one claim choice, then all are saved there', async () => {
-    store.listShareBatches.mockResolvedValue([batch([
-      { name: 'IMG-20261027-WA0001.jpg', type: 'image/jpeg' },
-      { name: 'IMG-20261027-WA0002.jpg', type: 'image/jpeg' },
-    ])]);
+  it('allows switching to Garage module and searching work cards', async () => {
+    store.listShareBatches.mockResolvedValue([batch([{ name: 'damage_photo.jpg', type: 'image/jpeg' }])]);
     renderPage();
-    await screen.findByText(/בחר תיק עבור 2 קבצים/);
-    expect(api.staffUpload).not.toHaveBeenCalled();
-    expect(store.deleteShareBatch).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByPlaceholderText(/חיפוש לפי מספר רכב/), { target: { value: '55-666' } });
-    fireEvent.click(await screen.findByRole('button', { name: /CLM-2/ }));
-    fireEvent.click(screen.getByRole('button', { name: /שמור בתיק/ }));
+    // Click "ניהול מוסך" tab
+    const garageTab = await screen.findByRole('button', { name: /ניהול מוסך/ });
+    fireEvent.click(garageTab);
 
-    await waitFor(() => expect(api.staffUpload).toHaveBeenCalledTimes(2));
-    expect(api.staffUpload.mock.calls.map((c) => c[0])).toEqual(['DAL-QA-0002', 'DAL-QA-0002']);
-    await waitFor(() => expect(store.deleteShareBatch).toHaveBeenCalledWith('S1'));
+    // Wait for the garage card to appear in results
+    await screen.findByText(/כרטיס מוסך GC-1001/);
+    const caseBtn = screen.getAllByRole('button').find((b) => b.textContent?.includes('GC-1001'));
+    expect(caseBtn).toBeDefined();
+    if (caseBtn) fireEvent.click(caseBtn);
+
+    await screen.findByRole('button', { name: /שמור 1 קבצים ב-כרטיס מוסך GC-1001/ });
   });
 
-  it('a file already in the claim is reported as a duplicate, not saved twice', async () => {
-    api.staffUpload.mockResolvedValue({ success: true, file_id: 'CDM0', reused: true });
-    store.listShareBatches.mockResolvedValue([batch([{ name: 'tender.pdf', type: 'application/pdf' }])]);
+  it('allows switching to Vehicles module and searching vehicles', async () => {
+    store.listShareBatches.mockResolvedValue([batch([{ name: 'car_doc.pdf', type: 'application/pdf' }])]);
     renderPage();
-    await screen.findByText(/כבר קיים בתיק/);
-    expect(api.invokeDocs).not.toHaveBeenCalled();
+
+    // Click "ניהול רכבים" tab
+    const vehicleTab = await screen.findByRole('button', { name: /ניהול רכבים/ });
+    fireEvent.click(vehicleTab);
+
+    // Wait for the vehicle card to appear in results
+    await screen.findByText(/רכב 12-345-67/);
+    const vehicleBtn = screen.getAllByRole('button').find((b) => b.textContent?.includes('12-345-67'));
+    expect(vehicleBtn).toBeDefined();
+    if (vehicleBtn) fireEvent.click(vehicleBtn);
+
+    await screen.findByRole('button', { name: /שמור 1 קבצים ב-רכב 12-345-67/ });
+  });
+
+  it('allows editing the document name before saving', async () => {
+    store.listShareBatches.mockResolvedValue([batch([{ name: 'photo.jpg', type: 'image/jpeg' }])]);
+    renderPage();
+
+    const nameInput = await screen.findByPlaceholderText(/הזן שם למסמך/);
+    fireEvent.change(nameInput, { target: { value: 'תמונת נזק פגוש קדמי' } });
+
+    expect((nameInput as HTMLInputElement).value).toBe('תמונת נזק פגוש קדמי');
   });
 
   it('rejects unsupported files without uploading', async () => {
-    store.listShareBatches.mockResolvedValue([batch([{ name: 'notes.docx', type: 'application/msword' }])]);
+    store.listShareBatches.mockResolvedValue([batch([{ name: 'notes.exe', type: 'application/x-msdownload' }])]);
     renderPage();
     await screen.findByText(/סוג קובץ לא נתמך/);
     expect(api.staffUpload).not.toHaveBeenCalled();

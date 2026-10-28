@@ -319,6 +319,7 @@ function AppRoutes() {
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/claims/share" element={<ClaimsShareInboxPage />} />
+        <Route path="/share" element={<ClaimsShareInboxPage />} />
         <Route path="/garage-management/:caseId" element={<GarageApp />} />
         <Route path="/garage-management" element={<GarageApp />} />
         <Route path="/garage" element={<GarageJobsPage />} />

@@ -112,6 +112,7 @@ const ROUTES = [
   'telemarketing/admin',
   'claims',
   'claims/share',
+  'share',
   'claims-upload',
   'claims-share',
   'claims-intake',
