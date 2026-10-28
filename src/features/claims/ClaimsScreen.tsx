@@ -1100,7 +1100,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [narrowList, setNarrowList] = useState(false);
   const [phoneNarrow, setPhoneNarrow] = useState(false);
   const [cardSnapCollapsed, setCardSnapCollapsed] = useState(true);
-  const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
+  const [mineOnly, setMineOnly] = useState(false);
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
   const [staffSig, setStaffSig] = useState('');
@@ -2273,7 +2273,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }));
 
       await loadCardData(claimId);
-      await loadClaims();
+      await loadAll();
       toast('דוח נסרק אוטומטית ברקע! הנתונים נשמרו בבדיקת דוח שמאי (ממתין לאישור).', 'ok');
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'שגיאה בסריקה אוטומטית';
@@ -3566,9 +3566,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {actor.full_name}</div>
                   </div>
                   <div className="ph-a">
-                    {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
-                    )}
+                    <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     <button type="button" className="btn btn-g btn-sm" data-testid="claims-dash-reports-btn" onClick={() => showView('reports')} title="מעבר למרכז דוחות וניהול מאזן">📊 דוחות</button>
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
@@ -3764,9 +3762,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div className="ph">
                   <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
-                    {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
-                    )}
+                    <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
                     {renderListFilterControls()}
                   </div>
                 </div>
@@ -7344,7 +7340,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               fin_paid: nextRow.finPaid ? Number(nextRow.finPaid) : c?.fin_paid,
             } as any).eq('id', claimId);
             if (!error) {
-              await loadClaims();
+              await loadAll();
               await loadCardData(claimId);
               toast('הנתונים הכספיים עודכנו בכרטיס התביעה בהצלחה!', 'ok');
               return true;
