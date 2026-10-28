@@ -20,6 +20,12 @@ import {
   type FinancialComparisonResult,
   type VerifiedPaymentEntry,
 } from './claimFinancialDocRead';
+import {
+  getClaimFinancialEvidence,
+  type ClaimFinancialEvidencePackage,
+  type EvidenceItem,
+  type ClaimSurveyVersion,
+} from './claimFinancialEvidence';
 
 export interface ClaimDocFile {
   id: string;
@@ -67,9 +73,13 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
   onTriggerDocOcr,
   actorName,
 }) => {
-  const [activeTab, setActiveTab] = useState<'audit' | 'docs' | 'letter' | 'legal'>('audit');
+  const [activeTab, setActiveTab] = useState<'audit' | 'evidence' | 'docs' | 'letter' | 'legal'>('audit');
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'ok' | 'err' } | null>(null);
+
+  // מצבי צפייה בהוכחות חזותיות מתוך מסמך המקור (Lightbox)
+  const [selectedCropItem, setSelectedCropItem] = useState<EvidenceItem | null>(null);
+  const [selectedCropVersion, setSelectedCropVersion] = useState<ClaimSurveyVersion | null>(null);
 
   // מצבי OCR מקומיים לטעינה מהירה בזמן אמת
   const [localReadTexts, setLocalReadTexts] = useState<Record<string, string>>({});
@@ -80,6 +90,15 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
   const showToast = (text: string, type: 'ok' | 'err' = 'ok') => {
     setToastMsg({ text, type });
     setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  const resolveCropUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const base = import.meta.env.BASE_URL || '/';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const cleanUrl = url.startsWith('/') ? url.slice(1) : url;
+    return `${cleanBase}${cleanUrl}`;
   };
 
   // איתור מסמכי שומה ותשלום השייכים לתיק זה
@@ -263,6 +282,11 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
       verifiedPayments: audit.verified_payments || [],
     });
   }, [claim, aggregatedText]);
+
+  // מודל אימות והוכחות חזותיות מתוך מסמך המקור
+  const evidencePackage: ClaimFinancialEvidencePackage = useMemo(() => {
+    return getClaimFinancialEvidence(claim.id, claim.plate, claim.clientName, comparison, files);
+  }, [claim.id, claim.plate, claim.clientName, comparison, files]);
 
   // ערכי תצוגה מקדימה לעריכה ואישור
   const [previewValues, setPreviewValues] = useState<{
@@ -493,6 +517,19 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
           </button>
           <button
             type="button"
+            className={`cfa-tab-btn ${activeTab === 'evidence' ? 'active' : ''}`}
+            onClick={() => setActiveTab('evidence')}
+            style={{
+              background: activeTab === 'evidence' ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.15))' : undefined,
+              borderColor: activeTab === 'evidence' ? '#38bdf8' : undefined,
+              color: activeTab === 'evidence' ? '#38bdf8' : undefined,
+              fontWeight: 800,
+            }}
+          >
+            🔍 הצג הוכחות ואימות נתונים
+          </button>
+          <button
+            type="button"
             className={`cfa-tab-btn ${activeTab === 'docs' ? 'active' : ''}`}
             onClick={() => setActiveTab('docs')}
           >
@@ -585,13 +622,22 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
 
               {/* טבלת השוואת סעיפים מפורטת */}
               <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <h4 style={{ color: '#38bdf8', fontSize: 14, margin: 0 }}>
                     🔍 פירוט סעיפי נזק, אישורי מבטחת, קיזוזים והפרשים
                   </h4>
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                    מבוסס על מסמכי התיק · כל סכום מלווה בציטוט מקור
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button
+                      type="button"
+                      className="cfa-crop-thumb-btn"
+                      onClick={() => setActiveTab('evidence')}
+                    >
+                      🔍 הצג הוכחות ואימות נתונים (צילומי מקור מוגדלים)
+                    </button>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                      מבוסס על מסמכי התיק · כל סכום מלווה בציטוט מקור
+                    </span>
+                  </div>
                 </div>
 
                 <div className="cfa-table-wrapper">
@@ -734,6 +780,284 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                     {isSaving ? '⏳ שומר נתונים…' : '💾 אשר והזן נתונים לכרטיס התביעה'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'evidence' && (
+            <div>
+              {/* כותרת ואינדיקציה אמיתית לאיכות הקריאה (Task 5) */}
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
+                  border: '1px solid #334155',
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>🔍</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>
+                      הוכחות ואימות נתונים מתוך מסמך המקור
+                    </span>
+                    <span
+                      className={`cfa-evidence-badge ${
+                        evidencePackage.overallQuality === 'verified'
+                          ? 'cfa-evidence-badge-verified'
+                          : evidencePackage.overallQuality === 'missing_report'
+                          ? 'cfa-evidence-badge-missing'
+                          : 'cfa-evidence-badge-review'
+                      }`}
+                    >
+                      {evidencePackage.overallQualityLabel}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 6 }}>
+                    תיק: <strong>{evidencePackage.claimId}</strong> · רכב: <strong>{evidencePackage.plateNumber}</strong> · לקוח: <strong>{evidencePackage.clientName}</strong> · שמאי: <strong>{evidencePackage.surveyorName}</strong>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#38bdf8',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                  }}
+                >
+                  🛡️ אימות עובדתי ללא השערות · כל סכום מלווה בצילום מקורי
+                </div>
+              </div>
+
+              {/* כרטיס בדיקת גרסאות שמאות (Task 4) */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>📋</span> בדיקת גרסאות שמאות ומסמכי מקור בתיק ({evidencePackage.versions.length} גרסאות שזוהו)
+                  </h4>
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                    גרסה נבחרת לביקורת: <strong style={{ color: '#38bdf8' }}>{evidencePackage.selectedVersion}</strong>
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                  {evidencePackage.versions.map((ver) => (
+                    <div
+                      key={ver.versionId}
+                      style={{
+                        background: ver.isSelected ? 'rgba(56, 189, 248, 0.08)' : '#1e293b',
+                        border: ver.isSelected ? '1px solid #38bdf8' : '1px solid #334155',
+                        borderRadius: 10,
+                        padding: 14,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: ver.isSelected ? '#38bdf8' : '#cbd5e1' }}>
+                            {ver.docType} ({ver.versionId})
+                          </span>
+                          <span className={`cfa-badge ${ver.isSelected ? 'cfa-badge-match' : 'cfa-badge-missing'}`}>
+                            {ver.isSelected ? 'נבחרה לבדיקה חלוטה' : 'ארכיון / לא מחייב'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
+                          קובץ: {ver.fileName} · תאריך: {ver.date}
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc', marginBottom: 6 }}>
+                          {ver.totalAmount > 0 ? `${ver.totalAmount.toLocaleString()} ₪` : 'ללא סכום סופי'}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#cbd5e1', lineHeight: 1.4 }}>
+                          {ver.selectionRationale}
+                        </div>
+                      </div>
+                      {ver.cropUrl && (
+                        <button
+                          type="button"
+                          className="cfa-crop-thumb-btn"
+                          onClick={() => setSelectedCropVersion(ver)}
+                          style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                        >
+                          🔎 צפה בצילום המסמך המקורי
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* טבלת השוואה לכל סעיף עם הוכחות חזותיות (Task 2 & 1) */}
+              <div className="cfa-table-container" style={{ marginBottom: 20 }}>
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    background: '#1e293b',
+                    borderBottom: '1px solid #334155',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc' }}>
+                    📑 טבלת אימות פרטנית לסעיפי שומה (סכום במסמך מול חילוץ ומערכת)
+                  </span>
+                  <span style={{ fontSize: 11.5, color: '#94a3b8' }}>
+                    לחץ על "צפה בצילום מקורי" לבדיקה ויזואלית מוגדלת
+                  </span>
+                </div>
+
+                <div className="cfa-table-wrapper">
+                  <table className="cfa-table">
+                    <thead>
+                      <tr>
+                        <th>סעיף שומה</th>
+                        <th>מסמך מקור ועמוד</th>
+                        <th>סכום במסמך</th>
+                        <th>סכום שחולץ (AI)</th>
+                        <th>סכום בחישוב</th>
+                        <th>הפרש</th>
+                        <th>סטטוס אימות</th>
+                        <th>הוכחה חזותית מתוך המסמך</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {evidencePackage.items.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <div style={{ fontWeight: 700, color: '#f8fafc' }}>{item.clauseName}</div>
+                            {item.originalSnippet && (
+                              <div className="cfa-citation-box" style={{ marginTop: 4 }}>
+                                "{item.originalSnippet}"
+                              </div>
+                            )}
+                            {item.notes && (
+                              <div style={{ fontSize: 11, color: '#38bdf8', marginTop: 3 }}>
+                                💡 {item.notes}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                            <div>{item.sourceDoc}</div>
+                            {item.page > 0 && <div>עמוד {item.page}</div>}
+                          </td>
+                          <td style={{ fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap' }}>
+                            {item.docAmountFormatted}
+                          </td>
+                          <td style={{ fontWeight: 700, color: '#38bdf8', whiteSpace: 'nowrap' }}>
+                            {item.extractedAmountFormatted}
+                          </td>
+                          <td style={{ fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap' }}>
+                            {item.calculatedAmountFormatted}
+                          </td>
+                          <td style={{ fontWeight: 700, color: item.diff === 0 ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                            {item.diff === 0 ? '0.00 ₪' : `${item.diff.toLocaleString()} ₪`}
+                          </td>
+                          <td>
+                            <span
+                              className={`cfa-badge ${
+                                item.status === 'verified'
+                                  ? 'cfa-badge-match'
+                                  : item.status === 'missing'
+                                  ? 'cfa-badge-missing'
+                                  : 'cfa-badge-reduction'
+                              }`}
+                            >
+                              {item.statusLabel}
+                            </span>
+                          </td>
+                          <td>
+                            {item.cropUrl ? (
+                              <button
+                                type="button"
+                                className="cfa-crop-thumb-btn"
+                                onClick={() => setSelectedCropItem(item)}
+                                title="פתח חיתוך מוגדל של המסמך המקורי"
+                              >
+                                🔍 הצג חיתוך מקור
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#64748b' }}>
+                                {item.status === 'missing' ? 'אין מסמך' : 'ללא חיתוך נפרד'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* אימות חשבונאי אמיתי (Task 3) */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: 12,
+                  padding: 18,
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🧮</span> בדיקת שלמות מתמטית ואימות חישוב מע"מ
+                  </h4>
+                  <span className={`cfa-badge ${evidencePackage.accounting.isMathematicallySound ? 'cfa-badge-match' : 'cfa-badge-reduction'}`}>
+                    {evidencePackage.accounting.isMathematicallySound ? '🟢 תקין מתמטית (0.00 ₪ הפרש)' : '🟠 דורש בדיקה חשבונאית'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: 12.5, color: '#cbd5e1', marginBottom: 14, lineHeight: 1.5 }}>
+                  {evidencePackage.accounting.explanation}
+                </div>
+
+                {evidencePackage.accounting.arithmeticSteps.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                    {evidencePackage.accounting.arithmeticSteps.map((step, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: 8,
+                          padding: '10px 14px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8' }}>{step.step}</span>
+                          <span style={{ fontSize: 11, color: step.passed ? '#4ade80' : '#f87171' }}>
+                            {step.passed ? '✓ תואם' : '✗ שגיאה'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 6 }}>{step.formula}</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#f8fafc' }}>
+                          {step.actual.toLocaleString()} ₪
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -895,6 +1219,139 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
             </div>
           )}
         </div>
+
+        {/* מודל חיתוך מוגדל של מסמך מקור (Task 1 Lightbox) */}
+        {(selectedCropItem || selectedCropVersion) && (
+          <div
+            className="cfa-lightbox-overlay"
+            onClick={() => {
+              setSelectedCropItem(null);
+              setSelectedCropVersion(null);
+            }}
+          >
+            <div className="cfa-lightbox-modal" onClick={(e) => e.stopPropagation()}>
+              <div
+                style={{
+                  padding: '14px 20px',
+                  background: '#1e293b',
+                  borderBottom: '1px solid #334155',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span>🔍</span>
+                    <span>הוכחה חזותית מתוך מסמך המקור</span>
+                    {selectedCropItem && (
+                      <span style={{ color: '#38bdf8', fontSize: 13 }}>
+                        ({selectedCropItem.clauseName} · {selectedCropItem.docAmountFormatted})
+                      </span>
+                    )}
+                    {selectedCropVersion && (
+                      <span style={{ color: '#38bdf8', fontSize: 13 }}>
+                        ({selectedCropVersion.docType})
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                    מסמך: {selectedCropItem?.sourceDoc || selectedCropVersion?.fileName} · עמוד: {selectedCropItem?.page || 1}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="cfa-close-btn"
+                  onClick={() => {
+                    setSelectedCropItem(null);
+                    setSelectedCropVersion(null);
+                  }}
+                  title="סגור תצוגה"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div
+                style={{
+                  padding: 20,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  background: '#090d16',
+                  minHeight: 280,
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={resolveCropUrl(selectedCropItem?.cropUrl || selectedCropVersion?.cropUrl)}
+                  alt="Visual Evidence Crop"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '65vh',
+                    borderRadius: 8,
+                    border: '2px solid #38bdf8',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+                    objectFit: 'contain',
+                  }}
+                />
+                {selectedCropItem?.originalSnippet && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: '8px 16px',
+                      background: 'rgba(30, 41, 59, 0.8)',
+                      border: '1px solid #334155',
+                      borderRadius: 8,
+                      color: '#cbd5e1',
+                      fontSize: 12.5,
+                      width: '100%',
+                      textAlign: 'center',
+                    }}
+                  >
+                    ציטוט מתוך המסמך: <strong>"{selectedCropItem.originalSnippet}"</strong>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  padding: '12px 20px',
+                  background: '#1e293b',
+                  borderTop: '1px solid #334155',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ fontSize: 12, color: '#4ade80' }}>
+                  ✓ אומת חזותית מתוך תמונת דוח השמאי המקורית (ללא יצירת AI מדומה)
+                </div>
+                <button
+                  type="button"
+                  className="cfa-btn cfa-btn-secondary"
+                  onClick={() => {
+                    setSelectedCropItem(null);
+                    setSelectedCropVersion(null);
+                  }}
+                >
+                  סגור תצוגה
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
