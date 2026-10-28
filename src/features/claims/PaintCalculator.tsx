@@ -8,6 +8,15 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClaimRecord } from './claimsConstants';
 import type { PaintCalcData, PaintCalcPart, PaintCalcRow } from './claimPaintCalc';
 import { loadPaintCalcDraft, savePaintCalcDraft, savePaintCalcOfficial, loadPaintCalcHistory } from './claimPaintCalc';
+import {
+  analyzeCustomPartInput,
+  loadCompanyCustomOptions,
+  saveCompanyCustomOption,
+  deleteCompanyCustomOption,
+  updateCompanyCustomOption,
+  type FastWorkItem,
+  type AnalysisResult
+} from './claimPaintCustomOptions';
 import './paint-calc.css';
 
 // ─── PARTS DATA (A, B, C, D) ──────────────────────────────────────────────────
@@ -277,6 +286,31 @@ const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose
   const [selectedFastItems, setSelectedFastItems] = useState<string[]>([]);
   const [openFastCats, setOpenFastCats] = useState<Record<number, boolean>>({});
 
+  // ─── Custom Fast Work Options State ──────────────────────────────────────────
+  const [customFastItems, setCustomFastItems] = useState<FastWorkItem[]>([]);
+  const [addingCategory, setAddingCategory] = useState<string | null>(null);
+  const [newOptionName, setNewOptionName] = useState('');
+  const [newOptionPart, setNewOptionPart] = useState('');
+  const [newOptionMode, setNewOptionMode] = useState<'full' | 'blend' | 'newpart' | 'custom'>('full');
+  const [newOptionPct, setNewOptionPct] = useState(100);
+  const [newOptionPermanent, setNewOptionPermanent] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+
+  // Edit state for custom options
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
+  const [editOptionName, setEditOptionName] = useState('');
+  const [editOptionPart, setEditOptionPart] = useState('');
+  const [editOptionMode, setEditOptionMode] = useState<'full' | 'blend' | 'newpart' | 'custom'>('full');
+  const [editOptionPct, setEditOptionPct] = useState(100);
+  const [editOptionPermanent, setEditOptionPermanent] = useState(false);
+
+  // Load permanent custom options for the active company
+  useEffect(() => {
+    const compName = actor?.company_name || claim.companyName || '';
+    const stored = loadCompanyCustomOptions(compName);
+    setCustomFastItems(stored);
+  }, [actor?.company_name, claim.companyName]);
+
   const [result, setResult] = useState<PaintCalcData | null>(null);
   const [history, setHistory] = useState<PaintCalcRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -469,17 +503,137 @@ const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose
   };
 
   const fastWorkSelectAll = () => {
-    const all = FAST_WORK_CATEGORIES.flatMap(c => c.items.map(i => i.key));
-    setSelectedFastItems(all);
+    const defaultKeys = FAST_WORK_CATEGORIES.flatMap(c => c.items.map(i => i.key));
+    const customKeys = customFastItems.map(i => i.key);
+    setSelectedFastItems([...defaultKeys, ...customKeys]);
   };
 
   const fastWorkClearAll = () => {
     setSelectedFastItems([]);
   };
 
+  // מנתח שם אפשרות חדשה בזמן אמת ומעדכן את השדות
+  const handleNewOptionNameChange = (val: string, catLabel: string) => {
+    setNewOptionName(val);
+    if (!val.trim()) {
+      setAnalysis(null);
+      return;
+    }
+    const res = analyzeCustomPartInput(val, catLabel, partsForGroup);
+    setAnalysis(res);
+    setNewOptionPart(res.suggestedPart);
+    setNewOptionMode(res.suggestedMode);
+    setNewOptionPct(res.suggestedPct);
+  };
+
+  // הוספת אפשרות חדשה (קבועה או זמנית)
+  const handleAddNewOption = (catLabel: string) => {
+    const trimmed = newOptionName.trim();
+    if (!trimmed) return;
+    const key = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const effectivePart = newOptionPart || partsForGroup.find(p => p.includes(catLabel.split('/')[0].trim())) || partsForGroup[0] || 'כנף קדמית ימין';
+    const effectivePct = newOptionMode === 'custom' ? newOptionPct : (WORK_MODES[newOptionMode]?.defaultPercent ?? 100);
+
+    const newItem: FastWorkItem = {
+      key,
+      label: trimmed,
+      part: effectivePart,
+      mode: newOptionMode,
+      pct: effectivePct,
+      category: catLabel,
+      isCustom: true,
+      isPermanent: newOptionPermanent,
+      companyName: actor?.company_name || claim.companyName || '',
+      createdAt: new Date().toISOString()
+    };
+
+    if (newOptionPermanent) {
+      saveCompanyCustomOption(actor?.company_name || claim.companyName || '', newItem);
+    }
+    setCustomFastItems(prev => [...prev, newItem]);
+    setSelectedFastItems(prev => [...prev, key]);
+
+    // איפוס טופס הוספה
+    setAddingCategory(null);
+    setNewOptionName('');
+    setAnalysis(null);
+    setNewOptionPermanent(false);
+  };
+
+  // עריכת אפשרות מותאמת אישית
+  const startEditItem = (item: FastWorkItem) => {
+    setEditingItemKey(item.key);
+    setEditOptionName(item.label);
+    setEditOptionPart(item.part);
+    setEditOptionMode(item.mode);
+    setEditOptionPct(item.pct);
+    setEditOptionPermanent(!!item.isPermanent);
+  };
+
+  const handleSaveEditItem = (originalItem: FastWorkItem) => {
+    const trimmed = editOptionName.trim();
+    if (!trimmed) return;
+    const compName = actor?.company_name || claim.companyName || '';
+    const updated: FastWorkItem = {
+      ...originalItem,
+      label: trimmed,
+      part: editOptionPart,
+      mode: editOptionMode,
+      pct: editOptionMode === 'custom' ? editOptionPct : (WORK_MODES[editOptionMode]?.defaultPercent ?? 100),
+      isPermanent: editOptionPermanent,
+      companyName: compName
+    };
+
+    if (editOptionPermanent) {
+      updateCompanyCustomOption(compName, updated);
+    } else if (originalItem.isPermanent && !editOptionPermanent) {
+      deleteCompanyCustomOption(compName, originalItem.key);
+    }
+
+    setCustomFastItems(prev => prev.map(i => i.key === originalItem.key ? updated : i));
+    setEditingItemKey(null);
+  };
+
+  // מחיקת אפשרות מותאמת אישית
+  const handleDeleteCustomItem = (item: FastWorkItem) => {
+    const compName = actor?.company_name || claim.companyName || '';
+    if (item.isPermanent) {
+      deleteCompanyCustomOption(compName, item.key);
+    }
+    setCustomFastItems(prev => prev.filter(i => i.key !== item.key));
+    setSelectedFastItems(prev => prev.filter(k => k !== item.key));
+    if (editingItemKey === item.key) setEditingItemKey(null);
+  };
+
   const fastWorkCreate = () => {
     if (selectedFastItems.length === 0) return;
     selectedFastItems.forEach(k => {
+      // 1. בדיקת פריטים מותאמים אישית (זמניים וקבועים כאחד)
+      const customItem = customFastItems.find(i => i.key === k);
+      if (customItem) {
+        const partsInGrp = PARTS_DATA[carGroup] || {};
+        let targetPart = customItem.part;
+        if (partsInGrp[targetPart] == null) {
+          const family = targetPart.split(' ')[0];
+          const found = Object.keys(partsInGrp).find(p => p.startsWith(family));
+          if (found) targetPart = found;
+        }
+        const baseH = partsInGrp[targetPart] ?? 2.0;
+        const noteText = PRESETS[k] || buildRowNote(targetPart, customItem.mode, 0);
+
+        addPartRow({
+          partName: targetPart,
+          customName: customItem.label,
+          workMode: customItem.mode,
+          percent: customItem.pct,
+          baseHours: baseH,
+          extraHours: 0,
+          rowNote: noteText
+        });
+        return;
+      }
+
+      // 2. בדיקת פריטים מובנים קיימים
       for (const cat of FAST_WORK_CATEGORIES) {
         const item = cat.items.find(i => i.key === k);
         if (item) {
@@ -634,17 +788,332 @@ const PaintCalculator: React.FC<PaintCalculatorProps> = ({ claim, actor, onClose
                       <span style={{ fontSize: 11, color: '#9fb0cf' }}>{isOpen ? '▲' : '▼'}</span>
                     </div>
                     {isOpen && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 6, padding: '8px 10px', background: '#0c1524' }}>
-                        {cat.items.map(item => (
-                          <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#dfe8f8' }}>
-                            <input
-                              type="checkbox"
-                              checked={selectedFastItems.includes(item.key)}
-                              onChange={() => toggleFastItem(item.key)}
-                            />
-                            {item.label}
-                          </label>
-                        ))}
+                      <div style={{ padding: '8px 10px', background: '#0c1524', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {/* Items Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
+                          {/* Built-in default items */}
+                          {cat.items.map(item => (
+                            <label
+                              key={item.key}
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#dfe8f8', padding: '4px 6px' }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedFastItems.includes(item.key)}
+                                onChange={() => toggleFastItem(item.key)}
+                              />
+                              <span>{item.label}</span>
+                            </label>
+                          ))}
+
+                          {/* Custom added items for this category */}
+                          {customFastItems.filter(i => i.category === cat.label).map(item => (
+                            <div key={item.key} className="pc-custom-item-row">
+                              <label
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#56ccf2', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                title={`${item.label} (${item.part} • ${item.mode === 'full' ? 'תיקון 100%' : item.mode === 'blend' ? 'טשטוש 50%' : item.mode === 'newpart' ? 'חדש 70%' : `${item.pct}%`})`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedFastItems.includes(item.key)}
+                                  onChange={() => toggleFastItem(item.key)}
+                                />
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {item.label}
+                                </span>
+                              </label>
+                              <div className="pc-item-actions">
+                                <span
+                                  className={`pc-custom-badge ${item.isPermanent ? 'pc-custom-badge-perm' : 'pc-custom-badge-temp'}`}
+                                  title={item.isPermanent ? 'שמור קבוע במערכת לחברה זו' : 'זמני לעבודה זו בלבד'}
+                                >
+                                  {item.isPermanent ? 'קבוע' : 'זמני'}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="pc-item-action-btn"
+                                  onClick={(e) => { e.stopPropagation(); startEditItem(item); }}
+                                  title="ערוך אפשרות זו"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pc-item-action-btn pc-btn-danger"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCustomItem(item); }}
+                                  title="מחק אפשרות זו"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Inline Edit Form if an item in this category is being edited */}
+                        {editingItemKey && customFastItems.some(i => i.key === editingItemKey && i.category === cat.label) && (() => {
+                          const itemToEdit = customFastItems.find(i => i.key === editingItemKey)!;
+                          return (
+                            <div className="pc-custom-form-panel" style={{ border: '1px solid #f59e0b', background: '#121a29' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+                                  ✏️ עריכת אפשרות: ״{itemToEdit.label}״
+                                </span>
+                                <button
+                                  type="button"
+                                  className="pc-item-action-btn"
+                                  onClick={() => setEditingItemKey(null)}
+                                  title="סגור"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              <div className="pc-field">
+                                <label className="pc-mini-label">שם האפשרות</label>
+                                <input
+                                  className="pc-input pc-sm"
+                                  value={editOptionName}
+                                  onChange={e => setEditOptionName(e.target.value)}
+                                  placeholder="שם האפשרות"
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <div className="pc-field">
+                                  <label className="pc-mini-label">חלק מקושר לחישוב</label>
+                                  <select
+                                    className="pc-input pc-sm"
+                                    value={editOptionPart}
+                                    onChange={e => setEditOptionPart(e.target.value)}
+                                  >
+                                    {partsForGroup.map(p => (
+                                      <option key={p} value={p}>{p}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="pc-field">
+                                  <label className="pc-mini-label">סוג עבודה / חישוב</label>
+                                  <select
+                                    className="pc-input pc-sm"
+                                    value={editOptionMode}
+                                    onChange={e => {
+                                      const m = e.target.value as 'full' | 'blend' | 'newpart' | 'custom';
+                                      setEditOptionMode(m);
+                                      if (m === 'full') setEditOptionPct(100);
+                                      else if (m === 'blend') setEditOptionPct(50);
+                                      else if (m === 'newpart') setEditOptionPct(70);
+                                    }}
+                                  >
+                                    <option value="full">תיקון או צבע מלא (100%)</option>
+                                    <option value="newpart">חלק חדש (70%)</option>
+                                    <option value="blend">טשטוש (50%)</option>
+                                    <option value="custom">אחוז ידני</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {editOptionMode === 'custom' && (
+                                <div className="pc-field" style={{ maxWidth: 160 }}>
+                                  <label className="pc-mini-label">אחוז חיוב (%)</label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={200}
+                                    step={5}
+                                    className="pc-input pc-sm"
+                                    value={editOptionPct}
+                                    onChange={e => setEditOptionPct(Number(e.target.value))}
+                                  />
+                                </div>
+                              )}
+
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#f3f6fb', marginTop: 4 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={editOptionPermanent}
+                                  onChange={e => setEditOptionPermanent(e.target.checked)}
+                                />
+                                <span style={{ fontWeight: 600 }}>שמור אפשרות זו קבוע במחשבון</span>
+                                <span style={{ fontSize: 11, color: '#9fb0cf' }}>({actor?.company_name || 'כללי'})</span>
+                              </label>
+
+                              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                                <button
+                                  type="button"
+                                  className="pc-btn-pri pc-btn-sm"
+                                  onClick={() => handleSaveEditItem(itemToEdit)}
+                                  disabled={!editOptionName.trim()}
+                                >
+                                  ✓ שמור שינויים
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pc-btn-sec pc-btn-sm"
+                                  onClick={() => setEditingItemKey(null)}
+                                >
+                                  ביטול
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Inline Add Form or "➕ הוסף אפשרות חדשה" button */}
+                        {addingCategory === cat.label ? (
+                          <div className="pc-custom-form-panel">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#56ccf2' }}>
+                                ➕ הוספת אפשרות חדשה לקבוצת ״{cat.label}״
+                              </span>
+                              <button
+                                type="button"
+                                className="pc-item-action-btn"
+                                onClick={() => {
+                                  setAddingCategory(null);
+                                  setNewOptionName('');
+                                  setAnalysis(null);
+                                }}
+                                title="סגור"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <div className="pc-field">
+                              <label className="pc-mini-label">שם האפשרות החדשה</label>
+                              <input
+                                className="pc-input pc-sm"
+                                value={newOptionName}
+                                onChange={e => handleNewOptionNameChange(e.target.value, cat.label)}
+                                placeholder={`לדוגמה: ${cat.label} קדמית צד ימין, ${cat.label} לאחר פחחות, ${cat.label} טשטוש...`}
+                                autoFocus
+                              />
+                            </div>
+
+                            {/* Real-time Smart Analysis pill */}
+                            {analysis && (
+                              <div className={`pc-analysis-pill confidence-${analysis.confidence}`}>
+                                {analysis.confidence === 'high' && '✨ שיוך חכם זוהה אוטומטית:'}
+                                {analysis.confidence === 'medium' && '⚡ שיוך משוער:'}
+                                {analysis.confidence === 'low' && 'ℹ️ שיוך בסיסי (נא לוודא חלק וסוג עבודה):'}
+                                <div style={{ marginTop: 2 }}>{analysis.explanation}</div>
+                              </div>
+                            )}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                              <div className="pc-field">
+                                <label className="pc-mini-label">חלק מקושר לחישוב</label>
+                                <select
+                                  className="pc-input pc-sm"
+                                  value={newOptionPart || partsForGroup.find(p => p.includes(cat.label.split('/')[0].trim())) || partsForGroup[0]}
+                                  onChange={e => setNewOptionPart(e.target.value)}
+                                >
+                                  {partsForGroup.map(p => (
+                                    <option key={p} value={p}>{p}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="pc-field">
+                                <label className="pc-mini-label">סוג עבודה / חישוב</label>
+                                <select
+                                  className="pc-input pc-sm"
+                                  value={newOptionMode}
+                                  onChange={e => {
+                                    const m = e.target.value as 'full' | 'blend' | 'newpart' | 'custom';
+                                    setNewOptionMode(m);
+                                    if (m === 'full') setNewOptionPct(100);
+                                    else if (m === 'blend') setNewOptionPct(50);
+                                    else if (m === 'newpart') setNewOptionPct(70);
+                                  }}
+                                >
+                                  <option value="full">תיקון או צבע מלא (100%)</option>
+                                  <option value="newpart">חלק חדש (70%)</option>
+                                  <option value="blend">טשטוש (50%)</option>
+                                  <option value="custom">אחוז ידני</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {newOptionMode === 'custom' && (
+                              <div className="pc-field" style={{ maxWidth: 160 }}>
+                                <label className="pc-mini-label">אחוז חיוב (%)</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={200}
+                                  step={5}
+                                  className="pc-input pc-sm"
+                                  value={newOptionPct}
+                                  onChange={e => setNewOptionPct(Number(e.target.value))}
+                                />
+                              </div>
+                            )}
+
+                            {/* Live calculation info */}
+                            {(() => {
+                              const targetP = newOptionPart || partsForGroup.find(p => p.includes(cat.label.split('/')[0].trim())) || partsForGroup[0];
+                              const baseH = PARTS_DATA[carGroup]?.[targetP] ?? 2.0;
+                              const calcH = round2(baseH * (newOptionPct / 100));
+                              return (
+                                <div style={{ fontSize: 11, color: '#9fb0cf', background: 'rgba(255,255,255,0.03)', padding: '5px 8px', borderRadius: 6 }}>
+                                  זמן בסיס: <strong>{baseH.toFixed(2)}</strong> שעות (קבוצה {carGroup}) • אחוז: <strong>{newOptionPct}%</strong> • שעות לחישוב: <strong>{calcH.toFixed(2)}</strong> שעות
+                                </div>
+                              );
+                            })()}
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#f3f6fb', marginTop: 4 }}>
+                              <input
+                                type="checkbox"
+                                checked={newOptionPermanent}
+                                onChange={e => setNewOptionPermanent(e.target.checked)}
+                              />
+                              <span style={{ fontWeight: 600 }}>שמור אפשרות זו קבוע במחשבון</span>
+                              <span style={{ fontSize: 11, color: '#9fb0cf' }}>({actor?.company_name || 'כללי'})</span>
+                            </label>
+
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                              <button
+                                type="button"
+                                className="pc-btn-pri pc-btn-sm"
+                                onClick={() => handleAddNewOption(cat.label)}
+                                disabled={!newOptionName.trim()}
+                              >
+                                ✓ הוסף
+                              </button>
+                              <button
+                                type="button"
+                                className="pc-btn-sec pc-btn-sm"
+                                onClick={() => {
+                                  setAddingCategory(null);
+                                  setNewOptionName('');
+                                  setAnalysis(null);
+                                }}
+                              >
+                                ביטול
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="pc-fast-add-trigger"
+                            onClick={() => {
+                              setAddingCategory(cat.label);
+                              setNewOptionName('');
+                              setAnalysis(null);
+                              setNewOptionPermanent(false);
+                              const defaultP = partsForGroup.find(p => p.includes(cat.label.split('/')[0].trim())) || partsForGroup[0] || 'כנף קדמית ימין';
+                              setNewOptionPart(defaultP);
+                              setNewOptionMode('full');
+                              setNewOptionPct(100);
+                            }}
+                          >
+                            ➕ הוסף אפשרות חדשה
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
