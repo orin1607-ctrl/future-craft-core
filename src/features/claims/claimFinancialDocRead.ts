@@ -73,7 +73,10 @@ export interface OurSurveyorReportExtraction {
   subtotal: ExtractedAmountWithSource;          // סה"כ לפני מע"מ
   vat: ExtractedAmountWithSource;               // מע"מ
   vatRatePercent: number;                       // 17% או 18%
-  totalDemand: ExtractedAmountWithSource;       // סה"כ שומה כולל מע"מ
+  totalDemand: ExtractedAmountWithSource;       // סה"כ שומה נזק כולל מע"מ
+  exactTotalDemand?: ExtractedAmountWithSource; // סה"כ תביעה מדויקת (נזק רכב + ירידת ערך)
+  roundedTotalDemand?: ExtractedAmountWithSource; // סה"כ נכלל בחוות הדעת מעוגל בדוח
+  surveyorFee?: ExtractedAmountWithSource;       // חשבון עסקה שכ"ט שמאי נפרד
 
   // ציטוטים ואימות
   allCitations: Record<string, string>;
@@ -149,6 +152,8 @@ export interface FinancialComparisonResult {
   rows: ComparisonTableRow[];
 
   totalDemanded: number;
+  roundedTotalDemanded?: number;
+  surveyorFeeDemanded?: number;
   totalApproved: number;
   totalReportedPaid: number;
   totalVerifiedPaid: number;
@@ -255,7 +260,13 @@ const CURRENCY_PATTERN = '(?:₪|ש"ח|ש״ח|\\bnis\\b)?';
 export function extractAmountForLabel(
   text: string,
   keywords: string[],
-  options: { rejectIfKeyword?: string[]; preferLast?: boolean; targetAmount?: number } = {}
+  options: {
+    rejectIfKeyword?: string[];
+    preferLast?: boolean;
+    targetAmount?: number;
+    preferLineTotal?: boolean;
+    minAmount?: number;
+  } = {}
 ): ExtractedAmountWithSource {
   const lines = linesOf(text);
   const hits: Array<{ amount: number; line: string }> = [];
@@ -297,7 +308,25 @@ export function extractAmountForLabel(
       if (/^(\s*%|\s*\.\d+\s*%)/.test(afterMatch)) {
         continue;
       }
-      const val = parseNumberString(hitMatch[1]);
+      let val = parseNumberString(hitMatch[1]);
+      if (options.preferLineTotal) {
+        // מחלץ את כל המספרים התקינים בשורה ובודק אם קיים סכום כולל של השורה (עמודת סה"כ)
+        const allMatches = [...matchedLine.matchAll(/([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)(?![0-9.:])/g)];
+        const candidateNums: number[] = [];
+        for (const m of allMatches) {
+          const aft = matchedLine.slice(m.index + m[0].length);
+          if (/^\s*%/.test(aft)) continue;
+          if (/^\s*ש['״]/.test(aft)) continue; // שעות עבודה
+          const numVal = parseNumberString(m[1]);
+          if (numVal > 0) candidateNums.push(numVal);
+        }
+        if (candidateNums.length > 0) {
+          val = Math.max(...candidateNums);
+        }
+      }
+      if (options.minAmount !== undefined && val < options.minAmount) {
+        continue;
+      }
       if (val > 0) {
         hits.push({ amount: val, line: matchedLine });
       }
@@ -413,26 +442,46 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   if (parts.amount > 0) citations['חלפים'] = parts.sourceSnippet;
 
   // פחחות / עבודה
-  const labor = extractAmountForLabel(clean, [
-    'פחחות',
-    'עבודות פחחות',
-    'שעות עבודה',
-    'שכר עבודה',
-    'עבודה',
-    'סה"כ עבודה',
-  ]);
+  const labor = extractAmountForLabel(
+    clean,
+    [
+      'עבודות פחחות',
+      'פחחות וצבע',
+      'שכר עבודה פחחות',
+      'שעות עבודה',
+      'שכר עבודה',
+      'פחחות',
+    ],
+    {
+      rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
+      preferLineTotal: true,
+      minAmount: 100,
+    }
+  );
   if (labor.amount > 0) citations['פחחות / עבודה'] = labor.sourceSnippet;
 
   // צבע וחומרים (עדיפות לשכר עבודות צבע)
-  let paint = extractAmountForLabel(clean, ['עבודות צבע']);
+  let paint = extractAmountForLabel(clean, ['עבודות צבע+טשטוש', 'עבודות צבע', 'צבע וטשטוש'], {
+    rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
+    preferLineTotal: true,
+    minAmount: 100,
+  });
   if (paint.amount === 0) {
-    paint = extractAmountForLabel(clean, [
-      'סה"כ צבע',
-      'צבע וחומרים',
-      'חומרי צבע',
-      'חומרים לצבע',
-      'צבע',
-    ]);
+    paint = extractAmountForLabel(
+      clean,
+      [
+        'סה"כ צבע',
+        'צבע וחומרים',
+        'חומרי צבע',
+        'חומרים לצבע',
+        'צבע',
+      ],
+      {
+        rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
+        preferLineTotal: true,
+        minAmount: 100,
+      }
+    );
   }
   if (paint.amount > 0) citations['צבע'] = paint.sourceSnippet;
 
@@ -593,6 +642,43 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
     reviewReasons.push('לא זוהו סעיפי חלפים או פחחות נפרדים בדוח');
   }
 
+  // שכר טרחת שמאי (חשבון עסקה נפרד)
+  const surveyorFee = extractAmountForLabel(
+    clean,
+    [
+      'שכר טרחת השמאי',
+      'שכר טרחת שמאי',
+      'שכ"ט שמאי',
+      'חשבון עיסקה מס',
+      'חשבון עסקה מס',
+      'חשבון עיסקה',
+      'חשבון עסקה',
+    ],
+    {
+      rejectIfKeyword: ['לפי כרטיס עבודה', 'מוסך יוני', 'מרכז הפגושים'],
+    }
+  );
+  if (surveyorFee.amount > 0) citations['שכר טרחת שמאי'] = surveyorFee.sourceSnippet;
+
+  // סכום מעוגל שמופיע בדוח (למשל "סה"כ נכלל בחוות הדעת 55840.00" או "31630.- ש"ח")
+  const roundedTotalDemand = extractAmountForLabel(clean, [
+    'סה"כ נכלל בחוות הדעת',
+    'סה״כ נכלל בחוות הדעת',
+    'סך הכל נכלל בחוות הדעת',
+  ]);
+  if (roundedTotalDemand.amount > 0) citations['סה"כ נכלל בחוות הדעת (מעוגל)'] = roundedTotalDemand.sourceSnippet;
+
+  // חישוב סה"כ תביעה מדויקת: נזק רכב כולל מע"מ + ירידת ערך
+  const exactTotalDemandVal = Math.round((totalDemand.amount + (diminutionOfValue.amount || 0)) * 100) / 100;
+  const exactTotalDemand: ExtractedAmountWithSource = {
+    amount: exactTotalDemandVal,
+    sourceSnippet:
+      diminutionOfValue.amount > 0
+        ? `חישוב מדויק: ${totalDemand.amount.toLocaleString()} ₪ נזק רכב + ${diminutionOfValue.amount.toLocaleString()} ₪ ירידת ערך`
+        : totalDemand.sourceSnippet,
+    confidence: 'high',
+  };
+
   return {
     kind: 'our_surveyor_report',
     plateNumber,
@@ -610,6 +696,9 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
     vat,
     vatRatePercent: vatRate * 100,
     totalDemand,
+    exactTotalDemand,
+    roundedTotalDemand: roundedTotalDemand.amount > 0 ? roundedTotalDemand : undefined,
+    surveyorFee: surveyorFee.amount > 0 ? surveyorFee : undefined,
     allCitations: citations,
     confidence: needsManualReview ? 'medium' : 'high',
     needsManualReview,
@@ -1053,7 +1142,39 @@ export function compareFinancialAudit(params: {
     });
   }
 
-  // 5. קיזוזים והפחתות
+  // 6. שורת ירידת ערך מסחרית
+  if (ourDemand && ourDemand.diminutionOfValue && ourDemand.diminutionOfValue.amount > 0) {
+    const dem = ourDemand.diminutionOfValue.amount;
+    const app = counterReport && counterReport.approvedDiminution && counterReport.approvedDiminution.amount > 0 ? counterReport.approvedDiminution.amount : null;
+    const diff = app !== null ? Math.round((dem - app) * 100) / 100 : null;
+
+    rows.push({
+      category: 'ירידת ערך מסחרית',
+      demanded: dem,
+      approved: app,
+      paid: null,
+      diff,
+      explanation: diff && diff > 0 ? `הפחתת ירידת ערך בסך ${diff.toLocaleString()} ₪` : (app === null ? 'טרם התקבל אישור מפורט לירידת ערך' : 'ירידת ערך תואמת לשומה'),
+      sourceSnippet: ourDemand.diminutionOfValue.sourceSnippet,
+      status: diff && diff > 0 ? 'reduction' : (app === null ? 'missing' : 'match'),
+    });
+  }
+
+  // 7. שורת שכר טרחת שמאי (מופרד לחלוטין מנזק הרכב)
+  if (ourDemand && ourDemand.surveyorFee && ourDemand.surveyorFee.amount > 0) {
+    rows.push({
+      category: 'שכר טרחת שמאי (חשבון נפרד)',
+      demanded: ourDemand.surveyorFee.amount,
+      approved: null,
+      paid: null,
+      diff: null,
+      explanation: 'חשבון עסקה נפרד של שכר טרחת שמאי (מופרד מתביעת נזק הרכב)',
+      sourceSnippet: ourDemand.surveyorFee.sourceSnippet,
+      status: 'missing',
+    });
+  }
+
+  // 8. קיזוזים והפחתות
   const allDeductions = [...(counterReport?.deductions || []), ...(paymentNotice?.deductions || [])];
   const uniqueDeductions = allDeductions.filter(
     (ded, idx, arr) => arr.findIndex((d) => d.category === ded.category && d.amount === ded.amount) === idx
@@ -1077,8 +1198,12 @@ export function compareFinancialAudit(params: {
     });
   }
 
-  // 6. שורת סיכום כולל
-  const totalDemanded = ourDemand?.totalDemand.amount || 0;
+  // 9. שורת סיכום כולל (מציג את הסכום המדויק ומציין אם קיים סכום מעוגל בדוח)
+  const totalDemanded = ourDemand?.exactTotalDemand?.amount || ourDemand?.totalDemand.amount || 0;
+  const roundedNote =
+    ourDemand?.roundedTotalDemand && ourDemand.roundedTotalDemand.amount > 0 && ourDemand.roundedTotalDemand.amount !== totalDemanded
+      ? ` (מעוגל בדוח: ${ourDemand.roundedTotalDemand.amount.toLocaleString()} ₪)`
+      : '';
   const totalApproved = counterReport?.approvedTotal.amount || (paymentNotice?.approvedTotal?.amount ?? 0);
   const diffDemandVsApproved = totalApproved > 0 ? Math.round((totalDemanded - totalApproved) * 100) / 100 : 0;
   const diffApprovedVsPaid =
@@ -1086,7 +1211,7 @@ export function compareFinancialAudit(params: {
   const totalRemainingUnpaid = Math.round((totalDemanded - effectivePaid) * 100) / 100;
 
   rows.push({
-    category: 'סה"כ לתשלום',
+    category: `סה"כ שומה לתשלום${roundedNote}`,
     demanded: totalDemanded,
     approved: totalApproved > 0 ? totalApproved : null,
     paid: effectivePaid > 0 ? effectivePaid : null,
@@ -1094,8 +1219,8 @@ export function compareFinancialAudit(params: {
     explanation:
       totalRemainingUnpaid <= 0
         ? 'התביעה שולמה במלואה'
-        : `נותרה יתרה לתשלום של ${totalRemainingUnpaid.toLocaleString()} ₪`,
-    sourceSnippet: ourDemand?.totalDemand.sourceSnippet || '',
+        : `נותרה יתרה לתשלום של ${totalRemainingUnpaid.toLocaleString()} ₪${roundedNote}`,
+    sourceSnippet: ourDemand?.exactTotalDemand?.sourceSnippet || ourDemand?.totalDemand.sourceSnippet || '',
     status: totalRemainingUnpaid <= 0 ? 'match' : 'reduction',
   });
 
@@ -1122,6 +1247,8 @@ export function compareFinancialAudit(params: {
     plateNumber,
     rows,
     totalDemanded,
+    roundedTotalDemanded: ourDemand?.roundedTotalDemand?.amount,
+    surveyorFeeDemanded: ourDemand?.surveyorFee?.amount,
     totalApproved,
     totalReportedPaid: reportedPaidAmount,
     totalVerifiedPaid: verifiedPaidSum,

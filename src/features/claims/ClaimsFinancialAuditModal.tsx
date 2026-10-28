@@ -11,6 +11,7 @@ import {
   extractOurSurveyorReport,
   extractCounterSurveyorReport,
   extractPaymentNotice,
+  classifyFinancialDocumentKind,
   compareFinancialAudit,
   safelyUpdateFinancialAudit,
   type OurSurveyorReportExtraction,
@@ -222,11 +223,34 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
       if (!ourDemand) {
         ourDemand = extractOurSurveyorReport(aggregatedText);
       }
-      if (!counterReport && (aggregatedText.includes('נגדי') || aggregatedText.includes('בקרה'))) {
-        counterReport = extractCounterSurveyorReport(aggregatedText);
+      if (!counterReport) {
+        // מפעיל דוח נגדי רק על מסמכים שמסווגים במפורש כדוח נגדי של מבטחת
+        const counterDocs = files.filter((f) => {
+          const text = localReadTexts[f.id] || f.doc_meta?.read_text || '';
+          return classifyFinancialDocumentKind(text, f.original_name) === 'counter_surveyor_report';
+        });
+        if (counterDocs.length > 0) {
+          const counterText = counterDocs
+            .map((f) => localReadTexts[f.id] || f.doc_meta?.read_text || '')
+            .filter(Boolean)
+            .join('\n\n');
+          counterReport = extractCounterSurveyorReport(counterText);
+        }
       }
-      if (!paymentNotice && (aggregatedText.includes('תשלום') || aggregatedText.includes('סילוק') || aggregatedText.includes('שולם'))) {
-        paymentNotice = extractPaymentNotice(aggregatedText);
+      if (!paymentNotice) {
+        // מפעיל הודעת תשלום רק על מסמכים שמסווגים כהודעת תשלום או מכתב סילוק
+        const payDocs = files.filter((f) => {
+          const text = localReadTexts[f.id] || f.doc_meta?.read_text || '';
+          const kind = classifyFinancialDocumentKind(text, f.original_name);
+          return kind === 'payment_notice' || kind === 'payment_breakdown';
+        });
+        if (payDocs.length > 0) {
+          const payText = payDocs
+            .map((f) => localReadTexts[f.id] || f.doc_meta?.read_text || '')
+            .filter(Boolean)
+            .join('\n\n');
+          paymentNotice = extractPaymentNotice(payText);
+        }
       }
     }
 
@@ -406,13 +430,38 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
         )}
 
         {/* סרגל כרטיסי סטטיסטיקה ממוקד אך ורק בתיק זה */}
-        <div className="cfa-stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div
+          className="cfa-stats-grid"
+          style={{
+            gridTemplateColumns: comparison.surveyorFeeDemanded && comparison.surveyorFeeDemanded > 0
+              ? 'repeat(5, 1fr)'
+              : 'repeat(4, 1fr)',
+          }}
+        >
           <div className="cfa-stat-card">
             <span className="cfa-stat-label">דרישת שומה (שמאי שלנו)</span>
             <span className="cfa-stat-val primary">
               {comparison.totalDemanded > 0 ? `${comparison.totalDemanded.toLocaleString()} ₪` : (claim.finAmount ? `${parseFloat(claim.finAmount).toLocaleString()} ₪` : 'טרם חולץ')}
             </span>
+            {comparison.roundedTotalDemanded &&
+              comparison.roundedTotalDemanded > 0 &&
+              comparison.roundedTotalDemanded !== comparison.totalDemanded && (
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                  סכום מעוגל בדוח: {comparison.roundedTotalDemanded.toLocaleString()} ₪
+                </div>
+              )}
           </div>
+          {comparison.surveyorFeeDemanded && comparison.surveyorFeeDemanded > 0 && (
+            <div className="cfa-stat-card">
+              <span className="cfa-stat-label">שכ"ט שמאי (חשבון נפרד)</span>
+              <span className="cfa-stat-val" style={{ color: '#a78bfa' }}>
+                {comparison.surveyorFeeDemanded.toLocaleString()} ₪
+              </span>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                מופרד מנזק הרכב
+              </div>
+            </div>
+          )}
           <div className="cfa-stat-card">
             <span className="cfa-stat-label">אושר ע"י הביטוח</span>
             <span className="cfa-stat-val warning">
