@@ -2723,13 +2723,20 @@ async function previewFillClaimFromDocuments(
 
   // Attached files not yet in the claim (general chat) are saved with the update; in a claim chat they were
   // uploaded on send. The same file is never stored twice (content hash).
-  const files = docs.filter((d) => d.file && !d.file_id).map((d) => ({
-    name: d.file!.name,
-    mime_type: d.file!.mime_type,
-    byte_size: d.file!.byte_size || 0,
-    data_base64: d.file!.data_base64 || "",
-    title: thirdPartyDocTitle(d.text, d.file!.name),
-  }));
+  const files: Array<{ name: string; mime_type: string; byte_size: number; data_base64: string; title: string }> = [];
+  for (const d of docs) {
+    if (!d.file || d.file_id) continue;
+    const digest = await sha256Hex(base64ToBytes(String(d.file.data_base64 || "")));
+    const { data: inClaim } = await supabase.from("claims_documents").select("id").eq("claim_id", claimId).eq("content_sha256", digest).limit(1);
+    if ((inClaim || []).length) continue;
+    files.push({
+      name: d.file.name,
+      mime_type: d.file.mime_type,
+      byte_size: d.file.byte_size || 0,
+      data_base64: d.file.data_base64 || "",
+      title: thirdPartyDocTitle(d.text, d.file.name),
+    });
+  }
   const docNames = [...docs.map((d) => d.name), ...unread.map((n) => `${n} (לא נקרא)`)];
   const summary = describeDocumentFill({ id: claimId, clientName }, plan, docNames)
     + (files.length ? `\n\nיישמרו בתיק ${files.length} מסמכים: ${files.map((f) => f.title).join(", ")}` : "");
