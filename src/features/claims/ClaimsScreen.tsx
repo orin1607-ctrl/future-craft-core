@@ -3433,16 +3433,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
                     <button type="button" className="btn btn-g btn-sm" data-testid="claims-dash-reports-btn" onClick={() => showView('reports')} title="מעבר למרכז דוחות וניהול מאזן">📊 דוחות</button>
-                    <button
-                      type="button"
-                      className="btn btn-g btn-sm"
-                      style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', color: '#fff', fontWeight: 700 }}
-                      data-testid="claims-financial-audit-btn"
-                      onClick={() => { setFinancialAuditActiveClaimId(null); setFinancialAuditModalOpen(true); }}
-                      title="בקרה כספית, השוואת דוחות שמאי ותשלומי ביטוח"
-                    >
-                      ⚖️ בקרה כספית ותשלומי ביטוח
-                    </button>
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
                     <button className="btn btn-g btn-sm" data-testid="claims-preview-sent" onClick={() => { void runSentPreview(); showView('gmail'); }}>📤 סריקת יוצאים (תצוגה)</button>
@@ -3610,30 +3600,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     title="מעבר לדוחות ניהול"
                   >
                     📊 דוחות
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-g btn-sm"
-                    style={{
-                      flex: '0 0 auto',
-                      whiteSpace: 'nowrap',
-                      padding: '6px 8px',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      borderRadius: 'var(--r2)',
-                      border: '1px solid var(--br2)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-                      color: '#fff',
-                    }}
-                    onClick={() => { setFinancialAuditActiveClaimId(null); setFinancialAuditModalOpen(true); }}
-                    data-testid="claims-compact-financial-audit-btn"
-                    title="בקרה כספית, השוואת דוחות שמאי ותשלומי ביטוח"
-                  >
-                    ⚖️ בקרה כספית
                   </button>
                   <button
                     type="button"
@@ -7105,32 +7071,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         />
       )}
 
-      {financialAuditModalOpen && (
+      {financialAuditModalOpen && cur && (
         <ClaimsFinancialAuditModal
           isOpen={financialAuditModalOpen}
           onClose={() => { setFinancialAuditModalOpen(false); setFinancialAuditActiveClaimId(null); }}
-          activeClaimId={financialAuditActiveClaimId}
-          claims={claims.map((c) => ({
-            id: c.id,
-            plate: c.plate,
-            clientName: c.clientName,
-            status: c.status,
-            insCompany: c.insCompany,
-            claimNum: c.claimNum,
-            row_data: c as any,
-            finAmount: (c as any).finAmount,
-            finApproved: (c as any).finApproved,
-            finPaid: (c as any).finPaid,
-            finPayDate: (c as any).finPayDate,
-            finRef: (c as any).finRef,
-            finBalance: (c as any).finBalance,
-          }))}
+          claim={{
+            id: cur.id,
+            plate: cur.plate,
+            clientName: cur.clientName,
+            status: cur.status,
+            insCompany: cur.insCompany,
+            claimNum: cur.claimNum,
+            row_data: cur as any,
+            finAmount: (cur as any).finAmount,
+            finApproved: (cur as any).finApproved,
+            finPaid: (cur as any).finPaid,
+            finPayDate: (cur as any).finPayDate,
+            finRef: (cur as any).finRef,
+            finBalance: (cur as any).finBalance,
+            notes: (cur as any).notes,
+          }}
+          files={docs.files}
           actorName={actor?.full_name || 'משתמש'}
           onSaveClaimFinancials={async (claimId, patch) => {
             const ok = await apiRef.current.saveClaimFields(claimId, patch);
             if (ok) {
               await loadClaims();
-              if (cur && cur.id === claimId) await loadCardData(claimId);
+              await loadCardData(claimId);
               toast('הנתונים הכספיים עודכנו בכרטיס התביעה בהצלחה!', 'ok');
               return true;
             }

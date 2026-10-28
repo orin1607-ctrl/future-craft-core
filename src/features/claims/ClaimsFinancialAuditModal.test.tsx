@@ -1,47 +1,57 @@
 /**
  * ClaimsFinancialAuditModal.test.tsx
  *
- * בדיקות יחידה עבור מסך בקרה כספית ותשלומי ביטוח.
+ * בדיקות יחידה עבור מסך בדיקת דוח שמאי ותשלומים בכרטיס התביעה.
  */
 import { describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ClaimsFinancialAuditModal, type ClaimSummary } from './ClaimsFinancialAuditModal';
+import { ClaimsFinancialAuditModal, type ClaimCardData, type ClaimDocFile } from './ClaimsFinancialAuditModal';
 
-const sampleClaims: ClaimSummary[] = [
+const sampleClaim: ClaimCardData = {
+  id: 'DAL-2026-0020',
+  plate: '63-292-03',
+  clientName: 'אליהו אטיאס',
+  status: 'בטיפול',
+  insCompany: 'AIG',
+  claimNum: '1260010522488',
+  finAmount: '22756.50',
+  finApproved: '15696.50',
+  finPaid: '15696.50',
+  finPayDate: '2026-09-07',
+  finRef: 'TR-1002',
+  finBalance: '7060',
+  notes: 'דוח שמאי גליל גולן שמאות - סה"כ לתשלום: 22,756.50 ₪',
+};
+
+const sampleFiles: ClaimDocFile[] = [
   {
-    id: 'DAL-2026-0020',
-    plate: '63-292-03',
-    clientName: 'אליהו אטיאס',
-    status: 'בטיפול',
-    insCompany: 'AIG',
-    claimNum: '1260010522488',
-    finAmount: '22756.50',
-    finApproved: '15696.50',
-    finPaid: '15696.50',
-    finPayDate: '2026-09-07',
-    finRef: 'TR-1002',
-    finBalance: '7060',
-    row_data: {
-      notes: 'דוח שמאי גליל גולן שמאות - סה"כ לתשלום: 22,756.50 ₪',
+    id: 'F-1',
+    original_name: '0010002508.pdf',
+    doc_kind: 'surveyor_report',
+    byte_size: 34424,
+    created_at: '2026-09-06T16:57:03.000Z',
+    doc_meta: {
+      staff_title: '0010002508.pdf',
+      staff_type: 'surveyor_report',
     },
   },
   {
-    id: 'DAL-2026-0017',
-    plate: '49-325-04',
-    clientName: 'אושרי יעקוב',
-    status: 'בטיפול',
-    insCompany: 'איילון',
-    claimNum: '2006402605242',
-    finAmount: '41702',
-    finApproved: '38000',
-    finPaid: '0',
-    finBalance: '41702',
+    id: 'F-2',
+    original_name: 'rcv0001.JPG',
+    doc_kind: 'surveyor_photo',
+    byte_size: 91593,
+    created_at: '2026-09-06T16:58:00.000Z',
+    doc_meta: {
+      reportDate: '2026-05-06',
+      reportNumber: '2241-0-1',
+      surveyorName: 'גליל גולן שמאות',
+    },
   },
 ];
 
-describe('ClaimsFinancialAuditModal Component', () => {
-  it('מרנדר בהצלחה את הכותרת וכרטיסי הסטטיסטיקה', () => {
+describe('ClaimsFinancialAuditModal Component (Single Claim Focus)', () => {
+  it('מרנדר בהצלחה אך ורק את נתוני התיק והלקוח הספציפי', () => {
     const handleClose = vi.fn();
     const handleSave = vi.fn(async () => true);
 
@@ -49,19 +59,20 @@ describe('ClaimsFinancialAuditModal Component', () => {
       <ClaimsFinancialAuditModal
         isOpen={true}
         onClose={handleClose}
-        claims={sampleClaims}
+        claim={sampleClaim}
+        files={sampleFiles}
         onSaveClaimFinancials={handleSave}
         actorName="בודק מערכת"
       />
     );
 
-    expect(screen.getByText('בקרה כספית ותשלומי ביטוח')).toBeDefined();
-    expect(screen.getByText('תביעות פעילות')).toBeDefined();
-    expect(screen.getByText('סה"כ דרישות שמאים')).toBeDefined();
-    expect(screen.getByText('פער כולל לגבייה / השגה')).toBeDefined();
+    expect(screen.getByText('בדיקת דוח שמאי ותשלומים')).toBeDefined();
+    expect(screen.getByText(/אליהו אטיאס/)).toBeDefined();
+    expect(screen.getByText(/63-292-03/)).toBeDefined();
+    expect(screen.getByText('דרישת שומה (שמאי שלנו)')).toBeDefined();
   });
 
-  it('מציג כפתור סריקה והשוואה ומבצע סריקה בלחיצה', async () => {
+  it('מציג את מסמכי השומה בתיק ואת סטטוס הקריאה שלהם', () => {
     const handleClose = vi.fn();
     const handleSave = vi.fn(async () => true);
 
@@ -69,23 +80,21 @@ describe('ClaimsFinancialAuditModal Component', () => {
       <ClaimsFinancialAuditModal
         isOpen={true}
         onClose={handleClose}
-        claims={sampleClaims}
+        claim={sampleClaim}
+        files={sampleFiles}
         onSaveClaimFinancials={handleSave}
         actorName="בודק מערכת"
       />
     );
 
-    const scanBtn = screen.getByText('🔍 סרוק והשווה תביעות קיימות');
-    expect(scanBtn).toBeDefined();
+    const docsTabBtn = screen.getByText(/מסמכי השומה בתיק/);
+    fireEvent.click(docsTabBtn);
 
-    fireEvent.click(scanBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('הסריקה הושלמה בהצלחה!')).toBeDefined();
-    });
+    expect(screen.getByText('0010002508.pdf')).toBeDefined();
+    expect(screen.getByText('rcv0001.JPG')).toBeDefined();
   });
 
-  it('מציג את טופס התצוגה המקדימה ומפעיל שמירה לכרטיס התביעה', async () => {
+  it('מציג את טופס האישור ומפעיל שמירה רק בלחיצה יזומה', async () => {
     const handleClose = vi.fn();
     const handleSave = vi.fn(async () => true);
 
@@ -93,28 +102,24 @@ describe('ClaimsFinancialAuditModal Component', () => {
       <ClaimsFinancialAuditModal
         isOpen={true}
         onClose={handleClose}
-        activeClaimId="DAL-2026-0020"
-        claims={sampleClaims}
+        claim={sampleClaim}
+        files={sampleFiles}
         onSaveClaimFinancials={handleSave}
         actorName="יוני מנהל"
       />
     );
 
-    // בדיקה שהטאב של בדיקת דוח שמאי נפתח עבור התיק הנבחר
-    expect(screen.getByText(/תיק DAL-2026-0020/)).toBeDefined();
-
-    // כפתור אישור והזנת נתונים
     const saveBtn = screen.getByText('💾 אשר והזן נתונים לכרטיס התביעה');
     expect(saveBtn).toBeDefined();
 
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(handleSave).toHaveBeenCalled();
+      expect(handleSave).toHaveBeenCalledWith('DAL-2026-0020', expect.any(Object));
     });
   });
 
-  it('מפיק טיוטת מכתב השגה למבטחת עם הסעיפים והפערים', () => {
+  it('מפיק טיוטת מכתב השגה מותאם אישית ללקוח ולמבטחת', () => {
     const handleClose = vi.fn();
     const handleSave = vi.fn(async () => true);
 
@@ -122,14 +127,14 @@ describe('ClaimsFinancialAuditModal Component', () => {
       <ClaimsFinancialAuditModal
         isOpen={true}
         onClose={handleClose}
-        activeClaimId="DAL-2026-0020"
-        claims={sampleClaims}
+        claim={sampleClaim}
+        files={sampleFiles}
         onSaveClaimFinancials={handleSave}
         actorName="יוני מנהל"
       />
     );
 
-    const letterTabBtn = screen.getByText('✉️ מכתב השגה למבטחת');
+    const letterTabBtn = screen.getByText('✉️ טיוטת מכתב השגה למבטחת');
     fireEvent.click(letterTabBtn);
 
     expect(screen.getAllByText(/השגה ודרישת הפרשים/).length).toBeGreaterThan(0);
