@@ -142,6 +142,7 @@ import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import ClaimsPage from "@/pages/ClaimsPage";
+import ClaimsShareInboxPage from "@/pages/ClaimsShareInboxPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
@@ -189,7 +190,9 @@ function AppRoutes() {
       ? `${window.location.pathname}${window.location.search}`
       : '';
     const isIncidentDeepLink = /\/(faults|accidents)(\?|$)/.test(path);
-    if (isIncidentDeepLink) {
+    // Files shared to Dalia wait on the device — come back to them after login.
+    const isShareInbox = /\/claims\/share(\?|$)/.test(path);
+    if (isIncidentDeepLink || isShareInbox) {
       captureCurrentPathForLogin();
     }
 
@@ -315,6 +318,7 @@ function AppRoutes() {
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/claims/share" element={<ClaimsShareInboxPage />} />
         <Route path="/garage-management/:caseId" element={<GarageApp />} />
         <Route path="/garage-management" element={<GarageApp />} />
         <Route path="/garage" element={<GarageJobsPage />} />

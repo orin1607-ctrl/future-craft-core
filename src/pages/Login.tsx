@@ -38,8 +38,7 @@ function goAfterLogin(
     return;
   }
   if (extras?.claimsWorkerOnly) {
-    consumePostLoginRedirect('/claims');
-    navigate('/claims');
+    navigate(postLoginPathForRole(role, consumePostLoginRedirect('/claims'), extras));
     return;
   }
   if (role === 'telemarketing_agent') {
