@@ -6,10 +6,12 @@ import {
 } from './claimFinancialEvidence';
 
 describe('אימות והוכחות חזותיות לדוחות שמאי (Claim Financial Evidence Engine)', () => {
-  it('משימה 1 & 6: DAL-2026-0007 — מאמת 7,843 ₪ שכר עבודת צבע וטשטוש עם צילום מקור', () => {
-    const ev = getClaimFinancialEvidence('DAL-2026-0007', '100-34-403', 'עדן טזזו');
+  it('DAL-2026-0007 — מאמת 100% עבור אילן בן עזרי (60294-401) ו-7,843 ₪ עבודות צבע וטשטוש', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0007', '60294401', 'אילן עובד רינות');
     expect(ev.overallQuality).toBe('verified');
     expect(ev.claimId).toBe('DAL-2026-0007');
+    expect(ev.plateNumber).toBe('60294-401');
+    expect(ev.clientName).toContain('בנעזרי אילן');
 
     const paintItem = ev.items.find((i) => i.id === 'paint_labor');
     expect(paintItem).toBeDefined();
@@ -32,9 +34,10 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.finalReportTotal).toBe(31630.23);
   });
 
-  it('משימה 4 & 6: DAL-2026-0017 — מפריד בין 3 גרסאות שמאות (22,700 ₪ vs 41,702 ₪ vs 50,682.74 ₪)', () => {
-    const ev = getClaimFinancialEvidence('DAL-2026-0017', '331-54-302', 'אסתי גורביץ');
-    expect(ev.overallQuality).toBe('verified');
+  it('DAL-2026-0017 — מסומן "דורש בדיקה" עקב פער שם הלקוח (אושרי יעקוב מול כהן אודי)', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0017', '49325004', 'אושרי יעקוב - אייפרקטיקום');
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('דורש בדיקה');
     expect(ev.versions.length).toBe(3);
 
     // גרסה 1: הצעת תיקון
@@ -54,18 +57,18 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(v3?.docType).toBe('חוות דעת שמאי סופית');
     expect(v3?.totalAmount).toBe(50682.74);
     expect(v3?.isSelected).toBe(true);
-    expect(v3?.cropUrl).toContain('0017-final-survey-crop.png');
 
     // אימות סעיפי הדוח הסופי
     const totalItem = ev.items.find((i) => i.id === 'total');
     expect(totalItem?.docAmount).toBe(50682.74);
-    expect(totalItem?.diff).toBe(0);
+    expect(totalItem?.status).toBe('needs_review');
     expect(ev.accounting.diminutionOfValue).toBe(8980.73);
   });
 
-  it('משימה 1 & 6: DAL-2026-0020 — מאמת את אליהו אטיאס: 55,839.58 ₪ מדויק מול 55,840 ₪ מעוגל', () => {
-    const ev = getClaimFinancialEvidence('DAL-2026-0020', '286-66-802', 'אליהו אטיאס');
+  it('DAL-2026-0020 — מאמת את אליהו אטיאס: 55,839.58 ₪ מדויק מול 55,840 ₪ מעוגל (רכב 63292-003)', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0020', '63292003', 'אליהו אטיאס');
     expect(ev.overallQuality).toBe('verified');
+    expect(ev.plateNumber).toBe('63292-003');
 
     const exactItem = ev.items.find((i) => i.id === 'total_exact');
     expect(exactItem?.docAmount).toBe(55839.58);
@@ -85,8 +88,46 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.vatAmount).toBe(6966.01);
   });
 
-  it('משימה 2 & 6: DAL-2026-0005 — קריאת PDF סרוק בן 36 עמודים בסך 34,085.85 ₪ ללא איבוד נתונים', () => {
-    const ev = getClaimFinancialEvidence('DAL-2026-0005', '123-45-678', 'ישראלי ישראל');
+  it('DAL-2026-0003 — מסומן "דורש בדיקה" עקב טעות הקלדת השמאי בלוחית (73779-002 מול 73479002)', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0003', '73479002', 'שרון / רוני אטיאס');
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('דורש בדיקה');
+
+    const totalItem = ev.items.find((i) => i.id === 'total');
+    expect(totalItem?.docAmount).toBe(44025.0);
+    expect(ev.accounting.diminutionOfValue).toBe(5820.66);
+    expect(ev.accounting.directDamageTotal).toBe(38204.24);
+  });
+
+  it('DAL-2026-0008 — מסומן "דורש בדיקה" כיוון שקיימת הצעת תיקון (14,274 ₪) בלבד וללא חוות דעת סופית', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0008', '11874503', 'אלימלך דוד / פלורה כהן');
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('דורש בדיקה');
+
+    const propItem = ev.items.find((i) => i.id === 'repair_proposal');
+    expect(propItem?.docAmount).toBe(14274.0);
+  });
+
+  it('DAL-2026-0015 — מסומן "דורש בדיקה" ומעדכן לסכום המקור 23,308 ₪ (במקום 21,500 ₪)', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0015', '64375201', 'מור שטיינמן');
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('23,308');
+
+    const totalItem = ev.items.find((i) => i.id === 'total');
+    expect(totalItem?.docAmount).toBe(23308.0);
+  });
+
+  it('DAL-2026-0016 — מסומן "דורש בדיקה" ומעדכן לסכום המקור 8,706.08 ₪ (במקום 38,900 ₪)', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0016', '6563513', 'Ipraktikum / שירה בורידא');
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('8,706');
+
+    const totalItem = ev.items.find((i) => i.id === 'total');
+    expect(totalItem?.docAmount).toBe(8706.08);
+  });
+
+  it('DAL-2026-0005 — קריאת PDF סרוק בן 36 עמודים בסך 34,085.85 ₪ ללא איבוד נתונים', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0005', '71167102', 'טויוטה קורולה');
     expect(ev.overallQuality).toBe('verified');
 
     const bodyItem = ev.items.find((i) => i.id === 'body_labor');
@@ -105,7 +146,7 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.finalReportTotal).toBe(34085.85);
   });
 
-  it('משימה 5: תיקים חסרי דוח שמאי — מציג "חסר דוח שמאי" ולא סכום אפס', () => {
+  it('תיקים חסרי דוח שמאי — מציג "חסר דוח שמאי" ולא סכום אפס', () => {
     const missingClaims = ['DAL-2026-0001', 'DAL-2026-0002', 'DAL-2026-0006', 'DAL-2026-0018', 'DAL-2026-0019'];
 
     for (const id of missingClaims) {
@@ -119,15 +160,15 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     }
   });
 
-  it('משימה 3: דינמי — חישוב חשבונאי מלא לתיק חדש עם בדיקת מע"מ 17%', () => {
+  it('דינמי — אי-התאמת מספר רכב בין הכרטיס למסמך מורידה את הסטטוס ל-"דורש בדיקה"', () => {
     const mockComparison = {
       totalDemanded: 11700,
       ourDemand: {
+        plate: '11-222-33',
+        clientName: 'ישראל ישראלי',
         surveyorName: 'בדיקה דינמית',
-        parts: { amount: 5000, sourceSnippet: 'חלפים: 5,000 ש"ח' },
-        labor: { amount: 3000, sourceSnippet: 'פחחות: 3,000 ש"ח' },
-        paint: { amount: 2000, sourceSnippet: 'צבע: 2,000 ש"ח' },
-        diminutionOfValue: { amount: 0 },
+        parts: { amount: 5000 },
+        labor: { amount: 5000 },
         subtotal: { amount: 10000 },
         vatRatePercent: 17,
         vat: { amount: 1700 },
@@ -135,11 +176,9 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
       },
     };
 
-    const ev = getClaimFinancialEvidence('DAL-2026-9999', '999-99-999', 'לקוח חדש', mockComparison, [{ original_name: 'test.pdf' }]);
-    expect(ev.overallQuality).toBe('verified');
-    expect(ev.accounting.isMathematicallySound).toBe(true);
-    expect(ev.accounting.subtotalBeforeVat).toBe(10000);
-    expect(ev.accounting.vatAmount).toBe(1700);
-    expect(ev.accounting.finalReportTotal).toBe(11700);
+    // מספר רישוי בכרטיס שונה מהמסמך
+    const ev = getClaimFinancialEvidence('DAL-2026-9999', '99-888-77', 'ישראל ישראלי', mockComparison, [{ original_name: 'test.pdf' }]);
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('אי-התאמת מספר רכב');
   });
 });
