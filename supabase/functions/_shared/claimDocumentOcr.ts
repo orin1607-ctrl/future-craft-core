@@ -41,7 +41,7 @@ export function ocrRequestBody(bytes: Uint8Array, mimeType: string) {
     }],
     generationConfig: {
       temperature: 0,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'OBJECT',
@@ -60,10 +60,42 @@ export function parseOcrResponse(json: unknown): OcrResult {
   const parts = (json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })?.candidates?.[0]?.content?.parts || [];
   const raw = parts.map((p) => p.text || '').join('').trim();
   if (!raw) throw new Error('ocr_empty_response');
-  const data = JSON.parse(raw) as { text?: unknown; kind?: unknown };
-  const kinds = new Set(['document', 'vehicle_photo', 'other_photo', 'empty']);
-  const kind = kinds.has(String(data.kind)) ? String(data.kind) as OcrResult['kind'] : 'document';
-  return { text: String(data.text ?? '').slice(0, OCR_TEXT_LIMIT), kind };
+
+  let text = '';
+  let kind: OcrResult['kind'] = 'document';
+
+  try {
+    const data = JSON.parse(raw) as { text?: unknown; kind?: unknown };
+    text = String(data.text ?? '');
+    const kinds = new Set(['document', 'vehicle_photo', 'other_photo', 'empty']);
+    if (kinds.has(String(data.kind))) {
+      kind = String(data.kind) as OcrResult['kind'];
+    }
+  } catch (_e) {
+    const kindMatch = /"kind"s*:s*"([^"]+)"/.exec(raw);
+    if (kindMatch && ['document', 'vehicle_photo', 'other_photo', 'empty'].includes(kindMatch[1])) {
+      kind = kindMatch[1] as OcrResult['kind'];
+    }
+    const textKeyIdx = raw.indexOf('"text"');
+    if (textKeyIdx !== -1) {
+      const firstQuoteAfterColon = raw.indexOf('"', raw.indexOf(':', textKeyIdx));
+      if (firstQuoteAfterColon !== -1) {
+        let extracted = raw.slice(firstQuoteAfterColon + 1);
+        extracted = extracted.replace(/"\s*}?\s*$/, '');
+        text = extracted
+          .split('\\n').join('\n')
+          .split('\\r').join('\r')
+          .split('\\t').join('\t')
+          .split('\\"').join('"')
+          .split('\\\\').join('\\');
+      }
+    }
+    if (!text) {
+      text = raw;
+    }
+  }
+
+  return { text: text.slice(0, OCR_TEXT_LIMIT), kind };
 }
 
 export function geminiOcr(apiKey: string, model = OCR_DEFAULT_MODEL, fetchImpl: typeof fetch = fetch) {

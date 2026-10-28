@@ -440,8 +440,8 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
         >
           <div className="cfa-stat-card">
             <span className="cfa-stat-label">דרישת שומה (שמאי שלנו)</span>
-            <span className="cfa-stat-val primary">
-              {comparison.totalDemanded > 0 ? `${comparison.totalDemanded.toLocaleString()} ₪` : (claim.finAmount ? `${parseFloat(claim.finAmount).toLocaleString()} ₪` : 'טרם חולץ')}
+            <span className={`cfa-stat-val ${comparison.totalDemanded > 0 ? 'primary' : 'warning'}`} style={{ color: comparison.totalDemanded > 0 ? undefined : '#d97706', fontSize: comparison.totalDemanded > 0 ? undefined : 16 }}>
+              {comparison.totalDemanded > 0 ? `${comparison.totalDemanded.toLocaleString()} ₪` : 'חסר דוח שמאי'}
             </span>
             {comparison.roundedTotalDemanded &&
               comparison.roundedTotalDemanded > 0 &&
@@ -518,6 +518,33 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
         <div className="cfa-content">
           {activeTab === 'audit' && (
             <div>
+              {/* התראה אם חסר דוח שמאי בתיק */}
+              {comparison.totalDemanded === 0 && (
+                <div
+                  style={{
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: 10,
+                    padding: '12px 18px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    color: '#92400e',
+                  }}
+                >
+                  <AlertTriangle size={22} color="#d97706" style={{ flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>
+                      חסר דוח שמאי בתיק זה
+                    </div>
+                    <div style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
+                      טרם הועלה דוח שמאי או קובץ שומה סרוק לכרטיס התביעה. סכום הנזק אינו 0 ₪ אלא ממתין לקליטת דוח השמאי המקורי.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* התראה לסריקת OCR אם יש מסמכים שטרם נקראו בתיק זה */}
               {unreadCandidateFiles.length > 0 && onTriggerDocOcr && (
                 <div

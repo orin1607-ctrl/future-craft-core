@@ -21,6 +21,7 @@ export type FinancialDocKind =
   | 'counter_surveyor_report' // דוח נגדי / שומת בקרה / שמאי מבטחת
   | 'payment_notice'          // הודעת תשלום / אישור העברה
   | 'payment_breakdown'       // פירוט תשלום / סילוק תביעה
+  | 'repair_estimate'         // הצעת תיקון / אומדן ראשוני בלבד
   | 'unknown_financial_doc';  // מסמך כספי שאינו מזוהה בוודאות
 
 export type DeductionCategory =
@@ -66,7 +67,9 @@ export interface OurSurveyorReportExtraction {
   // סעיפי נזק עיקריים
   parts: ExtractedAmountWithSource;
   labor: ExtractedAmountWithSource;
-  paint: ExtractedAmountWithSource;
+  paint: ExtractedAmountWithSource;             // עבודות צבע (שכר עבודה)
+  paintMaterials?: ExtractedAmountWithSource;   // חומרי צבע (בנפרד משכר עבודה)
+  paintBlending?: ExtractedAmountWithSource;    // טשטוש צבע (בנפרד)
   additionalWorks: ExtractedAmountWithSource; // עבודות נוספות, שינועים ועבודות חוץ
   diminutionOfValue: ExtractedAmountWithSource; // ירידת ערך
   otherOrSalvage: ExtractedAmountWithSource;    // שונות / קיזוז שרידים
@@ -406,7 +409,12 @@ export function classifyFinancialDocumentKind(text: string, fileName = ''): Fina
     return 'payment_breakdown';
   }
 
-  // 5. דוח שמאי רגיל (ברירת מחדל לדוח שלנו אם אין סממני נגדי)
+  // 5. הצעת תיקון / אומדן ראשוני (מופרד מחוות דעת שמאית סופית)
+  if (/הצעת\s*תיקון|אומדן\s*ראשוני/i.test(clean) && !/חוות\s*דעת/i.test(clean)) {
+    return 'repair_estimate';
+  }
+
+  // 6. דוח שמאי רגיל (ברירת מחדל לדוח שלנו אם אין סממני נגדי)
   if (
     /חוות\s*דעת\s*שמאי|שומת\s*נזק|דוח\s*שמאי|דו"ח\s*שמאי|שמאות\s*רכב|הערכת\s*נזק\s*לרכב/i.test(
       clean
@@ -460,22 +468,20 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   );
   if (labor.amount > 0) citations['פחחות / עבודה'] = labor.sourceSnippet;
 
-  // צבע וחומרים (עדיפות לשכר עבודות צבע)
-  let paint = extractAmountForLabel(clean, ['עבודות צבע+טשטוש', 'עבודות צבע', 'צבע וטשטוש'], {
-    rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
-    preferLineTotal: true,
-    minAmount: 100,
-  });
+  // עבודות צבע (שכר עבודה בלבד — נשמר בהפרדה מלאה מחומרי צבע)
+  let paint = extractAmountForLabel(
+    clean,
+    ['עבודות צבע+טשטוש', 'עבודות צבע', 'שכר עבודה צבע', 'עבודת צבע', 'צבע וטשטוש'],
+    {
+      rejectIfKeyword: ['חומרי צבע', 'חומרים לצבע', 'כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
+      preferLineTotal: true,
+      minAmount: 100,
+    }
+  );
   if (paint.amount === 0) {
     paint = extractAmountForLabel(
       clean,
-      [
-        'סה"כ צבע',
-        'צבע וחומרים',
-        'חומרי צבע',
-        'חומרים לצבע',
-        'צבע',
-      ],
+      ['סה"כ צבע', 'צבע וחומרים', 'עבודות צבע'],
       {
         rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
         preferLineTotal: true,
@@ -483,7 +489,36 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
       }
     );
   }
-  if (paint.amount > 0) citations['צבע'] = paint.sourceSnippet;
+  if (paint.amount > 0) citations['עבודות צבע'] = paint.sourceSnippet;
+
+  // חומרי צבע (סעיף נפרד לחלוטין משכר עבודות הצבע)
+  const paintMaterials = extractAmountForLabel(
+    clean,
+    ['חומרי צבע', 'חומרים לצבע', 'חומרים וצבע', 'חומרי צבע ועזר'],
+    {
+      rejectIfKeyword: ['כרטיס עבודה', 'הזמנת עבודה', 'טופס עבודה', 'לפי כרטיס'],
+      preferLineTotal: true,
+      minAmount: 10,
+    }
+  );
+  if (paintMaterials.amount > 0) citations['חומרי צבע'] = paintMaterials.sourceSnippet;
+
+  // אם הוגדר סעיף חומרי צבע בלבד ללא סעיף עבודות צבע כלל בדוח
+  if (paint.amount === 0 && paintMaterials.amount > 0) {
+    paint = { ...paintMaterials };
+  }
+
+  // טשטוש צבע (אם מופיע כסעיף נפרד בדוח)
+  const paintBlending = extractAmountForLabel(
+    clean,
+    ['טשטוש צבע', 'התאמת צבע וטשטוש', 'עבודות טשטוש'],
+    {
+      rejectIfKeyword: ['עבודות צבע+טשטוש', 'כרטיס עבודה', 'הזמנת עבודה'],
+      preferLineTotal: true,
+      minAmount: 10,
+    }
+  );
+  if (paintBlending.amount > 0) citations['טשטוש צבע'] = paintBlending.sourceSnippet;
 
   // עבודות נוספות ושינועים
   let additionalWorks = extractAmountForLabel(clean, [
@@ -497,7 +532,14 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   if (additionalWorks.amount === 0) {
     const totalWorks = extractAmountForLabel(clean, ['סה"כ עבודות', 'סה״כ עבודות']);
     if (totalWorks.amount > 0 && (labor.amount > 0 || paint.amount > 0)) {
-      const remainderWorks = Math.round((totalWorks.amount - labor.amount - paint.amount) * 100) / 100;
+      // אם חומרי הצבע נכללו במקטע העבודות (כגון בדוח 0007 שבו מופיע "חומרים לצבע 2745.00" תחת פירוט עבודות)
+      const materialsUnderWorks =
+        paintMaterials.amount > 0 && totalWorks.sourceSnippet.includes(String(paintMaterials.amount))
+          ? paintMaterials.amount
+          : (totalWorks.amount - labor.amount - paint.amount >= (paintMaterials.amount || 0) && paintMaterials.amount > 0 && clean.indexOf('חומרים לצבע') < clean.indexOf('סה"כ עבודות'))
+          ? paintMaterials.amount
+          : 0;
+      const remainderWorks = Math.round((totalWorks.amount - labor.amount - paint.amount - materialsUnderWorks) * 100) / 100;
       if (remainderWorks > 0) {
         additionalWorks = {
           amount: remainderWorks,
@@ -689,6 +731,8 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
     parts,
     labor,
     paint,
+    paintMaterials: paintMaterials.amount > 0 ? paintMaterials : undefined,
+    paintBlending: paintBlending.amount > 0 ? paintBlending : undefined,
     additionalWorks,
     diminutionOfValue,
     otherOrSalvage,
@@ -1080,7 +1124,7 @@ export function compareFinancialAudit(params: {
     }
 
     rows.push({
-      category: 'צבע וחומרים',
+      category: 'עבודות צבע (שכר עבודה)',
       demanded: dem,
       approved: app,
       paid: null,
@@ -1088,6 +1132,36 @@ export function compareFinancialAudit(params: {
       explanation,
       sourceSnippet: ourDemand.paint.sourceSnippet,
       status,
+    });
+  }
+
+  // 3ב. שורת חומרי צבע (נשמר בנפרד משכר עבודה)
+  if (ourDemand && ourDemand.paintMaterials && ourDemand.paintMaterials.amount > 0) {
+    const dem = ourDemand.paintMaterials.amount;
+    rows.push({
+      category: 'חומרי צבע (נפרד משכר עבודה)',
+      demanded: dem,
+      approved: null,
+      paid: null,
+      diff: null,
+      explanation: 'חומרי צבע מקוריים/עזר לפי שומה',
+      sourceSnippet: ourDemand.paintMaterials.sourceSnippet,
+      status: 'missing',
+    });
+  }
+
+  // 3ג. שורת טשטוש צבע (אם קיים סכום נפרד)
+  if (ourDemand && ourDemand.paintBlending && ourDemand.paintBlending.amount > 0) {
+    const dem = ourDemand.paintBlending.amount;
+    rows.push({
+      category: 'טשטוש צבע (התאמת גוון)',
+      demanded: dem,
+      approved: null,
+      paid: null,
+      diff: null,
+      explanation: 'עבודות התאמת גוון וטשטוש צבע',
+      sourceSnippet: ourDemand.paintBlending.sourceSnippet,
+      status: 'missing',
     });
   }
 
