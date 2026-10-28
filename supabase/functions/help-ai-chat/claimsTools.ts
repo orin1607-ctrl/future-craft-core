@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLabel.ts";
 import { isApprovedQaClaimId, isQaClaimRow } from "../_shared/claimQaScope.ts";
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
+import { describeDocumentFill, missingClaimFields, planDocumentFill, type DocText } from "../_shared/claimDocFill.ts";
+import { geminiOcr } from "../_shared/claimDocumentOcr.ts";
 import {
   historyRow,
   normalizeDate,
@@ -48,6 +50,33 @@ export interface ClaimsPendingAction {
   action_type: string;
   parameters: Record<string, unknown>;
 }
+
+const FILL_FROM_DOCS_DESC = "השלמת פרטי תיק מתוך מסמכים שהמשתמש צירף (רישיון נהיגה, רישיון רכב, תעודת ביטוח, טופס הודעה וכו׳), בעיקר פרטי צד ג׳. קרא את המסמכים המצורפים, ולכל פרט שכתוב בהם במפורש העבר field + value בדיוק כפי שכתוב. הבחן בין הנהג (thirdParty, thirdId, thirdLicense), בעל הרכב (thirdOwner) והמבוטח בפוליסה (thirdInsured) — אל תניח שהם אותו אדם; אם לא ברור למי שייך פרט — אל תעביר אותו. השרת קורא שוב את המסמכים ומקבל רק ערכים שמופיעים בהם, ממלא רק שדות ריקים, ומציג סתירות מול מידע קיים בלי לדרוס. הכרטיס דורש אישור מפורש, ואחרי האישור המסמכים נשמרים בתיק (בלי כפילויות). להחלפת ערך קיים — רק כשהמשתמש ביקש במפורש לשדה מסוים: העבר אותו ב-override_fields.";
+const FILL_FROM_DOCS_PARAMS = {
+  values: {
+    type: "ARRAY",
+    description: "הפרטים שמופיעים במסמכים. field = שדה בתיק: thirdParty (שם הנהג צד ג׳), thirdId (ת.ז. הנהג), thirdLicense (מספר רישיון נהיגה), thirdPhone, thirdAddress, thirdPlate (מספר רכב צד ג׳), thirdMakeModel (יצרן ודגם), thirdOwner (בעל הרכב), thirdInsured (המבוטח), thirdInsCompany (חברת ביטוח צד ג׳), thirdPolicy (מספר פוליסה צד ג׳), thirdClaimNum, או כל שדה אחר מהטופס. value = בדיוק כפי שכתוב במסמך.",
+    items: {
+      type: "OBJECT",
+      properties: {
+        field: { type: "STRING", description: "שם השדה בתיק" },
+        value: { type: "STRING", description: "הערך כפי שכתוב במסמך" },
+      },
+      required: ["field", "value"],
+    },
+  },
+  override_fields: {
+    type: "ARRAY",
+    description: "רק אם המשתמש ביקש במפורש להחליף ערך קיים: שמות השדות להחלפה. ברירת מחדל: ריק (לא דורסים).",
+    items: { type: "STRING" },
+  },
+  file_ids: {
+    type: "ARRAY",
+    description: "מסמכים שכבר שמורים בתיק (file_id מ-list_claim_documents), אם המשתמש מתייחס אליהם ולא לקבצים שצירף עכשיו",
+    items: { type: "STRING" },
+  },
+};
+const MISSING_FIELDS_DESC = "אילו פרטים עדיין חסרים בתיק: שדות ריקים בפרטי התביעה ובפרטי צד ג׳ (שמות השדות בלבד). קריאה בלבד. למסמכים חסרים השתמש ב-get_missing_claim_documents.";
 
 // -------------------------------------------------------------
 // 1. CLAIMS_GEMINI_TOOLS (Inside Open Claim mode - claimId != "")
@@ -734,6 +763,15 @@ export const CLAIMS_GEMINI_TOOLS = [
         },
       },
       {
+        name: "preview_fill_claim_from_documents",
+        description: FILL_FROM_DOCS_DESC + " פועל על התיק הפתוח בלבד.",
+        parameters: { type: "OBJECT", properties: FILL_FROM_DOCS_PARAMS, required: ["values"] },
+      },
+      {
+        name: "get_claim_missing_fields",
+        description: MISSING_FIELDS_DESC,
+      },
+      {
         name: "preview_link_client_to_claim",
         description: "הכנת תצוגה מקדימה לקישור לקוח קיים ממערכת הלקוחות לתיק התביעה הנוכחי. דורש אישור מפורש של המשתמש.",
         parameters: {
@@ -942,6 +980,29 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
             changes: CLAIM_FIELD_CHANGES_PARAM,
           },
           required: ["claim_ref", "changes"],
+        },
+      },
+      {
+        name: "preview_fill_claim_from_documents",
+        description: FILL_FROM_DOCS_DESC + " במצב כללי חובה claim_ref. אם יש כמה תיקים מתאימים — הצג אותם ושאל, אל תבחר בעצמך.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: { type: "STRING", description: "מספר תיק (DAL-YYYY-NNNN או 4 הספרות האחרונות), מספר רכב, שם הלקוח או מספר תביעה בחברת הביטוח — חייב להתאים לתיק פעיל אחד" },
+            ...FILL_FROM_DOCS_PARAMS,
+          },
+          required: ["claim_ref", "values"],
+        },
+      },
+      {
+        name: "get_claim_missing_fields",
+        description: MISSING_FIELDS_DESC + " במצב כללי חובה claim_ref.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: { type: "STRING", description: "מספר תיק, מספר רכב, שם לקוח או מספר תביעה בחברת הביטוח" },
+          },
+          required: ["claim_ref"],
         },
       },
       {
@@ -1363,6 +1424,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
    - שליחת מספר אימיילים נפרדים: כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך.
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
+11א. השלמת פרטים ממסמכים: כשהמשתמש מצרף מסמכים (רישיון נהיגה, רישיון רכב, ביטוח) ומבקש להשלים/לעדכן פרטים (למשל "תשלים את פרטי צד ג׳ לפי המסמכים") — קרא את המסמכים וקרא ל-preview_fill_claim_from_documents עם כל פרט שכתוב בהם, עם השדה הנכון לכל אדם (נהג / בעל רכב / מבוטח). אל תשלים מידע שלא כתוב. אחרי הכרטיס: סכם במילים מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. "מה חסר בתיק" → get_claim_missing_fields (ולמסמכים get_missing_claim_documents).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
 12. תזכורות: הצגה (list_claim_reminders), יצירה (preview_create_claim_reminder), שינוי מועד/נוסח או ביטול (preview_update_claim_reminder). תזכורת שבוטלה לא מופעלת מחדש — אפשר ליצור חדשה.
 13. WhatsApp (שליחה ידנית בלבד, במסלול הקיים): "תכין ללקוח הודעה ותתזמן למחר" → preview_schedule_claim_whatsapp עם הטלפון מהתיק, נוסח, relative_day=1. "תשלח לו את דוח השמאי בוואטסאפ" → מצא את המסמך עם list_claim_documents והעבר file_ids — המסמך יישלח כקישור מאובטח. ההודעה לא נשלחת אוטומטית: אמור "ממתין לשליחה ידנית", לעולם לא "נשלח". מצב ההודעות: list_claim_whatsapp.
@@ -1472,6 +1534,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 5. משימות במערכת:
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 
+6א. השלמת פרטי תיק ממסמכים שצורפו ("תמצא את תיק 1234 ותשלים את פרטי צד ג׳ לפי המסמכים", "תמצא את התביעה של רכב 12345678 ותשלים את פרטי הנהג הפוגע", "תיכנס לתיק של ישראל ישראלי ותוסיף את פרטי חברת הביטוח מהמסמך"): קרא ל-preview_fill_claim_from_documents עם claim_ref (מספר תיק / רכב / שם לקוח / מספר תביעה) וכל פרט שכתוב במסמכים, עם השדה הנכון לנהג, לבעל הרכב ולמבוטח. אם התיק לא נמצא או שנמצאו כמה — הצג את הרשימה ושאל, אל תנחש ואל תעדכן. "אילו פרטים חסרים בתיק" → get_claim_missing_fields.
 6. תיקון פרטי תיק קיים (גם מיד אחרי פתיחת תיק): קרא ל-preview_update_claim_fields עם claim_ref (מזהה התיק שנפתח או שנמצא בחיפוש) והשדות לתיקון. אם יש יותר מתיק אחד מתאים — שאל. לעולם אל תשלים ערך שהמשתמש לא מסר.
    חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
    גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
@@ -2407,30 +2470,51 @@ async function resolveClaimRef(
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const key = String(ref || "").trim();
   if (!key) return { ok: false, error: "לא צוין תיק. ציין מזהה תיק (DAL-YYYY-NNNN) או מספר תביעה." };
-  const { data: byId } = await supabase.from("claims_records").select("id, row_data").eq("id", key).maybeSingle();
+  const { data: byId } = await supabase.from("claims_records").select("id, row_data").ilike("id", key).maybeSingle();
   if (byId && !isDeletedClaim(byId.row_data)) return { ok: true, id: String(byId.id) };
+  const describe = (rows: Array<{ id: unknown; plate?: unknown; client_name?: unknown; row_data?: unknown }>) => rows.slice(0, 10).map((r) => {
+    const rd = (r.row_data || {}) as Record<string, unknown>;
+    const name = String(r.client_name || rd.clientName || "").trim();
+    const plate = String(r.plate || rd.plate || "").trim();
+    const parts = [name, plate ? `רכב ${plate}` : ""].filter(Boolean).join(", ");
+    return parts ? `${r.id} (${parts})` : String(r.id);
+  }).join("; ");
   const { data: byNum } = await supabase.from("claims_records").select("id, row_data").ilike("row_data->>claimNum", key);
   const live = (byNum || []).filter((r) => !isDeletedClaim(r.row_data));
   if (live.length === 1) return { ok: true, id: String(live[0].id) };
-  if (live.length > 1) return { ok: false, error: `נמצאו ${live.length} תיקים עם מספר התביעה ${key}: ${live.map((r) => r.id).join(", ")}. ציין מזהה תיק.` };
+  if (live.length > 1) return { ok: false, error: `נמצאו ${live.length} תיקים עם מספר התביעה ${key}: ${describe(live)}. לא עודכן אף תיק — בקש מהמשתמש לבחור.` };
 
-  // Plate number (7–8 digits) or client name — still exactly one live claim, never a guess.
+  // Plate number (7–8 digits), file number or client name — still exactly one live claim, never a guess.
   const { data: all } = await supabase.from("claims_records").select("id, plate, client_name, row_data");
   const liveAll = (all || []).filter((r) => !isDeletedClaim(r.row_data));
   const digits = key.replace(/\D/g, "");
   let hits: typeof liveAll = [];
   let by = "";
-  if (/^\d{7,8}$/.test(digits) && digits.length >= key.replace(/[\s-]/g, "").length) {
+  const onlyDigits = digits.length > 0 && digits.length >= key.replace(/[\s-]/g, "").length;
+  if (onlyDigits && digits.length <= 6) {
+    // A file number as people say it: "תיק 1234" = DAL-YYYY-1234.
+    hits = liveAll.filter((r) => {
+      const tail = String(r.id).match(/-(\d+)$/)?.[1] || "";
+      return tail !== "" && Number(tail) === Number(digits);
+    });
+    by = "מספר התיק";
+  } else if (/^\d{7,8}$/.test(digits) && onlyDigits) {
     hits = liveAll.filter((r) => String(r.plate || "").replace(/\D/g, "") === digits
       || String((r.row_data as Record<string, unknown>)?.plate || "").replace(/\D/g, "") === digits);
     by = "מספר הרכב";
   } else if (key.length >= 3) {
     const name = key.replace(/\s+/g, " ").toLowerCase();
-    hits = liveAll.filter((r) => String(r.client_name || (r.row_data as Record<string, unknown>)?.clientName || "").replace(/\s+/g, " ").trim().toLowerCase() === name);
+    const nameOf = (r: typeof liveAll[number]) => String(r.client_name || (r.row_data as Record<string, unknown>)?.clientName || "").replace(/\s+/g, " ").trim().toLowerCase();
+    hits = liveAll.filter((r) => nameOf(r) === name);
+    if (!hits.length) {
+      // Every word of the name, in any order ("ישראלי ישראל") — still must be one claim.
+      const words = name.split(" ").filter((w) => w.length > 1);
+      if (words.length >= 2) hits = liveAll.filter((r) => { const n = ` ${nameOf(r)} `; return words.every((w) => n.includes(` ${w} `)); });
+    }
     by = "שם הלקוח";
   }
   if (hits.length === 1) return { ok: true, id: String(hits[0].id) };
-  if (hits.length > 1) return { ok: false, error: `נמצאו ${hits.length} תיקים פעילים לפי ${by} "${key}": ${hits.map((r) => r.id).join(", ")}. ציין מזהה תיק.` };
+  if (hits.length > 1) return { ok: false, error: `נמצאו ${hits.length} תיקים פעילים לפי ${by} "${key}": ${describe(hits)}. לא עודכן אף תיק — הצג את הרשימה ובקש מהמשתמש לבחור.` };
   return { ok: false, error: `לא נמצא תיק פעיל עבור "${key}". אפשר לחפש עם search_claims.` };
 }
 
@@ -2531,6 +2615,242 @@ async function previewUpdateClaimFields(
     },
     preview,
   };
+}
+
+type ChatFile = { name: string; mime_type: string; byte_size?: number; data_base64?: string; file_id?: string };
+
+const FILL_MAX_FILES = 8;
+const OCR_MIMES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+
+/** A title for a third-party document from its own text, so it is filed apart from the insured's documents. */
+function thirdPartyDocTitle(text: string, name: string) {
+  if (/רי?שיון\s*נהיגה|driving\s*licen/i.test(text)) return "צד ג׳ — רישיון נהיגה";
+  if (/רי?שיון\s*רכב|vehicle\s*licen/i.test(text)) return "צד ג׳ — רישיון רכב";
+  if (/ביטוח|פוליס|insurance|policy/i.test(text)) return "צד ג׳ — מסמך ביטוח";
+  return `צד ג׳ — ${name}`;
+}
+
+/**
+ * The text of the documents for a fill: files attached to this chat message (OCR through the same Gemini
+ * reader as claims-doc-read) and documents already in the claim (their saved read, or OCR of the stored file).
+ * The text stays on the server; it is never returned to the model.
+ */
+async function readFillDocuments(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+  attachments?: ChatFile[],
+) {
+  const docs: Array<DocText & { file?: ChatFile; file_id?: string }> = [];
+  const unread: string[] = [];
+  const apiKey = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+  const ocr = apiKey ? geminiOcr(apiKey, Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || undefined) : null;
+  const ocrBytes = async (bytes: Uint8Array, mime: string) => {
+    if (!ocr || !OCR_MIMES.has(mime)) return "";
+    try { return (await ocr(bytes, mime)).text || ""; } catch (err) { console.error("fill ocr failed:", err instanceof Error ? err.message : "error"); return ""; }
+  };
+
+  const chatFiles = (attachments || []).filter((a) => a && a.data_base64).slice(0, FILL_MAX_FILES);
+  for (const f of chatFiles) {
+    let mime = String(f.mime_type || "").toLowerCase();
+    if (mime === "image/jpg") mime = "image/jpeg";
+    const text = await ocrBytes(base64ToBytes(String(f.data_base64)), mime);
+    if (text.trim()) docs.push({ name: f.name, text, file: f, file_id: f.file_id });
+    else unread.push(f.name);
+  }
+
+  const wanted = new Set<string>((Array.isArray(args.file_ids) ? args.file_ids : []).map((x) => String(x || "").trim()).filter(Boolean));
+  for (const f of attachments || []) if (f?.file_id && !f.data_base64) wanted.add(String(f.file_id));
+  for (const d of docs) if (d.file_id) wanted.delete(d.file_id);
+  if (wanted.size) {
+    // The user's own client: a document of a claim the user may not work on is not returned.
+    const { data: rows } = await supabase
+      .from("claims_documents")
+      .select("id, original_name, mime_type, storage_path, doc_meta")
+      .eq("claim_id", claimId)
+      .in("id", [...wanted].slice(0, FILL_MAX_FILES));
+    for (const row of rows || []) {
+      const meta = (row.doc_meta && typeof row.doc_meta === "object" ? row.doc_meta : {}) as Record<string, unknown>;
+      const name = documentDisplayTitle({ original_name: String(row.original_name || ""), doc_meta: meta as Record<string, string> });
+      let text = meta.read_status === "ready" ? String(meta.read_text || "") : "";
+      if (!text.trim() && row.storage_path) {
+        const { data: blob } = await supabase.storage.from("claims-docs").download(String(row.storage_path));
+        if (blob) text = await ocrBytes(new Uint8Array(await blob.arrayBuffer()), String(row.mime_type || "").toLowerCase());
+      }
+      if (text.trim()) docs.push({ name, text, file_id: String(row.id) });
+      else unread.push(name);
+    }
+  }
+  return { docs, unread };
+}
+
+async function previewFillClaimFromDocuments(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  toolName: string,
+  attachments?: ChatFile[],
+): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
+  // Read through the user's own client: RLS (claims_can_work_claim) hides a claim the user may not work on.
+  const { data: claim } = await supabase.from("claims_records").select("id, client_name, row_data").eq("id", claimId).maybeSingle();
+  if (!claim || isDeletedClaim(claim.row_data)) {
+    return { result: { status: "not_found", error: `התיק ${claimId} לא נמצא, נמחק, או שאין לך הרשאה אליו. לא בוצע שינוי.` } };
+  }
+  const rowData = (claim.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
+  const clientName = String(claim.client_name || rowData.clientName || "");
+
+  const { docs, unread } = await readFillDocuments(supabase, claimId, args, attachments);
+  if (!docs.length) {
+    return {
+      result: {
+        status: "not_found",
+        claim_id: claimId,
+        error: unread.length
+          ? `לא הצלחתי לקרוא טקסט מהמסמכים (${unread.join(", ")}). לא בוצע שינוי. אפשר לצרף צילום ברור יותר.`
+          : "לא צורפו מסמכים להודעה ולא צוינו מסמכים מהתיק. צרף את המסמכים ונסה שוב. לא בוצע שינוי.",
+      },
+    };
+  }
+
+  const proposals = (Array.isArray(args.values) ? args.values : [])
+    .map((c) => (c && typeof c === "object" ? c as Record<string, unknown> : {}))
+    .map((c) => ({ field: String(c.field || ""), value: String(c.value ?? "") }))
+    .filter((c) => c.field && c.value.trim());
+  const overrides = (Array.isArray(args.override_fields) ? args.override_fields : []).map((x) => String(x || ""));
+  const plan = planDocumentFill(rowData, proposals, docs, overrides);
+
+  // Attached files not yet in the claim (general chat) are saved with the update; in a claim chat they were
+  // uploaded on send. The same file is never stored twice (content hash).
+  const files = docs.filter((d) => d.file && !d.file_id).map((d) => ({
+    name: d.file!.name,
+    mime_type: d.file!.mime_type,
+    byte_size: d.file!.byte_size || 0,
+    data_base64: d.file!.data_base64 || "",
+    title: thirdPartyDocTitle(d.text, d.file!.name),
+  }));
+  const docNames = [...docs.map((d) => d.name), ...unread.map((n) => `${n} (לא נקרא)`)];
+  const summary = describeDocumentFill({ id: claimId, clientName }, plan, docNames)
+    + (files.length ? `\n\nיישמרו בתיק ${files.length} מסמכים: ${files.map((f) => f.title).join(", ")}` : "");
+
+  const showValues = await docTextToModelAllowed(supabase, claimId);
+  const forModel = (c: { label: string; after: string; before?: string }) => showValues
+    ? { field: c.label, value: c.after, ...(c.before ? { current: c.before } : {}) }
+    : { field: c.label };
+  const base = {
+    claim_id: claimId,
+    client_name: clientName,
+    documents_read: docs.map((d) => d.name),
+    documents_unread: unread,
+    to_add: plan.fills.map(forModel),
+    conflicts: plan.conflicts.map((c) => ({ ...forModel(c), will_replace: c.applied })),
+    already_in_claim: plan.same,
+    rejected: plan.rejected,
+    still_missing: plan.missing,
+  };
+
+  if (!plan.changes.length && !files.length) {
+    return { result: { ...base, status: "no_change", message: "אין מה לעדכן: לא נמצאו בתיק שדות ריקים שהמסמכים משלימים. סתירות לא מוחלפות בלי בקשה מפורשת לשדה." } };
+  }
+
+  const preview: ClaimsPendingAction = {
+    preview_id: `P-DOCFILL-${Date.now()}`,
+    summary,
+    tool_name: toolName,
+    action_type: "fill_claim_from_documents",
+    parameters: { claim_id: claimId, changes: plan.changes, files },
+  };
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    claimId,
+    toolName,
+    actionType: "fill_claim_from_documents",
+    previewSummary: summary,
+    // Field changes only; the file contents are not copied into the audit log.
+    previewPayload: { claim_id: claimId, changes: plan.changes, files: files.map((f) => ({ name: f.name, title: f.title, byte_size: f.byte_size })) },
+    stateBefore: Object.fromEntries(plan.changes.map((c) => [c.field, c.before])),
+    status: "preview_created",
+  });
+  return {
+    result: {
+      ...base,
+      preview_id: preview.preview_id,
+      status: "pending_approval",
+      files_to_save: files.length,
+      message: "הוכן כרטיס אישור. דבר לא נשמר עד שהמשתמש יאשר.",
+    },
+    preview,
+  };
+}
+
+async function getClaimMissingFields(supabase: ReturnType<typeof createClient>, claimId: string) {
+  const { data: claim } = await supabase.from("claims_records").select("id, client_name, row_data").eq("id", claimId).maybeSingle();
+  if (!claim || isDeletedClaim(claim.row_data)) return { status: "not_found", error: `התיק ${claimId} לא נמצא או שאין לך הרשאה אליו.` };
+  const rd = (claim.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
+  const missing = missingClaimFields(rd);
+  return {
+    claim_id: claimId,
+    client_name: String(claim.client_name || rd.clientName || ""),
+    missing_claim_fields: missing.claim,
+    missing_third_party_fields: missing.third_party_relevant ? missing.third_party : [],
+    note: missing.third_party_relevant ? "" : "התיק אינו תביעת צד ג׳ ואין בו פרטי צד ג׳ — פרטי צד ג׳ לא נבדקו.",
+  };
+}
+
+/**
+ * Saves chat files into one claim's documents. Checks with the user's own client that the user may work on
+ * the claim before writing with the service client, and skips a file whose content is already in the claim.
+ */
+async function saveChatFilesToClaim(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  files: Array<{ name: string; mime_type: string; data_base64: string; doc_kind?: string; title?: string }>,
+  userId: string,
+  userName: string,
+  defaultTitle: string,
+  defaultKind?: string,
+) {
+  const { data: allowed } = await supabase.from("claims_records").select("id").eq("id", claimId).maybeSingle();
+  if (!allowed) return { ok: false as const, saved: 0, reused: 0, error: "forbidden" };
+  const adminSb = getAdminClient() || supabase;
+  let saved = 0;
+  let reused = 0;
+  for (let i = 0; i < (files || []).length; i++) {
+    const f = files[i];
+    if (!f?.data_base64) continue;
+    const buf = base64ToBytes(f.data_base64);
+    const digest = await sha256Hex(buf);
+    const { data: existing } = await adminSb.from("claims_documents").select("id").eq("claim_id", claimId).eq("content_sha256", digest).limit(1);
+    if ((existing || []).length) { reused++; continue; }
+    const safeName = sanitizeFileName(f.name || `file_${i + 1}`);
+    const path = `${claimId}/staff/F-${Date.now()}-${i}-${safeName}`;
+    let mime = String(f.mime_type || "application/octet-stream").toLowerCase();
+    if (mime === "image/jpg") mime = "image/jpeg";
+    const { error: upErr } = await adminSb.storage.from("claims-docs").upload(path, buf, { contentType: mime, upsert: false });
+    if (upErr) { console.error("Save attachment storage upload error:", upErr.message); continue; }
+    const isPhoto = mime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(safeName);
+    // A titled document (e.g. a third-party licence) goes to the documents library, not the photo gallery.
+    const staffType = f.title ? "other" : (isPhoto ? "garage_photos" : (f.doc_kind || defaultKind || "general"));
+    const { error: insErr } = await adminSb.from("claims_documents").insert({
+      id: `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      claim_id: claimId,
+      storage_path: path,
+      original_name: f.name || safeName,
+      mime_type: mime,
+      byte_size: buf.length,
+      source: "staff",
+      uploaded_by: userId,
+      uploaded_by_name: userName,
+      doc_kind: f.title ? "general" : sanitizeDbDocKind(f.doc_kind || defaultKind, isPhoto),
+      doc_meta: { staff_type: staffType, staff_title: f.title || defaultTitle || f.name || safeName },
+      content_sha256: digest,
+    });
+    if (insErr) { await adminSb.storage.from("claims-docs").remove([path]); continue; }
+    saved++;
+  }
+  return { ok: true as const, saved, reused };
 }
 
 async function checkDuplicatesHelper(
@@ -3859,6 +4179,14 @@ export async function executeClaimsTool(
       case "preview_update_claim_fields": {
         // Inside a claim the tool acts on the open claim only, whatever the model passes.
         return await previewUpdateClaimFields(supabase, claimId, args, userId, userName, name);
+      }
+
+      case "preview_fill_claim_from_documents": {
+        return await previewFillClaimFromDocuments(supabase, claimId, args, userId, userName, name, attachments);
+      }
+
+      case "get_claim_missing_fields": {
+        return { result: await getClaimMissingFields(supabase, claimId) };
       }
 
       case "read_claim_document": {
@@ -7173,6 +7501,18 @@ export async function executeClaimsGeneralTool(
         return await previewUpdateClaimFields(supabase, resolved.id, args, userId, userName, name);
       }
 
+      case "preview_fill_claim_from_documents": {
+        const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
+        if (!resolved.ok) return { result: { status: "not_found", error: resolved.error } };
+        return await previewFillClaimFromDocuments(supabase, resolved.id, args, userId, userName, name, attachments);
+      }
+
+      case "get_claim_missing_fields": {
+        const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
+        if (!resolved.ok) return { result: { status: "not_found", error: resolved.error } };
+        return { result: await getClaimMissingFields(supabase, resolved.id) };
+      }
+
       case "get_claims_summary": {
         const { data: recs } = await supabase
           .from("claims_records")
@@ -7817,6 +8157,122 @@ export async function executeClaimsGeneralTool(
 // -------------------------------------------------------------
 // 7. EXECUTION OF CONFIRMED PENDING ACTIONS
 // -------------------------------------------------------------
+/**
+ * Saves approved field changes: re-validated on the server, refused when a field changed since the preview,
+ * verified after the write, with one history entry per field (value before / after) and an audit row.
+ */
+async function executeUpdateClaimFields(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  parameters: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  summary: string,
+  toolName: string,
+  actionType = "update_claim_fields",
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const params = parameters as { claim_id?: string; changes?: FieldChange[] };
+  const target = String(params.claim_id || "");
+  if (!target || (claimId && claimId !== target)) {
+    return { success: false, message: "העדכון לא בוצע: התיק בכרטיס האישור אינו התיק הפתוח.", error: "claim_mismatch" };
+  }
+  const previewChanges = Array.isArray(params.changes) ? params.changes : [];
+  if (!previewChanges.length || previewChanges.some((c) => !CLAIM_EDIT_FIELDS[String(c?.field || "")])) {
+    return { success: false, message: "העדכון לא בוצע: שדות לא מוכרים בכרטיס האישור.", error: "invalid_fields" };
+  }
+
+  const { data: cur } = await supabase.from("claims_records").select("id, row_data").eq("id", target).maybeSingle();
+  if (!cur || isDeletedClaim(cur.row_data)) {
+    return { success: false, message: "העדכון לא בוצע: התיק לא נמצא או שנמחק.", error: "claim_not_found" };
+  }
+  const latest = (cur.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
+
+  // Re-validate on the server from the approved new values; the screen only echoes the preview.
+  const revalidated = planClaimFieldEdit(latest, previewChanges.map((c) => ({ field: c.field, value: c.after })));
+  if (revalidated.errors.length) {
+    return { success: false, message: `העדכון לא בוצע: ${revalidated.errors.join("; ")}`, error: "invalid_values" };
+  }
+  const approved = previewChanges.filter((c) => !revalidated.unchanged.includes(CLAIM_EDIT_FIELDS[c.field].label));
+  if (!approved.length) {
+    return { success: true, message: "הערכים כבר קיימים בתיק. לא נדרש עדכון." };
+  }
+  const applied = applyClaimFieldEdit(latest, approved, { nowHe: nowHeIL(), actorName: userName || "דליה AI" });
+  if (!applied.ok) {
+    return {
+      success: false,
+      message: `העדכון לא בוצע: השדות ${applied.stale.join(", ")} השתנו מאז שהוכן הכרטיס. בקש תצוגה מקדימה חדשה.`,
+      error: "stale",
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data: saved, error: updErr } = await supabase
+    .from("claims_records")
+    .update({
+      row_data: applied.rowData,
+      ...applied.columns,
+      updated_at: nowIso,
+      updated_by: userId,
+      updated_by_name: userName,
+      last_activity_at: nowIso,
+    })
+    .eq("id", target)
+    .select("id, row_data");
+  if (updErr) {
+    return { success: false, message: `העדכון לא בוצע: ${updErr.message}`, error: updErr.message };
+  }
+  const savedRow = (saved || [])[0] as { row_data?: Record<string, unknown> } | undefined;
+  if (!savedRow) {
+    return { success: false, message: "העדכון לא בוצע: אין הרשאה לעדכן את התיק או שהתיק לא נמצא.", error: "not_updated" };
+  }
+  const notSaved = approved.filter((c) => String(savedRow.row_data?.[c.field] ?? "") !== c.after).map((c) => c.label);
+  if (notSaved.length) {
+    return { success: false, message: `השמירה לא אומתה עבור: ${notSaved.join(", ")}.`, error: "not_verified" };
+  }
+
+  // History — one entry per field, in the same shape as the claim edit screen (appendHistory).
+  const at = nowHeIL();
+  for (const c of approved) {
+    const histId = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    await supabase.from("claims_history").insert({
+      id: histId,
+      claim_id: target,
+      row_data: {
+        id: histId,
+        claimId: target,
+        action: "עדכון פרטי תיק",
+        note: `${c.label} — עודכן דרך דליה AI לאחר אישור המשתמש`,
+        type: "update",
+        valueBefore: c.before,
+        valueAfter: c.after,
+        by: userName || "דליה AI",
+        at,
+      },
+    });
+  }
+
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    claimId: target,
+    toolName,
+    actionType,
+    previewSummary: summary,
+    previewPayload: parameters,
+    approvedBy: userId,
+    approvedByName: userName,
+    executionAction: actionType,
+    stateBefore: Object.fromEntries(approved.map((c) => [c.field, c.before])),
+    stateAfter: Object.fromEntries(approved.map((c) => [c.field, c.after])),
+    status: "executed",
+  });
+
+  return {
+    success: true,
+    message: `עודכנו ${approved.length} שדות בתיק ${target}: ${approved.map((c) => `${c.label}: ${c.after}`).join(" · ")}`,
+  };
+}
+
 export async function executeClaimsPendingAction(
   supabase: ReturnType<typeof createClient>,
   claimIdOrPendingAction: string | ClaimsPendingAction,
@@ -9390,104 +9846,36 @@ export async function executeClaimsPendingAction(
       }
 
       case "update_claim_fields": {
-        const params = parameters as { claim_id?: string; changes?: FieldChange[] };
+        return await executeUpdateClaimFields(supabase, claimId, parameters, userId, userName, summary, "preview_update_claim_fields");
+      }
+
+      case "fill_claim_from_documents": {
+        const params = parameters as { claim_id?: string; changes?: FieldChange[]; files?: Array<{ name: string; mime_type: string; data_base64: string; title?: string }> };
         const target = String(params.claim_id || "");
-        if (!target || (claimId && claimId !== target)) {
-          return { success: false, message: "העדכון לא בוצע: התיק בכרטיס האישור אינו התיק הפתוח.", error: "claim_mismatch" };
+        const changes = Array.isArray(params.changes) ? params.changes : [];
+        let fieldsMsg = "";
+        if (changes.length) {
+          const upd = await executeUpdateClaimFields(supabase, claimId, { claim_id: target, changes }, userId, userName, summary, "preview_fill_claim_from_documents", "fill_claim_from_documents");
+          if (!upd.success) return upd;
+          fieldsMsg = upd.message || "";
         }
-        const previewChanges = Array.isArray(params.changes) ? params.changes : [];
-        if (!previewChanges.length || previewChanges.some((c) => !CLAIM_EDIT_FIELDS[String(c?.field || "")])) {
-          return { success: false, message: "העדכון לא בוצע: שדות לא מוכרים בכרטיס האישור.", error: "invalid_fields" };
+        const files = Array.isArray(params.files) ? params.files : [];
+        let filesMsg = "";
+        if (files.length) {
+          const savedFiles = await saveChatFilesToClaim(supabase, target, files, userId, userName, "מסמך מצ׳אט דליה AI");
+          if (!savedFiles.ok) {
+            return { success: false, message: `${fieldsMsg ? `${fieldsMsg}. ` : ""}המסמכים לא נשמרו: אין הרשאה לתיק.`, error: "forbidden" };
+          }
+          filesMsg = `נשמרו ${savedFiles.saved} מסמכים בתיק${savedFiles.reused ? ` (${savedFiles.reused} כבר היו בתיק ולא שוכפלו)` : ""}.`;
+          if (savedFiles.saved) {
+            await supabase.from("claims_history").insert({
+              id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+              claim_id: target,
+              row_data: { action: "הוספת מסמכים לתיק מצ'אט דליה AI", note: files.map((f) => f.title || f.name).join(", "), type: "docs_added_from_chat", by: userName || "דליה AI", at: nowHeIL() },
+            });
+          }
         }
-
-        const { data: cur } = await supabase.from("claims_records").select("id, row_data").eq("id", target).maybeSingle();
-        if (!cur || isDeletedClaim(cur.row_data)) {
-          return { success: false, message: "העדכון לא בוצע: התיק לא נמצא או שנמחק.", error: "claim_not_found" };
-        }
-        const latest = (cur.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
-
-        // Re-validate on the server from the approved new values; the screen only echoes the preview.
-        const revalidated = planClaimFieldEdit(latest, previewChanges.map((c) => ({ field: c.field, value: c.after })));
-        if (revalidated.errors.length) {
-          return { success: false, message: `העדכון לא בוצע: ${revalidated.errors.join("; ")}`, error: "invalid_values" };
-        }
-        const approved = previewChanges.filter((c) => !revalidated.unchanged.includes(CLAIM_EDIT_FIELDS[c.field].label));
-        if (!approved.length) {
-          return { success: true, message: "הערכים כבר קיימים בתיק. לא נדרש עדכון." };
-        }
-        const applied = applyClaimFieldEdit(latest, approved, { nowHe: nowHeIL(), actorName: userName || "דליה AI" });
-        if (!applied.ok) {
-          return {
-            success: false,
-            message: `העדכון לא בוצע: השדות ${applied.stale.join(", ")} השתנו מאז שהוכן הכרטיס. בקש תצוגה מקדימה חדשה.`,
-            error: "stale",
-          };
-        }
-
-        const nowIso = new Date().toISOString();
-        const { data: saved, error: updErr } = await supabase
-          .from("claims_records")
-          .update({
-            row_data: applied.rowData,
-            ...applied.columns,
-            updated_at: nowIso,
-            updated_by: userId,
-            updated_by_name: userName,
-            last_activity_at: nowIso,
-          })
-          .eq("id", target)
-          .select("id, row_data");
-        if (updErr) {
-          return { success: false, message: `העדכון לא בוצע: ${updErr.message}`, error: updErr.message };
-        }
-        const savedRow = (saved || [])[0] as { row_data?: Record<string, unknown> } | undefined;
-        if (!savedRow) {
-          return { success: false, message: "העדכון לא בוצע: אין הרשאה לעדכן את התיק או שהתיק לא נמצא.", error: "not_updated" };
-        }
-        const notSaved = approved.filter((c) => String(savedRow.row_data?.[c.field] ?? "") !== c.after).map((c) => c.label);
-        if (notSaved.length) {
-          return { success: false, message: `השמירה לא אומתה עבור: ${notSaved.join(", ")}.`, error: "not_verified" };
-        }
-
-        // History — one entry per field, in the same shape as the claim edit screen (appendHistory).
-        const at = nowHeIL();
-        for (const c of approved) {
-          const histId = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-          await supabase.from("claims_history").insert({
-            id: histId,
-            claim_id: target,
-            row_data: {
-              id: histId,
-              claimId: target,
-              action: "עדכון פרטי תיק",
-              note: `${c.label} — עודכן דרך דליה AI לאחר אישור המשתמש`,
-              type: "update",
-              valueBefore: c.before,
-              valueAfter: c.after,
-              by: userName || "דליה AI",
-              at,
-            },
-          });
-        }
-
-        await recordAiAudit(supabase, {
-          userId,
-          userName,
-          claimId: target,
-          toolName: "preview_update_claim_fields",
-          actionType: "update_claim_fields",
-          previewSummary: summary,
-          previewPayload: parameters,
-          approvedBy: userId,
-          approvedByName: userName,
-          executionAction: "update_claim_fields",
-          status: "executed",
-        });
-
-        return {
-          success: true,
-          message: `עודכנו ${approved.length} שדות בתיק ${target}: ${approved.map((c) => `${c.label}: ${c.after}`).join(" · ")}`,
-        };
+        return { success: true, message: [fieldsMsg, filesMsg].filter(Boolean).join(" ") || "לא נדרש עדכון." };
       }
 
       case "update_claim_client_contact": {
@@ -9890,52 +10278,11 @@ export async function executeClaimsPendingAction(
           return { success: false, error: "missing_claim_id", message: "חסר מזהה תיק תביעה" };
         }
 
-        const adminSb = getAdminClient() || supabase;
-        let savedCount = 0;
-
-        for (let i = 0; i < (files || []).length; i++) {
-          const f = files[i];
-          if (!f.data_base64) continue;
-          const buf = base64ToBytes(f.data_base64);
-          const digest = await sha256Hex(buf);
-          const safeName = sanitizeFileName(f.name || `file_${i + 1}`);
-          const path = `${targetClaimId}/staff/F-${Date.now()}-${i}-${safeName}`;
-          let mime = String(f.mime_type || "application/octet-stream").toLowerCase();
-          if (mime === "image/jpg") mime = "image/jpeg";
-
-          const { error: upErr } = await adminSb.storage.from("claims-docs").upload(path, buf, {
-            contentType: mime,
-            upsert: false,
-          });
-          if (upErr) console.error("Save attachment storage upload error:", upErr);
-
-          const fileId = `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-          const isPhoto = mime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(safeName);
-          const chosenKind = sanitizeDbDocKind(f.doc_kind || doc_kind, isPhoto);
-          const chosenStaffType = isPhoto ? "garage_photos" : (f.doc_kind || doc_kind || "general");
-
-          const { error: insErr } = await adminSb.from("claims_documents").insert({
-            id: fileId,
-            claim_id: targetClaimId,
-            storage_path: path,
-            original_name: f.name || safeName,
-            mime_type: mime,
-            byte_size: buf.length,
-            source: "staff",
-            uploaded_by: userId,
-            uploaded_by_name: userName,
-            doc_kind: chosenKind,
-            doc_meta: {
-              staff_type: chosenStaffType,
-              staff_title: description || f.name || safeName,
-            },
-            content_sha256: digest,
-          });
-
-          if (!insErr) {
-            savedCount++;
-          }
+        const savedFiles = await saveChatFilesToClaim(supabase, targetClaimId, files || [], userId, userName, description || "", doc_kind);
+        if (!savedFiles.ok) {
+          return { success: false, error: "forbidden", message: "הקבצים לא נשמרו: התיק לא נמצא או שאין לך הרשאה אליו." };
         }
+        const savedCount = savedFiles.saved;
 
         await supabase.from("claims_history").insert({
           id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
@@ -9956,7 +10303,7 @@ export async function executeClaimsPendingAction(
           toolName: "preview_save_attachment_to_claim",
           actionType: "save_attachment_to_claim",
           previewSummary: summary,
-          previewPayload: parameters,
+          previewPayload: { claim_id: targetClaimId, description, doc_kind, files: (files || []).map((f) => ({ name: f.name, mime_type: f.mime_type })) },
           approvedBy: userId,
           approvedByName: userName,
           executionAction: "save_attachment_to_claim",
@@ -9965,7 +10312,7 @@ export async function executeClaimsPendingAction(
 
         return {
           success: true,
-          message: `נשמרו בהצלחה ${savedCount} קבצים בתיק ${targetClaimId} (נוספו לגלריה ולספריית המסמכים).`,
+          message: `נשמרו בהצלחה ${savedCount} קבצים בתיק ${targetClaimId} (נוספו לגלריה ולספריית המסמכים).${savedFiles.reused ? ` ${savedFiles.reused} קבצים כבר היו בתיק ולא שוכפלו.` : ""}`,
           files_count: savedCount,
         };
       }
