@@ -601,7 +601,7 @@ Deno.serve(async (req) => {
       const effectiveStaffType = staffType || (isFormReq ? "signed_form" : "");
       const effectiveTitle = isFormReq ? `${reqRow.label} (חתום ע״י הלקוח)` : reqRow.label;
       const fileId = nid("CDM");
-      await sb.from("claims_documents").insert({
+      const { error: docErr } = await sb.from("claims_documents").insert({
         id: fileId,
         claim_id: claimId,
         doc_request_id: docRequestId,
@@ -618,7 +618,10 @@ Deno.serve(async (req) => {
           ...(origStaffForm?.id ? { related_file_id: origStaffForm.id } : {}),
         },
       });
-      await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
+      // The file stays in storage; the request is not marked received so the customer retries.
+      if (docErr) return jsonResponse({ success: false, error: "document_record_failed" }, 500);
+      const { error: reqErr } = await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
+      if (reqErr) return jsonResponse({ success: false, error: "document_request_update_failed" }, 500);
       await history(sb, claimId, isFormReq ? "טופס חתום התקבל מהלקוח" : "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
       await notify(sb, claimId, `התקבל ${isFormReq ? "טופס חתום" : "מסמך"} מהלקוח · ${reqRow.label}`);
       const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);

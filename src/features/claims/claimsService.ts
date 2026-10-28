@@ -70,7 +70,18 @@ function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
+/** True when the customer signed the intake form or submitted documents themselves — a real claim, not a draft. */
+export function isCustomerSubmittedClaim(c: Record<string, string | undefined>): boolean {
+  return Boolean(c.signedAt || c.completedByCustomerAt || c.source === 'Customer Accident Intake');
+}
+
 function mapClaimRow(r: Record<string, unknown>): ClaimRecord | null {
+  const row = mapClaimRowIncludingDeleted(r);
+  if (row.deletedAt) return null;
+  return row;
+}
+
+function mapClaimRowIncludingDeleted(r: Record<string, unknown>): ClaimRecord {
   const row = rowFromData(r.row_data as Record<string, unknown>);
   row.id = asText(r.id);
   row.vehicle_id = asText(r.vehicle_id);
@@ -91,7 +102,6 @@ function mapClaimRow(r: Record<string, unknown>): ClaimRecord | null {
   if (!row.lastActivityAt && r.last_activity_at) {
     row.lastActivityAt = new Date(asText(r.last_activity_at)).toLocaleString('he-IL');
   }
-  if (row.deletedAt) return null;
   return row;
 }
 
@@ -567,10 +577,42 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true };
     },
 
-    async softDeleteClaim(claimId: string, confirmText: string) {
+    async getDeletedClaims(): Promise<ClaimRecord[]> {
+      const { data, error } = await tbl('claims_records')
+        .select('id, vehicle_id, plate, client_name, status, company_name, row_data, created_by, created_by_name, updated_by_name, assigned_to, assigned_to_name, assigned_at, created_at, updated_at, last_activity_at, gmail_message_id, gmail_thread_id')
+        .not('row_data->>deletedAt', 'is', null)
+        .order('updated_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return ((data || []) as Array<Record<string, unknown>>)
+        .map(mapClaimRowIncludingDeleted)
+        .filter((r) => !!r.deletedAt);
+    },
+
+    async restoreDeletedClaim(claimId: string) {
+      const { data, error } = await tbl('claims_records').select('id, status, row_data').eq('id', claimId).maybeSingle();
+      if (error || !data) return { success: false, error: 'תיק לא נמצא' };
+      const raw = data as { status?: string; row_data?: Record<string, unknown> | null };
+      const rowData = { ...(raw.row_data || {}) };
+      if (!rowData.deletedAt) return { success: false, error: 'התיק אינו מחוק' };
+      delete rowData.deletedAt;
+      const { error: upErr } = await tbl('claims_records').update({
+        row_data: rowData,
+        updated_by: actor.id,
+        updated_by_name: actorName,
+      } as never).eq('id', claimId);
+      if (upErr) return { success: false, error: upErr.message };
+      const status = asText(raw.status);
+      await appendHistory(claimId, 'שוחזר ממחיקה', '', 'restore', status, status);
+      return { success: true };
+    },
+
+    async softDeleteClaim(claimId: string, confirmText: string, opts?: { allowCustomerSubmitted?: boolean }) {
       if (confirmText !== 'מחק') return { success: false, error: 'נדרש אישור מפורש' };
       const c = await getClaimById(claimId);
       if (!c) return { success: false, error: 'תיק לא נמצא' };
+      if (isCustomerSubmittedClaim(c) && !opts?.allowCustomerSubmitted) {
+        return { success: false, error: 'תיק שהלקוח הגיש — נדרש אישור נוסף למחיקה', code: 'customer_submitted' };
+      }
       const saved = await patchClaimData(claimId, { deletedAt: new Date().toISOString(), treatmentPending: '' }, { bumpActivity: true });
       if (!saved.success) return saved;
       await upsertNextTreatmentReminder(claimId, '', true);
