@@ -44,6 +44,7 @@ import { getPendingSharedDocs, type SharedDocItem } from './claimShareInbox';
 import DocumentViewerModal from './DocumentViewerModal';
 import { shareDocToEmail, shareDocToWhatsApp, type DocShareFile } from './claimDocShare';
 import { contextFromClaim } from './carPartBridge';
+import ClaimsFinancialAuditModal from './ClaimsFinancialAuditModal';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -937,6 +938,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [paintHistoryLoading, setPaintHistoryLoading] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState<{ quoteId: string | null } | null>(null);
   const [carPartOpen, setCarPartOpen] = useState(false);
+  const [financialAuditModalOpen, setFinancialAuditModalOpen] = useState(false);
+  const [financialAuditActiveClaimId, setFinancialAuditActiveClaimId] = useState<string | null>(null);
   const [claimQuotes, setClaimQuotes] = useState<ClaimQuoteRow[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -3430,6 +3433,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
                     <button type="button" className="btn btn-g btn-sm" data-testid="claims-dash-reports-btn" onClick={() => showView('reports')} title="מעבר למרכז דוחות וניהול מאזן">📊 דוחות</button>
+                    <button
+                      type="button"
+                      className="btn btn-g btn-sm"
+                      style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', color: '#fff', fontWeight: 700 }}
+                      data-testid="claims-financial-audit-btn"
+                      onClick={() => { setFinancialAuditActiveClaimId(null); setFinancialAuditModalOpen(true); }}
+                      title="בקרה כספית, השוואת דוחות שמאי ותשלומי ביטוח"
+                    >
+                      ⚖️ בקרה כספית ותשלומי ביטוח
+                    </button>
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
                     <button className="btn btn-g btn-sm" data-testid="claims-preview-sent" onClick={() => { void runSentPreview(); showView('gmail'); }}>📤 סריקת יוצאים (תצוגה)</button>
@@ -3597,6 +3610,30 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     title="מעבר לדוחות ניהול"
                   >
                     📊 דוחות
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-sm"
+                    style={{
+                      flex: '0 0 auto',
+                      whiteSpace: 'nowrap',
+                      padding: '6px 8px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 'var(--r2)',
+                      border: '1px solid var(--br2)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                      color: '#fff',
+                    }}
+                    onClick={() => { setFinancialAuditActiveClaimId(null); setFinancialAuditModalOpen(true); }}
+                    data-testid="claims-compact-financial-audit-btn"
+                    title="בקרה כספית, השוואת דוחות שמאי ותשלומי ביטוח"
+                  >
+                    ⚖️ בקרה כספית
                   </button>
                   <button
                     type="button"
@@ -3930,6 +3967,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: '#fff' }} data-testid="claims-quote-btn" onClick={() => { setCardMore(false); setQuoteOpen({ quoteId: claimQuotes[0]?.id || null }); }}>💰 הצעת מחיר</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }} data-testid="claims-paint-calc-btn" onClick={() => { setCardMore(false); setPaintCalcInitial(null); setPaintCalcOpen(true); }}>🎨 מחשבון צבע והערכת עלויות</button>
+                <button
+                  type="button"
+                  className="ab-btn ab-pri"
+                  style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: '#fff' }}
+                  data-testid="claims-card-financial-audit-btn"
+                  onClick={() => {
+                    setCardMore(false);
+                    setFinancialAuditActiveClaimId(cur.id);
+                    setFinancialAuditModalOpen(true);
+                  }}
+                  title="בדיקת דוח שמאי ותשלומי ביטוח לתיק זה"
+                >
+                  ⚖️ בדיקת דוח שמאי ותשלומים
+                </button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#111' }} data-testid="claims-carpart-btn" onClick={() => { setCardMore(false); setCarPartOpen(true); }}>🔧 Car-Part – מכרז חלקי חילוף</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
@@ -7051,6 +7102,40 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           onSaved={() => { void loadCardData(cur.id); }}
           onClose={() => setCarPartOpen(false)}
           toast={toast}
+        />
+      )}
+
+      {financialAuditModalOpen && (
+        <ClaimsFinancialAuditModal
+          isOpen={financialAuditModalOpen}
+          onClose={() => { setFinancialAuditModalOpen(false); setFinancialAuditActiveClaimId(null); }}
+          activeClaimId={financialAuditActiveClaimId}
+          claims={claims.map((c) => ({
+            id: c.id,
+            plate: c.plate,
+            clientName: c.clientName,
+            status: c.status,
+            insCompany: c.insCompany,
+            claimNum: c.claimNum,
+            row_data: c as any,
+            finAmount: (c as any).finAmount,
+            finApproved: (c as any).finApproved,
+            finPaid: (c as any).finPaid,
+            finPayDate: (c as any).finPayDate,
+            finRef: (c as any).finRef,
+            finBalance: (c as any).finBalance,
+          }))}
+          actorName={actor?.full_name || 'משתמש'}
+          onSaveClaimFinancials={async (claimId, patch) => {
+            const ok = await apiRef.current.saveClaimFields(claimId, patch);
+            if (ok) {
+              await loadClaims();
+              if (cur && cur.id === claimId) await loadCardData(claimId);
+              toast('הנתונים הכספיים עודכנו בכרטיס התביעה בהצלחה!', 'ok');
+              return true;
+            }
+            return false;
+          }}
         />
       )}
 
