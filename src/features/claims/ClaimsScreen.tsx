@@ -7103,6 +7103,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             }
             return false;
           }}
+          onTriggerDocOcr={async (fileId) => {
+            const res = await apiRef.current.invokeDocs('ocr_claim_file', { claim_id: cur.id, file_id: fileId });
+            if (res.success) {
+              await loadCardData(cur.id);
+              return { success: true, text: res.text as string };
+            }
+            return { success: false, error: (res.error as string) || 'קריאת OCR נכשלה' };
+          }}
         />
       )}
 

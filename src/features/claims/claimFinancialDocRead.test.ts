@@ -3,7 +3,7 @@
  *
  * בדיקות יחידה מקיפות עבור מודול בקרה כספית ותשלומי ביטוח (STAGING).
  */
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   classifyFinancialDocumentKind,
   extractOurSurveyorReport,
@@ -135,6 +135,39 @@ describe('2. חילוץ סעיפי נזק מדוח השמאי שלנו (Our Surv
     const text = 'חוות דעת שמאי - דוח מתוקן לאחר פירוק';
     const extracted = extractOurSurveyorReport(text);
     expect(extracted.isAmended).toBe(true);
+  });
+
+  it('מחלץ עבודות נוספות ושינועים ומאמת התאמה מלאה של סיכום הביניים (פתרון פער 2,520 ש"ח)', () => {
+    const text = `
+      גליל גולן שמאות רכב
+      מספר רישוי: 78-432-19
+      תביעה מס': DAL-2026-0246
+      
+      פירוט נזק:
+      חלפים: 5,169.00 ₪
+      עבודות פחחות: 5,700.00 ₪
+      צבע וחומרים: 11,592.60 ₪
+      עבודות נוספות ושינועים: 2,520.00 ₪
+      סה"כ נזק לפני מע"מ: 24,981.60 ₪
+      מע"מ 17%: 4,246.87 ₪
+      סה"כ כולל מע"מ: 29,228.47 ₪
+    `;
+    const extracted = extractOurSurveyorReport(text);
+    expect(extracted.parts.amount).toBe(5169);
+    expect(extracted.labor.amount).toBe(5700);
+    expect(extracted.paint.amount).toBe(11592.6);
+    expect(extracted.additionalWorks.amount).toBe(2520);
+    expect(extracted.subtotal.amount).toBe(24981.6);
+    expect(extracted.vat.amount).toBe(4246.87);
+    expect(extracted.totalDemand.amount).toBe(29228.47);
+
+    // אימות מתמטי מלא: 5,169 + 5,700 + 11,592.60 + 2,520 = 24,981.60 בדיוק
+    const sum =
+      extracted.parts.amount +
+      extracted.labor.amount +
+      extracted.paint.amount +
+      extracted.additionalWorks.amount;
+    expect(Math.round(sum * 100) / 100).toBe(24981.6);
   });
 });
 

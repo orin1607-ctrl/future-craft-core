@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { applyStoredReadMeta, READ_META_KEYS } from "../_shared/claimDocumentReadJob.ts";
+import { geminiOcr, OCR_DEFAULT_MODEL } from "../_shared/claimDocumentOcr.ts";
 
 const BUCKET = "claims-docs";
 const ALLOWED = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -1567,6 +1568,80 @@ Deno.serve(async (req) => {
         if (signed) urls[f.id] = signed;
       });
       return jsonResponse({ success: true, urls });
+    }
+
+    if (action === "ocr_claim_file") {
+      const claimId = String(body.claim_id || "").trim();
+      const fileId = String(body.file_id || "").trim();
+      if (!claimId || !fileId) return jsonResponse({ success: false, error: "claim_id_and_file_id_required" }, 400);
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+
+      const geminiKey = Deno.env.get("GEMINI_API_KEY") || "";
+      if (!geminiKey) return jsonResponse({ success: false, error: "gemini_key_missing" }, 500);
+
+      const { data: file } = await sb.from("claims_documents")
+        .select("id, claim_id, original_name, storage_path, mime_type, byte_size, doc_meta")
+        .eq("id", fileId)
+        .eq("claim_id", claimId)
+        .maybeSingle();
+
+      if (!file || !file.storage_path) return jsonResponse({ success: false, error: "file_not_found" }, 404);
+
+      const mime = String(file.mime_type || "").toLowerCase();
+      const name = String(file.original_name || "").toLowerCase();
+      const isImg = /^image\//.test(mime) || /\.(jpe?g|png|webp|heic)$/.test(name);
+      const isPdf = /pdf/.test(mime) || /\.pdf$/.test(name);
+      if (!isImg && !isPdf) {
+        return jsonResponse({ success: false, error: "unsupported_ocr_mime_type" }, 400);
+      }
+      if ((file.byte_size || 0) > 12 * 1024 * 1024) {
+        return jsonResponse({ success: false, error: "file_too_large_for_ocr" }, 400);
+      }
+
+      const { data: fileBlob, error: dlErr } = await sb.storage.from(BUCKET).download(file.storage_path);
+      if (dlErr || !fileBlob) {
+        return jsonResponse({ success: false, error: dlErr?.message || "download_failed" }, 500);
+      }
+
+      const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+      const ocrMime = isImg ? (mime && mime.startsWith("image/") ? mime : "image/jpeg") : "application/pdf";
+
+      const model = Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || OCR_DEFAULT_MODEL || "gemini-2.0-flash";
+      const ocrEngine = geminiOcr(geminiKey, model);
+      let ocrResult;
+      try {
+        ocrResult = await ocrEngine(fileBytes, ocrMime);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return jsonResponse({ success: false, error: `ocr_execution_failed: ${msg}` }, 500);
+      }
+
+      const prevMeta = (file.doc_meta && typeof file.doc_meta === "object") ? (file.doc_meta as Record<string, string>) : {};
+      const nextMeta = {
+        ...prevMeta,
+        read_text: ocrResult.text,
+        read_status: "ready",
+        read_source: "gemini_ocr",
+        read_at: new Date().toISOString(),
+        ocr_kind: ocrResult.kind,
+      };
+
+      const { error: upErr } = await sb.from("claims_documents")
+        .update({ doc_meta: nextMeta })
+        .eq("id", fileId)
+        .eq("claim_id", claimId);
+
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 500);
+
+      await history(sb, claimId, "סריקת OCR למסמך שומה", `${file.original_name} באמצעות ${model}`, actorName);
+
+      return jsonResponse({
+        success: true,
+        file_id: fileId,
+        text: ocrResult.text,
+        kind: ocrResult.kind,
+        doc_meta: nextMeta,
+      });
     }
 
     if (action === "upload_package_form") {

@@ -53,6 +53,7 @@ export interface ClaimsFinancialAuditModalProps {
   claim: ClaimCardData;
   files: ClaimDocFile[];
   onSaveClaimFinancials: (claimId: string, updatedFields: Record<string, unknown>) => Promise<boolean>;
+  onTriggerDocOcr?: (fileId: string) => Promise<{ success: boolean; text?: string; error?: string }>;
   actorName: string;
 }
 
@@ -62,11 +63,18 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
   claim,
   files,
   onSaveClaimFinancials,
+  onTriggerDocOcr,
   actorName,
 }) => {
   const [activeTab, setActiveTab] = useState<'audit' | 'docs' | 'letter' | 'legal'>('audit');
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'ok' | 'err' } | null>(null);
+
+  // מצבי OCR מקומיים לטעינה מהירה בזמן אמת
+  const [localReadTexts, setLocalReadTexts] = useState<Record<string, string>>({});
+  const [ocrLoadingFileId, setOcrLoadingFileId] = useState<string | null>(null);
+  const [isBatchOcrLoading, setIsBatchOcrLoading] = useState(false);
+  const [batchOcrProgress, setBatchOcrProgress] = useState<string>('');
 
   const showToast = (text: string, type: 'ok' | 'err' = 'ok') => {
     setToastMsg({ text, type });
@@ -114,15 +122,75 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
     return { surveyorDocs, paymentDocs, invoiceDocs, otherDocs };
   }, [files]);
 
+  // מסמכים שטרם נקראו וניתנים לסריקת OCR בתיק זה בלבד
+  const unreadCandidateFiles = useMemo(() => {
+    return files.filter((f) => {
+      const meta = f.doc_meta || {};
+      const hasRead = Boolean(localReadTexts[f.id] || meta.read_text || meta.reportNumber || meta.invoiceAmount);
+      const isImg = /image\//i.test(f.mime_type || '') || /\.(jpe?g|png|webp|heic)$/i.test(f.original_name);
+      const isPdf = /pdf/i.test(f.mime_type || '') || /\.pdf$/i.test(f.original_name);
+      return !hasRead && (isImg || isPdf);
+    });
+  }, [files, localReadTexts]);
+
+  // הפעלת סריקת OCR למסמך ספציפי
+  const handleRunOcr = async (fileId: string) => {
+    if (!onTriggerDocOcr) return;
+    setOcrLoadingFileId(fileId);
+    try {
+      const res = await onTriggerDocOcr(fileId);
+      if (res.success && res.text) {
+        setLocalReadTexts((prev) => ({ ...prev, [fileId]: res.text! }));
+        showToast('קריאת OCR הושלמה בהצלחה! סעיפי השומה חולצו.', 'ok');
+      } else {
+        showToast(res.error || 'קריאת OCR נכשלה', 'err');
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'שגיאה בלתי צפויה בסריקת OCR', 'err');
+    } finally {
+      setOcrLoadingFileId(null);
+    }
+  };
+
+  // סריקת כל מסמכי השומה שטרם נקראו בתיק זה ברצף
+  const handleRunAllOcr = async () => {
+    if (!onTriggerDocOcr) return;
+    if (unreadCandidateFiles.length === 0) {
+      showToast('כל מסמכי התיק כבר נקראו!', 'ok');
+      return;
+    }
+
+    setIsBatchOcrLoading(true);
+    let successCount = 0;
+    try {
+      for (let i = 0; i < unreadCandidateFiles.length; i++) {
+        const file = unreadCandidateFiles[i];
+        setBatchOcrProgress(`סורק קובץ ${i + 1} מתוך ${unreadCandidateFiles.length}: ${file.original_name}…`);
+        const res = await onTriggerDocOcr(file.id);
+        if (res.success && res.text) {
+          setLocalReadTexts((prev) => ({ ...prev, [file.id]: res.text! }));
+          successCount++;
+        }
+      }
+      showToast(`סריקת OCR הושלמה! נקראו בהצלחה ${successCount} מתוך ${unreadCandidateFiles.length} מסמכים.`, 'ok');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'שגיאה במהלך סריקת המסמכים', 'err');
+    } finally {
+      setIsBatchOcrLoading(false);
+      setBatchOcrProgress('');
+    }
+  };
+
   // שילוב כל הטקסטים שנקראו מהמסמכים בתיק זה
   const aggregatedText = useMemo(() => {
     const texts: string[] = [];
 
-    // טקסטים שחולצו ב-doc_meta
+    // טקסטים שחולצו ב-doc_meta או ב-OCR מקומי
     files.forEach((f) => {
       const meta = f.doc_meta || {};
-      if (meta.read_text) {
-        texts.push(`[קובץ: ${f.original_name}]\n${meta.read_text}`);
+      const readText = localReadTexts[f.id] || meta.read_text;
+      if (readText) {
+        texts.push(`[קובץ: ${f.original_name}]\n${readText}`);
       }
       if (meta.reportNumber) {
         texts.push(`שמאי: ${meta.surveyorName || 'שמאי'} מס' שומה: ${meta.reportNumber} תאריך: ${meta.reportDate || ''}`);
@@ -138,7 +206,7 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
     }
 
     return texts.join('\n\n');
-  }, [files, claim.notes]);
+  }, [files, localReadTexts, claim.notes]);
 
   // חילוץ והשוואה כספית עבור התיק הספציפי
   const comparison: FinancialComparisonResult = useMemo(() => {
@@ -401,6 +469,44 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
         <div className="cfa-content">
           {activeTab === 'audit' && (
             <div>
+              {/* התראה לסריקת OCR אם יש מסמכים שטרם נקראו בתיק זה */}
+              {unreadCandidateFiles.length > 0 && onTriggerDocOcr && (
+                <div
+                  style={{
+                    background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
+                    border: '1px solid #38bdf8',
+                    borderRadius: 10,
+                    padding: '12px 18px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22 }}>💡</span>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: 13 }}>
+                        זוהו {unreadCandidateFiles.length} מסמכי שומה / תמונות שטרם נסרקו בתיק זה ({unreadCandidateFiles.map(f => f.original_name).join(', ')})
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#94a3b8' }}>
+                        סריקה מאובטחת ומבודדת לתיק זה באמצעות Gemini Flash תחלץ במדויק את סעיפי הנזק, חלפים, פחחות, צבע ומע"מ.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="cfa-btn cfa-btn-primary"
+                    onClick={handleRunAllOcr}
+                    disabled={isBatchOcrLoading || Boolean(ocrLoadingFileId)}
+                  >
+                    {isBatchOcrLoading ? (batchOcrProgress || '⏳ סורק ב-OCR…') : `⚡ סרוק ${unreadCandidateFiles.length} מסמכים ב-OCR`}
+                  </button>
+                </div>
+              )}
+
               {/* טבלת השוואת סעיפים מפורטת */}
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -558,13 +664,25 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
 
           {activeTab === 'docs' && (
             <div>
-              <div style={{ marginBottom: 16 }}>
-                <h4 style={{ color: '#38bdf8', marginBottom: 6, fontSize: 14 }}>
-                  📁 מסמכי שומה, תמונות ותשלומים המצורפים לתיק {claim.id}
-                </h4>
-                <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                  המערכת מציגה את המסמכים הקיימים בתיק זה בלבד ואת מצב קריאתם (PDF דיגיטלי מול תמונות סרוקות).
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h4 style={{ color: '#38bdf8', marginBottom: 6, fontSize: 14 }}>
+                    📁 מסמכי שומה, תמונות ותשלומים המצורפים לתיק {claim.id}
+                  </h4>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    המערכת מציגה את המסמכים הקיימים בתיק זה בלבד ואת מצב קריאתם (PDF דיגיטלי מול תמונות סרוקות).
+                  </div>
                 </div>
+                {unreadCandidateFiles.length > 0 && onTriggerDocOcr && (
+                  <button
+                    type="button"
+                    className="cfa-btn cfa-btn-primary"
+                    onClick={handleRunAllOcr}
+                    disabled={isBatchOcrLoading || Boolean(ocrLoadingFileId)}
+                  >
+                    {isBatchOcrLoading ? (batchOcrProgress || '⏳ סורק…') : `⚡ סרוק ${unreadCandidateFiles.length} מסמכים שטרם נקראו (OCR)`}
+                  </button>
+                )}
               </div>
 
               {files.length === 0 ? (
@@ -574,14 +692,15 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {files.map((file) => {
-                    const isImg = /image\//i.test(file.mime_type || '') || /\.(jpe?g|png)$/i.test(file.original_name);
+                    const isImg = /image\//i.test(file.mime_type || '') || /\.(jpe?g|png|webp|heic)$/i.test(file.original_name);
                     const isPdf = /pdf/i.test(file.mime_type || '') || /\.pdf$/i.test(file.original_name);
                     const meta = file.doc_meta || {};
-                    const hasRead = Boolean(meta.read_text || meta.reportNumber || meta.invoiceAmount);
+                    const readText = localReadTexts[file.id] || meta.read_text;
+                    const hasRead = Boolean(readText || meta.reportNumber || meta.invoiceAmount);
 
                     return (
-                      <div key={file.id} className="cfa-doc-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
+                      <div key={file.id} className="cfa-doc-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ flex: '1 1 300px' }}>
                           <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span>{isPdf ? '📄' : isImg ? '🖼️' : '📎'}</span>
                             <span>{file.original_name}</span>
@@ -597,16 +716,26 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                             {meta.reportNumber && ` · שומה מס': ${meta.reportNumber}`}
                             {meta.invoiceAmount && ` · חשבונית: ${meta.invoiceAmount} ₪`}
                           </div>
-                          {meta.read_text && (
+                          {readText && (
                             <div className="cfa-citation-box" style={{ maxHeight: 60, overflow: 'hidden' }}>
-                              תוכן שחולץ: "{meta.read_text.slice(0, 140)}…"
+                              תוכן שחולץ: "{readText.slice(0, 140)}…"
                             </div>
                           )}
                         </div>
 
-                        <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           {hasRead ? (
                             <span className="cfa-badge cfa-badge-match">קריאה מוכנה</span>
+                          ) : onTriggerDocOcr && (isImg || isPdf) ? (
+                            <button
+                              type="button"
+                              className="cfa-btn cfa-btn-primary"
+                              style={{ padding: '6px 12px', fontSize: 12 }}
+                              onClick={() => handleRunOcr(file.id)}
+                              disabled={isBatchOcrLoading || ocrLoadingFileId === file.id}
+                            >
+                              {ocrLoadingFileId === file.id ? '⏳ סורק ב-OCR…' : '🔍 בצע OCR (Gemini Flash)'}
+                            </button>
                           ) : isImg ? (
                             <span className="cfa-badge cfa-badge-reduction" title="מסמך תמונה סרוק — דורש OCR">
                               תמונה (נדרש OCR)

@@ -140,4 +140,39 @@ describe('ClaimsFinancialAuditModal Component (Single Claim Focus)', () => {
     expect(screen.getAllByText(/השגה ודרישת הפרשים/).length).toBeGreaterThan(0);
     expect(screen.getByText('📋 העתק נוסח מכתב')).toBeDefined();
   });
+
+  it('מציג כפתור OCR ומפעיל סריקה יזומה למסמך ספציפי', async () => {
+    const handleClose = vi.fn();
+    const handleSave = vi.fn(async () => true);
+    const handleOcr = vi.fn(async (fileId: string) => ({
+      success: true,
+      text: 'דוח שמאי - חלפים: 12,000 ₪, פחחות: 4,000 ₪, צבע: 2,500 ₪, סה"כ לתשלום: 21,645 ₪',
+    }));
+
+    render(
+      <ClaimsFinancialAuditModal
+        isOpen={true}
+        onClose={handleClose}
+        claim={sampleClaim}
+        files={sampleFiles}
+        onSaveClaimFinancials={handleSave}
+        onTriggerDocOcr={handleOcr}
+        actorName="יוני מנהל"
+      />
+    );
+
+    // מעבר לטאב מסמכים
+    const docsTabBtn = screen.getByText(/מסמכי השומה בתיק/);
+    fireEvent.click(docsTabBtn);
+
+    // איתור כפתור ה-OCR לקובץ
+    const ocrBtn = screen.getByText(/בצע OCR/);
+    expect(ocrBtn).toBeDefined();
+
+    fireEvent.click(ocrBtn);
+
+    await waitFor(() => {
+      expect(handleOcr).toHaveBeenCalledWith('F-1');
+    });
+  });
 });

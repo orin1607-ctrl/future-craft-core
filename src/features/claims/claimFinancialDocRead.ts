@@ -67,6 +67,7 @@ export interface OurSurveyorReportExtraction {
   parts: ExtractedAmountWithSource;
   labor: ExtractedAmountWithSource;
   paint: ExtractedAmountWithSource;
+  additionalWorks: ExtractedAmountWithSource; // עבודות נוספות, שינועים ועבודות חוץ
   diminutionOfValue: ExtractedAmountWithSource; // ירידת ערך
   otherOrSalvage: ExtractedAmountWithSource;    // שונות / קיזוז שרידים
   subtotal: ExtractedAmountWithSource;          // סה"כ לפני מע"מ
@@ -93,6 +94,7 @@ export interface CounterReportExtraction {
   approvedParts: ExtractedAmountWithSource;
   approvedLabor: ExtractedAmountWithSource;
   approvedPaint: ExtractedAmountWithSource;
+  approvedAdditionalWorks?: ExtractedAmountWithSource;
   approvedSubtotal: ExtractedAmountWithSource;
   approvedVat: ExtractedAmountWithSource;
   approvedTotal: ExtractedAmountWithSource;
@@ -396,6 +398,17 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   ]);
   if (paint.amount > 0) citations['צבע'] = paint.sourceSnippet;
 
+  // עבודות נוספות ושינועים
+  const additionalWorks = extractAmountForLabel(clean, [
+    'עבודות נוספות ושינועים',
+    'עבודות נוספות',
+    'שינועים ועבודות חוץ',
+    'שינועים',
+    'עבודות עזר',
+    'שינוע',
+  ]);
+  if (additionalWorks.amount > 0) citations['עבודות נוספות ושינועים'] = additionalWorks.sourceSnippet;
+
   // ירידת ערך
   const diminutionOfValue = extractAmountForLabel(clean, ['ירידת ערך', 'פגיעה בערך']);
   if (diminutionOfValue.amount > 0) citations['ירידת ערך'] = diminutionOfValue.sourceSnippet;
@@ -442,7 +455,7 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   if (/מע["״]מ\s*18%/i.test(clean)) vatRate = 0.18;
 
   // בדיקת תקינות מתמטית (סבירות)
-  const calculatedSumBeforeVat = parts.amount + labor.amount + paint.amount + otherOrSalvage.amount;
+  const calculatedSumBeforeVat = parts.amount + labor.amount + paint.amount + additionalWorks.amount + otherOrSalvage.amount;
   if (totalDemand.amount === 0) {
     if (subtotal.amount > 0) {
       totalDemand.amount = Math.round(subtotal.amount * (1 + vatRate) * 100) / 100;
@@ -500,6 +513,7 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
     parts,
     labor,
     paint,
+    additionalWorks,
     diminutionOfValue,
     otherOrSalvage,
     subtotal,
@@ -898,7 +912,40 @@ export function compareFinancialAudit(params: {
     });
   }
 
-  // 4. שורת מע"מ
+  // 4. שורת עבודות נוספות ושינועים
+  if (ourDemand && ourDemand.additionalWorks && ourDemand.additionalWorks.amount > 0) {
+    const dem = ourDemand.additionalWorks.amount;
+    const app =
+      counterReport && counterReport.approvedAdditionalWorks && counterReport.approvedAdditionalWorks.amount > 0
+        ? counterReport.approvedAdditionalWorks.amount
+        : null;
+    const diff = app !== null ? Math.round((dem - app) * 100) / 100 : null;
+
+    let explanation = 'אישור מלא של עבודות נוספות ושינועים';
+    let status: ComparisonTableRow['status'] = 'match';
+
+    if (diff !== null && diff > 0) {
+      status = 'reduction';
+      explanation = `הפחתה של ${diff.toLocaleString()} ₪ בעבודות נוספות ושינועים`;
+      reviewReasons.push(`הפחתה של ${diff.toLocaleString()} ₪ בסעיף עבודות נוספות ושינועים`);
+    } else if (app === null) {
+      explanation = 'טרם התקבל אישור מפורט לעבודות נוספות';
+      status = 'missing';
+    }
+
+    rows.push({
+      category: 'עבודות נוספות ושינועים',
+      demanded: dem,
+      approved: app,
+      paid: null,
+      diff,
+      explanation,
+      sourceSnippet: ourDemand.additionalWorks.sourceSnippet,
+      status,
+    });
+  }
+
+  // 5. שורת מע"מ
   if (ourDemand && ourDemand.vat.amount > 0) {
     const dem = ourDemand.vat.amount;
     const app = counterReport && counterReport.approvedVat.amount > 0 ? counterReport.approvedVat.amount : null;
