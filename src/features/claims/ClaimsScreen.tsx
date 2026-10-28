@@ -10,7 +10,7 @@ import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
 import { gmailOpenHref, groupMailThreads, unifyCorrespondence } from './claimMailThread';
 import { completedTreatments, docKeyForRequestType, filesForTreatment, inferTreatmentRequest, isOpenTreatment, isTreatmentItem, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
-import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
+import { createClaimsApi, isCustomerSubmittedClaim, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import SignaturePad from './SignaturePad';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, shouldAutoPersistNoticePdf, type IntakeDraft } from './claimIntakeModel';
@@ -1064,6 +1064,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const mailReturnRef = useRef('');
   const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
+  const [deleteAllowCustomer, setDeleteAllowCustomer] = useState(false);
+  const [deletedClaims, setDeletedClaims] = useState<ClaimRecord[] | null>(null);
+  const [restoringId, setRestoringId] = useState('');
   const bumpMailDraft = () => {
     setMailPreviewOn(false);
     setMailConfirmOn(false);
@@ -1427,6 +1430,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const currentInsuranceCount = listMode === 'archive' ? mappedArchiveClaims.length : mappedActiveClaims.length;
   const currentGarageCount = listMode === 'archive' ? archiveGarageCases.length : activeGarageCases.length;
   const currentTotalCount = currentInsuranceCount + currentGarageCount;
+
+  const openDeletedClaims = async () => {
+    setDeletedClaims(null);
+    setModal('moDeleted');
+    try {
+      setDeletedClaims(await apiRef.current.getDeletedClaims());
+    } catch (e) {
+      setDeletedClaims([]);
+      toast(String((e as Error)?.message || 'טעינת תיקים מחוקים נכשלה'), 'err');
+    }
+  };
+
+  const restoreDeleted = async (id: string) => {
+    if (restoringId) return;
+    setRestoringId(id);
+    try {
+      const r = await apiRef.current.restoreDeletedClaim(id);
+      if (!r.success) { toast(String(r.error || 'שחזור נכשל'), 'err'); return; }
+      setDeletedClaims((prev) => (prev || []).filter((c) => c.id !== id));
+      await loadAll();
+      toast(`התיק ${id} שוחזר`);
+    } finally {
+      setRestoringId('');
+    }
+  };
 
   const showView = (name: string, f = '') => {
     setSbOpen(false);
@@ -3025,7 +3053,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <span data-testid="claims-selected-count">{selectedVisible.length} נבחרו</span>
           {isSuperAdmin ? <button className="btn btn-p btn-sm" data-testid="claims-bulk-assign" onClick={() => setBulkModal('assign')}>שייך לעובד תביעות</button> : null}
           <button className="btn btn-g btn-sm" data-testid="claims-bulk-archive" onClick={() => setBulkModal('archive')}>העבר לארכיון</button>
-          <button className="btn btn-sm" data-testid="claims-bulk-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setDeleteTyped(''); setBulkModal('delete'); }}>מחיקה (soft)</button>
+          <button className="btn btn-sm" data-testid="claims-bulk-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setDeleteTyped(''); setDeleteAllowCustomer(false); setBulkModal('delete'); }}>מחיקה (soft)</button>
           <button className="btn btn-g btn-sm" onClick={() => setSelectedIds([])}>בטל בחירה</button>
         </div>
       )}
@@ -3379,6 +3407,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className={`sb-i ${view === 'dashboard' && !filter ? 'act' : ''}`} onClick={() => showView('dashboard')}><span className="ic">📊</span>דשבורד</button>
               <button className={`sb-i ${view === 'claims' && !filter && listMode === 'active' ? 'act' : ''}`} data-testid="claims-nav-all" onClick={() => showView('claims')}><span className="ic">📋</span>{mineOnly ? 'התביעות שלי' : 'כל התיקים'}<span className="sb-bd b">{workset.length}</span></button>
               <button className={`sb-i ${view === 'claims' && listMode === 'archive' ? 'act' : ''}`} data-testid="claims-nav-archive" onClick={() => { setListMode('archive'); setView('claims'); setFilter(''); setStFil(''); setSbOpen(false); }}><span className="ic">📦</span>תיקים בארכיון<span className="sb-bd">{archiveClaims.length}</span></button>
+              <button className="sb-i" data-testid="claims-nav-deleted" onClick={() => { setSbOpen(false); void openDeletedClaims(); }}><span className="ic">🗑️</span>תיקים מחוקים</button>
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length ? <span className="sb-bd r">{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length}</span> : null}</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📊</span>דוחות</button>
@@ -3974,7 +4003,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         toast('שוחזר מארכיון');
                       }}>שחזר מארכיון</button>
                       : <button className="ab-btn ab-sum" data-testid="claims-archive" onClick={() => { setCardMore(false); setModal('moArchive'); }}>העבר לארכיון</button>}
-                    <button className="ab-btn" data-testid="claims-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setCardMore(false); setDeleteTyped(''); setModal('moDelete'); }}>מחק תיק</button>
+                    <button className="ab-btn" data-testid="claims-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setCardMore(false); setDeleteTyped(''); setDeleteAllowCustomer(false); setModal('moDelete'); }}>מחק תיק</button>
                   </div>
                 ) : null}
               </div>
@@ -5437,6 +5466,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div className="fg"><label className="fl">הקלידו «מחק» לאישור</label>
                   <input className="fi" data-testid="bulk-delete-confirm" value={deleteTyped} onChange={(e) => setDeleteTyped(e.target.value)} />
                 </div>
+                {(() => {
+                  const submitted = claims.filter((c) => selectedVisible.includes(c.id) && isCustomerSubmittedClaim(c));
+                  if (!submitted.length) return null;
+                  return (
+                    <div data-testid="bulk-delete-customer-warning" style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(239,68,68,.12)', fontSize: 12 }}>
+                      <div style={{ color: 'var(--rd2)', fontWeight: 700, marginBottom: 6 }}>
+                        ⚠️ {submitted.length} מהתיקים הוגשו ע״י לקוח: {submitted.map((c) => `${c.id} (${c.clientName || '—'})`).join(', ')}
+                      </div>
+                      <div style={{ marginBottom: 6 }}>תיקים אלה לא יימחקו, אלא אם תסמנו:</div>
+                      <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <input type="checkbox" data-testid="bulk-delete-allow-customer" checked={deleteAllowCustomer} onChange={(e) => setDeleteAllowCustomer(e.target.checked)} />
+                        למחוק גם אותם — אני מאשר/ת שאינם תיקי לקוח אמיתיים
+                      </label>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -5466,11 +5511,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 } else if (bulkModal === 'delete') {
                   if (deleteTyped !== 'מחק') { toast('נדרש להקליד «מחק»', 'err'); return; }
                   let ok = 0;
+                  let protectedCount = 0;
                   for (const id of ids) {
-                    const r = await apiRef.current.softDeleteClaim(id, 'מחק');
+                    const r = await apiRef.current.softDeleteClaim(id, 'מחק', { allowCustomerSubmitted: deleteAllowCustomer });
                     if (r.success) ok += 1;
+                    else if ('code' in r && r.code === 'customer_submitted') protectedCount += 1;
                   }
-                  toast(`נמחקו (soft) ${ok} מתוך ${ids.length}`);
+                  toast(`נמחקו (soft) ${ok} מתוך ${ids.length}${protectedCount ? ` · ${protectedCount} תיקי לקוח לא נמחקו` : ''}`);
+                  setDeleteAllowCustomer(false);
                 }
                 setBulkModal(null);
                 setSelectedIds([]);
@@ -6743,6 +6791,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
+      <div className={`ov ${modal === 'moDeleted' ? 'open' : ''}`}>
+        <div className="modal">
+          <div className="mh"><div className="mh-t">תיקים מחוקים</div><button className="mcl" onClick={() => setModal(null)}>✕</button></div>
+          <div className="mb" data-testid="deleted-claims-list" style={{ fontSize: 13 }}>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>תיקים שנמחקו במחיקה רכה. המסמכים, המיילים וההיסטוריה שמורים, ואפשר לשחזר כל תיק.</div>
+            {deletedClaims === null ? <div>טוען…</div> : null}
+            {deletedClaims && deletedClaims.length === 0 ? <div>אין תיקים מחוקים</div> : null}
+            {(deletedClaims || []).slice().sort((a, b) => Number(isCustomerSubmittedClaim(b)) - Number(isCustomerSubmittedClaim(a)) || String(b.deletedAt).localeCompare(String(a.deletedAt))).map((c) => (
+              <div key={c.id} data-testid={`deleted-claim-${c.id}`} style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bd, rgba(255,255,255,.08))' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>
+                    {c.id} · {c.clientName || '—'}
+                    {isCustomerSubmittedClaim(c) ? <span style={{ marginInlineStart: 6, color: 'var(--rd2)', fontSize: 11 }}>הוגש ע״י לקוח</span> : null}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>
+                    {[c.plate, c.insCompany, c.status, c.deletedAt ? `נמחק ${new Date(c.deletedAt).toLocaleString('he-IL')}` : ''].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <button className="btn btn-p" data-testid={`restore-deleted-${c.id}`} disabled={Boolean(restoringId)} onClick={() => { void restoreDeleted(c.id); }}>
+                  {restoringId === c.id ? 'משחזר…' : 'שחזר'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className={`ov ${modal === 'moArchive' ? 'open' : ''}`}>
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">העבר לארכיון</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
@@ -6818,12 +6893,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div data-testid="delete-warning" style={{ color: 'var(--rd2)', fontWeight: 700, marginBottom: 8 }}>אתה עומד למחוק את התיק. האם אתה בטוח?</div>
             <div style={{ fontSize: 12, marginBottom: 8 }}>מחיקה רכה בלבד — המסמכים, המיילים וההיסטוריה נשמרים. הקלד «מחק» לאישור.</div>
             <input className="fi" data-testid="delete-typed" value={deleteTyped} onChange={(e) => setDeleteTyped(e.target.value)} placeholder="מחק" />
+            {cur && isCustomerSubmittedClaim(cur) ? (
+              <div data-testid="delete-customer-warning" style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(239,68,68,.12)', fontSize: 12 }}>
+                <div style={{ color: 'var(--rd2)', fontWeight: 700, marginBottom: 6 }}>⚠️ הלקוח כבר הגיש את התיק הזה (טופס חתום / מסמכים).</div>
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input type="checkbox" data-testid="delete-allow-customer" checked={deleteAllowCustomer} onChange={(e) => setDeleteAllowCustomer(e.target.checked)} />
+                  אני מאשר/ת שזה לא תיק לקוח אמיתי
+                </label>
+              </div>
+            ) : null}
           </div>
           <div className="mf">
             <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-rd" data-testid="delete-confirm" disabled={deleteTyped !== 'מחק'} onClick={async () => {
+            <button className="btn btn-rd" data-testid="delete-confirm" disabled={deleteTyped !== 'מחק' || Boolean(cur && isCustomerSubmittedClaim(cur) && !deleteAllowCustomer)} onClick={async () => {
               if (!curId || deleteTyped !== 'מחק') return;
-              const r = await apiRef.current.softDeleteClaim(curId, deleteTyped);
+              const r = await apiRef.current.softDeleteClaim(curId, deleteTyped, { allowCustomerSubmitted: deleteAllowCustomer });
               if (!r.success) { toast(String(r.error || 'מחיקה נכשלה'), 'err'); return; }
               setModal(null);
               setCurId('');
