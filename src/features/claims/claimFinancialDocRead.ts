@@ -246,7 +246,7 @@ export function parseNumberString(numStr: string): number {
   return isNaN(val) ? 0 : Math.round(val * 100) / 100;
 }
 
-const AMOUNT_PATTERN = '([0-9]{1,3}(?:,[0-9]{3})+(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)';
+const AMOUNT_PATTERN = '([0-9]{1,3}(?:,[0-9]{3})+(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?)(?![0-9.])';
 const CURRENCY_PATTERN = '(?:₪|ש"ח|ש״ח|\\bnis\\b)?';
 
 /**
@@ -255,12 +255,13 @@ const CURRENCY_PATTERN = '(?:₪|ש"ח|ש״ח|\\bnis\\b)?';
 export function extractAmountForLabel(
   text: string,
   keywords: string[],
-  options: { rejectIfKeyword?: string[]; preferLast?: boolean } = {}
+  options: { rejectIfKeyword?: string[]; preferLast?: boolean; targetAmount?: number } = {}
 ): ExtractedAmountWithSource {
   const lines = linesOf(text);
   const hits: Array<{ amount: number; line: string }> = [];
 
-  for (const line of lines) {
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
     // שלילה לפי מילות חסימה
     if (options.rejectIfKeyword && options.rejectIfKeyword.some((k) => line.includes(k))) {
       continue;
@@ -271,18 +272,34 @@ export function extractAmountForLabel(
 
     const PERCENT_MODIFIER = '(?:\\(?\\s*\\d{1,2}%\\s*\\)?)?';
     // דפוס 1: מילת מפתח (עם אפשרות לשיעור אחוזים כמו 17%) : סכום
-    const reForward = new RegExp(`${matchedKeyword}[\\s:\\-–—]*${PERCENT_MODIFIER}[\\s:\\-–—]*${CURRENCY_PATTERN}\\s*${AMOUNT_PATTERN}(?!%)`, 'i');
+    const reForward = new RegExp(`${matchedKeyword}[\\s:\\-–—]*${PERCENT_MODIFIER}[\\s:\\-–—]*${CURRENCY_PATTERN}\\s*${AMOUNT_PATTERN}(?!\\s*%)`, 'i');
     // דפוס 2: סכום מילת מפתח (ויזואלי)
-    const reBackward = new RegExp(`${AMOUNT_PATTERN}(?!%)\\s*${CURRENCY_PATTERN}\\s*[\\s:\\-–—]*${matchedKeyword}`, 'i');
+    const reBackward = new RegExp(`${AMOUNT_PATTERN}(?!\\s*%)\\s*${CURRENCY_PATTERN}\\s*[\\s:\\-–—]*${matchedKeyword}`, 'i');
 
-    const matchF = reForward.exec(line);
-    const matchB = reBackward.exec(line);
+    let hitMatch = reForward.exec(line) || reBackward.exec(line);
+    let matchedLine = line;
 
-    const hitMatch = matchF || matchB;
+    // תמיכה בשבירת שורה: מילת מפתח בשורה נוכחית והסכום בשורה הבאה
+    if (!hitMatch && idx + 1 < lines.length) {
+      const nextLine = lines[idx + 1];
+      if (!options.rejectIfKeyword || !options.rejectIfKeyword.some((k) => nextLine.includes(k))) {
+        const combined = `${line} ${nextLine}`;
+        hitMatch = reForward.exec(combined) || reBackward.exec(combined);
+        if (hitMatch) {
+          matchedLine = combined;
+        }
+      }
+    }
+
     if (hitMatch) {
+      // אם הסכום שזוהה צמוד לסימן אחוז (למשל 5.00 % או 17%), אין מדובר בסכום כספי אלא בשיעור אחוזים
+      const afterMatch = matchedLine.slice(hitMatch.index + hitMatch[0].length);
+      if (/^(\s*%|\s*\.\d+\s*%)/.test(afterMatch)) {
+        continue;
+      }
       const val = parseNumberString(hitMatch[1]);
       if (val > 0) {
-        hits.push({ amount: val, line });
+        hits.push({ amount: val, line: matchedLine });
       }
     }
   }
@@ -292,6 +309,24 @@ export function extractAmountForLabel(
       amount: 0,
       sourceSnippet: 'לא מופיע במסמך',
       confidence: 'low',
+    };
+  }
+
+  // אם הוגדר targetAmount (למשל צפי מע"מ מתוך סה"כ לפני מע"מ), נבחר בפגיעה הקרובה ביותר
+  if (options.targetAmount !== undefined && hits.length > 0) {
+    let best = hits[0];
+    let bestDiff = Math.abs(best.amount - options.targetAmount);
+    for (const h of hits) {
+      const diff = Math.abs(h.amount - options.targetAmount);
+      if (diff < bestDiff) {
+        best = h;
+        bestDiff = diff;
+      }
+    }
+    return {
+      amount: best.amount,
+      sourceSnippet: best.line.slice(0, 180),
+      confidence: 'high',
     };
   }
 
@@ -388,29 +423,52 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   ]);
   if (labor.amount > 0) citations['פחחות / עבודה'] = labor.sourceSnippet;
 
-  // צבע וחומרים
-  const paint = extractAmountForLabel(clean, [
-    'חומרי צבע',
-    'צבע וחומרים',
-    'צבע',
-    'עבודות צבע',
-    'סה"כ צבע',
-  ]);
+  // צבע וחומרים (עדיפות לשכר עבודות צבע)
+  let paint = extractAmountForLabel(clean, ['עבודות צבע']);
+  if (paint.amount === 0) {
+    paint = extractAmountForLabel(clean, [
+      'סה"כ צבע',
+      'צבע וחומרים',
+      'חומרי צבע',
+      'חומרים לצבע',
+      'צבע',
+    ]);
+  }
   if (paint.amount > 0) citations['צבע'] = paint.sourceSnippet;
 
   // עבודות נוספות ושינועים
-  const additionalWorks = extractAmountForLabel(clean, [
+  let additionalWorks = extractAmountForLabel(clean, [
     'עבודות נוספות ושינועים',
     'עבודות נוספות',
     'שינועים ועבודות חוץ',
     'שינועים',
     'עבודות עזר',
-    'שינוע',
   ]);
+  // אם לא נמצא סכום כולל מפורש אך קיימים סעיפי עבודות נפרדים בדוח (כגון פו"ח, שיפוץ, שינועים, כוון מתלה)
+  if (additionalWorks.amount === 0) {
+    const totalWorks = extractAmountForLabel(clean, ['סה"כ עבודות', 'סה״כ עבודות']);
+    if (totalWorks.amount > 0 && (labor.amount > 0 || paint.amount > 0)) {
+      const remainderWorks = Math.round((totalWorks.amount - labor.amount - paint.amount) * 100) / 100;
+      if (remainderWorks > 0) {
+        additionalWorks = {
+          amount: remainderWorks,
+          sourceSnippet: `עבודות נוספות, שינועים ושונות (מתוך ${totalWorks.sourceSnippet})`,
+          confidence: 'high',
+        };
+      }
+    }
+  }
   if (additionalWorks.amount > 0) citations['עבודות נוספות ושינועים'] = additionalWorks.sourceSnippet;
 
   // ירידת ערך
-  const diminutionOfValue = extractAmountForLabel(clean, ['ירידת ערך', 'פגיעה בערך']);
+  const diminutionOfValue = extractAmountForLabel(clean, [
+    'סה"כ ירידת הערך',
+    'סה״כ ירידת הערך',
+    'ירידת הערך',
+    'ירידת ערך',
+    'הפצוי לירידת הערך',
+    'פגיעה בערך',
+  ]);
   if (diminutionOfValue.amount > 0) citations['ירידת ערך'] = diminutionOfValue.sourceSnippet;
 
   // שונות / קיזוז שרידים
@@ -421,38 +479,70 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   const subtotal = extractAmountForLabel(clean, [
     'לפני מע"מ',
     'לפני מע״מ',
+    'סה"כ נזק שנתבע',
+    'סה״כ נזק שנתבע',
     'סה"כ נזק',
     'סה״כ נזק',
     'סה"כ שומה לפני',
   ]);
   if (subtotal.amount > 0) citations['לפני מע"מ'] = subtotal.sourceSnippet;
 
-  // מע"מ (תוך שלילת שורות "לפני מע"מ")
+  // חישוב עקיף / אימות של סה"כ ושיעור מע"מ
+  let vatRate = 0.17;
+  if (/מע["״]מ\s*18%/i.test(clean)) vatRate = 0.18;
+
+  // מע"מ (תוך שלילת שורות "לפני מע"מ" וחשבונות עסקה נפרדים של שכ"ט)
+  const expectedVat = subtotal.amount > 0 ? Math.round(subtotal.amount * vatRate * 100) / 100 : undefined;
   const vat = extractAmountForLabel(clean, ['מע"מ', 'מע״מ', 'ערך מוסף'], {
-    rejectIfKeyword: ['לפני מע"מ', 'לפני מע״מ', 'בטרם מע"מ', 'ללא מע"מ', 'ללא מע״מ'],
+    targetAmount: expectedVat,
+    rejectIfKeyword: [
+      'לפני מע"מ',
+      'לפני מע״מ',
+      'בטרם מע"מ',
+      'ללא מע"מ',
+      'ללא מע״מ',
+      'שמאות',
+      'חשבון עיסקה',
+      'חשבון עסקה',
+      'הוצאות משרד',
+      'נסיעות',
+      'שכ"ט',
+    ],
   });
   if (vat.amount > 0) citations['מע"מ'] = vat.sourceSnippet;
 
-  // סה"כ כולל מע"מ / לתשלום
+  // סה"כ כולל מע"מ / לתשלום (תוך סינון חשבונות שכ"ט שמאי נפרדים)
+  const expectedTotal = subtotal.amount > 0 ? Math.round(subtotal.amount * (1 + vatRate) * 100) / 100 : undefined;
   const totalDemand = extractAmountForLabel(
     clean,
     [
+      'סה"כ נכלל בחוות הדעת',
+      'סה"כ תביעה שהוגשה',
+      'סה"כ נזק שנתבע',
+      'סה״כ נזק שנתבע',
       'סה"כ כולל מע"מ',
       'סה״כ כולל מע״מ',
-      'סה"כ לתשלום',
-      'סה״כ לתשלום',
       'סה"כ שומה',
       'סה״כ שומה',
       'סך הכל שומה',
       'סך הכל כולל מע"מ',
+      'סה"כ נזק',
+      'סה״כ נזק',
+      'סה"כ לתשלום',
+      'סה״כ לתשלום',
     ],
-    { preferLast: true }
+    {
+      preferLast: true,
+      targetAmount: expectedTotal,
+      rejectIfKeyword: ['שמאות', 'חשבון עיסקה', 'חשבון עסקה', 'הוצאות משרד', 'נסיעות', 'שכ"ט'],
+    }
   );
   if (totalDemand.amount > 0) citations['סה"כ כולל מע"מ'] = totalDemand.sourceSnippet;
 
-  // חישוב עקיף / אימות של סה"כ ושיעור מע"מ
-  let vatRate = 0.17;
-  if (/מע["״]מ\s*18%/i.test(clean)) vatRate = 0.18;
+  // בדיקת תקינות מתמטית (סבירות) - סכום כולל מע"מ לא יכול להיות נמוך מסכום לפני מע"מ
+  if (totalDemand.amount > 0 && subtotal.amount > 0 && totalDemand.amount < subtotal.amount) {
+    totalDemand.amount = 0; // פוסל סכום שגוי (למשל שכ"ט שמאי במקום נזק רכב)
+  }
 
   // בדיקת תקינות מתמטית (סבירות)
   const calculatedSumBeforeVat = parts.amount + labor.amount + paint.amount + additionalWorks.amount + otherOrSalvage.amount;
