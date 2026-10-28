@@ -45,6 +45,14 @@ import DocumentViewerModal from './DocumentViewerModal';
 import { shareDocToEmail, shareDocToWhatsApp, type DocShareFile } from './claimDocShare';
 import { contextFromClaim } from './carPartBridge';
 import ClaimsFinancialAuditModal from './ClaimsFinancialAuditModal';
+import {
+  classifyFinancialDocumentKind,
+  extractOurSurveyorReport,
+  extractCounterSurveyorReport,
+  extractPaymentNotice,
+  compareFinancialAudit,
+  safelyUpdateFinancialAudit,
+} from './claimFinancialDocRead';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -940,6 +948,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [carPartOpen, setCarPartOpen] = useState(false);
   const [financialAuditModalOpen, setFinancialAuditModalOpen] = useState(false);
   const [financialAuditActiveClaimId, setFinancialAuditActiveClaimId] = useState<string | null>(null);
+  const [claimOcrStates, setClaimOcrStates] = useState<Record<string, {
+    state: 'idle' | 'pending' | 'scanning' | 'completed' | 'needs_review' | 'failed';
+    fileId?: string;
+    fileName?: string;
+    error?: string;
+  }>>({});
+  const autoReadCountRef = useRef<Record<string, number>>({});
+  const processedDocIdsRef = useRef<Set<string>>(new Set());
   const [claimQuotes, setClaimQuotes] = useState<ClaimQuoteRow[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -2156,6 +2172,124 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (ok) toast('שם המסמך עודכן');
   };
 
+  const triggerAutoDocOcr = async (claimId: string, fileId: string, fileName: string, fileType?: string) => {
+    const isImg = /image\//i.test(fileType || '') || /\.(jpe?g|png|webp|heic)$/i.test(fileName);
+    const isPdf = /pdf/i.test(fileType || '') || /\.pdf$/i.test(fileName);
+    if (!isImg && !isPdf) return;
+
+    if (processedDocIdsRef.current.has(fileId)) return;
+    processedDocIdsRef.current.add(fileId);
+
+    const currentCount = autoReadCountRef.current[claimId] || 0;
+    if (currentCount >= 5) {
+      toast(`הושגה מגבלת 5 סריקות אוטומטיות לתיק ${claimId}. ניתן להפעיל סריקה ידנית מתוך בדיקת דוח שמאי.`, 'inf');
+      return;
+    }
+    autoReadCountRef.current[claimId] = currentCount + 1;
+
+    setClaimOcrStates((prev) => ({
+      ...prev,
+      [claimId]: { state: 'scanning', fileId, fileName }
+    }));
+
+    try {
+      const res = await apiRef.current.invokeDocs('ocr_claim_file', { claim_id: claimId, file_id: fileId });
+      if (!res.success) {
+        throw new Error((res.error as string) || 'קריאת OCR נכשלה');
+      }
+
+      const ocrText = (res.text as string) || '';
+      const kind = classifyFinancialDocumentKind(ocrText, fileName);
+
+      if (kind === 'vehicle_photo') {
+        setClaimOcrStates((prev) => ({
+          ...prev,
+          [claimId]: { state: 'completed', fileId, fileName }
+        }));
+        toast('תמונת נזק / רכב זוהתה ונקראה ברקע (ללא סכומי תביעה)', 'ok');
+        await loadCardData(claimId);
+        return;
+      }
+
+      const { data: latestDbRow } = await supabase.from('claims_records').select('*').eq('id', claimId).single();
+      const existingRowData = (latestDbRow?.row_data as any) || {};
+
+      const patch: any = {
+        status: 'pending_approval',
+        auto_read_state: 'completed',
+        auto_read_count: autoReadCountRef.current[claimId],
+      };
+
+      if (kind === 'our_surveyor_report' || kind === 'repair_estimate') {
+        const extractedDemand = extractOurSurveyorReport(ocrText);
+        patch.our_demand = extractedDemand;
+        if (extractedDemand.needsManualReview) {
+          patch.auto_read_state = 'needs_review';
+        }
+      } else if (kind === 'counter_surveyor_report') {
+        const extractedCounter = extractCounterSurveyorReport(ocrText);
+        const prevCounters = existingRowData.financial_audit?.counter_reports || [];
+        patch.counter_reports = [...prevCounters, extractedCounter];
+        if (extractedCounter.needsManualReview) {
+          patch.auto_read_state = 'needs_review';
+        }
+      } else if (kind === 'payment_notice' || kind === 'payment_breakdown') {
+        const extractedPayment = extractPaymentNotice(ocrText);
+        const prevNotices = existingRowData.financial_audit?.payment_notices || [];
+        patch.payment_notices = [...prevNotices, extractedPayment];
+        if (extractedPayment.needsManualReview) {
+          patch.auto_read_state = 'needs_review';
+        }
+      }
+
+      const updatedComparison = compareFinancialAudit({
+        claimId,
+        plateNumber: latestDbRow?.plate || '',
+        ourDemand: patch.our_demand || existingRowData.financial_audit?.our_demand || null,
+        counterReport: patch.counter_reports?.[0] || existingRowData.financial_audit?.counter_reports?.[0] || null,
+        paymentNotice: patch.payment_notices?.[0] || existingRowData.financial_audit?.payment_notices?.[0] || null,
+        verifiedPayments: existingRowData.financial_audit?.verified_payments || [],
+      });
+      patch.latest_comparison = updatedComparison;
+
+      const updateRes = safelyUpdateFinancialAudit({
+        existingRowData,
+        updatedBy: 'סריקה אוטומטית ברקע (Gemini Flash)',
+        actionSummary: `קריאה אוטומטית של ${fileName} (${kind})`,
+        patch,
+      });
+
+      if (updateRes.ok) {
+        await supabase.from('claims_records').update({ row_data: updateRes.newRowData }).eq('id', claimId);
+      }
+
+      setClaimOcrStates((prev) => ({
+        ...prev,
+        [claimId]: {
+          state: patch.auto_read_state,
+          fileId,
+          fileName,
+        }
+      }));
+
+      await loadCardData(claimId);
+      await loadClaims();
+      toast('דוח נסרק אוטומטית ברקע! הנתונים נשמרו בבדיקת דוח שמאי (ממתין לאישור).', 'ok');
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'שגיאה בסריקה אוטומטית';
+      setClaimOcrStates((prev) => ({
+        ...prev,
+        [claimId]: {
+          state: 'failed',
+          fileId,
+          fileName,
+          error: errMsg,
+        }
+      }));
+      toast(`סריקת מסמך נכשלה: ${errMsg}. ניתן להפעיל מחדש ידנית.`, 'err');
+    }
+  };
+
   const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }, titles?: string[]) => {
     if (!files.length) return [];
     setDocsUploading(true);
@@ -2181,7 +2315,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const up = await apiRef.current.staffUpload(claimId, '', file, staff_title ? { ...extra, staff_title } : extra);
               if (up.success) {
                 if (up.reused) reused += 1;
-                if (up.file_id) ids.push(up.file_id);
+                if (up.file_id) {
+                  ids.push(up.file_id);
+                  void triggerAutoDocOcr(claimId, up.file_id, file.name, file.type);
+                }
                 return;
               }
               lastErr = up.error || 'שגיאה';
@@ -3936,7 +4073,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button
                   type="button"
                   className="ab-btn ab-pri"
-                  style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: '#fff' }}
+                  style={{
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                    color: '#fff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
                   data-testid="claims-card-financial-audit-btn"
                   onClick={() => {
                     setCardMore(false);
@@ -3945,7 +4088,101 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   }}
                   title="בדיקת דוח שמאי ותשלומי ביטוח לתיק זה"
                 >
-                  ⚖️ בדיקת דוח שמאי ותשלומים
+                  <span>⚖️ בדיקת דוח שמאי ותשלומים</span>
+                  {(() => {
+                    const localState = claimOcrStates[cur.id]?.state;
+                    const audit = (cur.row_data as any)?.financial_audit;
+                    const auditState = audit?.auto_read_state;
+                    const effectiveState = localState || auditState;
+
+                    if (effectiveState === 'scanning') {
+                      return (
+                        <span
+                          data-testid="claims-financial-audit-status-badge"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: '#2563eb',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            boxShadow: '0 0 6px rgba(37,99,235,0.6)',
+                          }}
+                        >
+                          ⏳ בסריקה
+                        </span>
+                      );
+                    }
+                    if (effectiveState === 'completed') {
+                      return (
+                        <span
+                          data-testid="claims-financial-audit-status-badge"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: '#10b981',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          ✓ הושלם
+                        </span>
+                      );
+                    }
+                    if (effectiveState === 'needs_review') {
+                      return (
+                        <span
+                          data-testid="claims-financial-audit-status-badge"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: '#f59e0b',
+                            color: '#111',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          ⚠️ דורש בדיקה
+                        </span>
+                      );
+                    }
+                    if (effectiveState === 'failed') {
+                      return (
+                        <span
+                          data-testid="claims-financial-audit-status-badge"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: '#ef4444',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          ❌ נכשל
+                        </span>
+                      );
+                    }
+                    if (effectiveState === 'pending') {
+                      return (
+                        <span
+                          data-testid="claims-financial-audit-status-badge"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: '#64748b',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          ⏱️ ממתין לסריקה
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#111' }} data-testid="claims-carpart-btn" onClick={() => { setCardMore(false); setCarPartOpen(true); }}>🔧 Car-Part – מכרז חלקי חילוף</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
@@ -4210,8 +4447,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         if (!file) return;
                         const up = await apiRef.current.staffUpload(cur.id, '', file, { doc_kind: (file.type || '').startsWith('image/') ? 'surveyor_photo' : 'surveyor_report' });
                         if (!up.success) { toast(up.error || 'העלאה נכשלה', 'err'); return; }
+                        if (up.file_id) {
+                          void triggerAutoDocOcr(cur.id, up.file_id, file.name, file.type);
+                        }
                         await loadCardData(cur.id);
-                        toast('דוח שמאי הועלה');
+                        toast('דוח שמאי הועלה (סריקה אוטומטית ברקע החלה)');
                       }} />
                     </label>
                   </div>
@@ -7094,13 +7334,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           files={docs.files}
           actorName={actor?.full_name || 'משתמש'}
           onSaveClaimFinancials={async (claimId, patch) => {
-            const ok = await apiRef.current.saveClaimFields(claimId, patch);
-            if (ok) {
+            const { data: c } = await supabase.from('claims_records').select('*').eq('id', claimId).single();
+            const prevRow = (c?.row_data as any) || {};
+            const nextRow = { ...prevRow, ...(patch || {}) };
+            const { error } = await supabase.from('claims_records').update({
+              row_data: nextRow,
+              fin_amount: nextRow.finAmount ? Number(nextRow.finAmount) : c?.fin_amount,
+              fin_approved: nextRow.finApproved ? Number(nextRow.finApproved) : c?.fin_approved,
+              fin_paid: nextRow.finPaid ? Number(nextRow.finPaid) : c?.fin_paid,
+            } as any).eq('id', claimId);
+            if (!error) {
               await loadClaims();
               await loadCardData(claimId);
               toast('הנתונים הכספיים עודכנו בכרטיס התביעה בהצלחה!', 'ok');
               return true;
             }
+            toast(`שגיאה בעדכון: ${error?.message || 'שגיאה לא צפויה'}`, 'err');
             return false;
           }}
           onTriggerDocOcr={async (fileId) => {

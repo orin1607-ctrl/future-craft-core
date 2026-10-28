@@ -22,6 +22,8 @@ export type FinancialDocKind =
   | 'payment_notice'          // הודעת תשלום / אישור העברה
   | 'payment_breakdown'       // פירוט תשלום / סילוק תביעה
   | 'repair_estimate'         // הצעת תיקון / אומדן ראשוני בלבד
+  | 'surveyor_fee'            // חשבונית שכ"ט שמאי
+  | 'vehicle_photo'           // תמונות נזק / רכב ללא סכומים
   | 'unknown_financial_doc';  // מסמך כספי שאינו מזוהה בוודאות
 
 export type DeductionCategory =
@@ -284,8 +286,8 @@ export function extractAmountForLabel(
     const matchedKeyword = keywords.find((k) => line.toLowerCase().includes(k.toLowerCase()));
     if (!matchedKeyword) continue;
 
-    const PERCENT_MODIFIER = '(?:\\(?\\s*\\d{1,2}%\\s*\\)?)?';
-    // דפוס 1: מילת מפתח (עם אפשרות לשיעור אחוזים כמו 17%) : סכום
+    const PERCENT_MODIFIER = '(?:\\(?\\s*\\d{1,2}%\\s*\\)?|\\[\\s*\\d{1,2}%[^\\]]*\\])?';
+    // דפוס 1: מילת מפתח (עם אפשרות לשיעור אחוזים כמו 17% או [18% (שמונה עשר)]) : סכום
     const reForward = new RegExp(`${matchedKeyword}[\\s:\\-–—]*${PERCENT_MODIFIER}[\\s:\\-–—]*${CURRENCY_PATTERN}\\s*${AMOUNT_PATTERN}(?!\\s*%)`, 'i');
     // דפוס 2: סכום מילת מפתח (ויזואלי)
     const reBackward = new RegExp(`${AMOUNT_PATTERN}(?!\\s*%)\\s*${CURRENCY_PATTERN}\\s*[\\s:\\-–—]*${matchedKeyword}`, 'i');
@@ -414,7 +416,20 @@ export function classifyFinancialDocumentKind(text: string, fileName = ''): Fina
     return 'repair_estimate';
   }
 
-  // 6. דוח שמאי רגיל (ברירת מחדל לדוח שלנו אם אין סממני נגדי)
+  // 6. חשבונית שכר טרחת שמאי
+  if (/שכ"?ט\s*שמאי|שכר\s*טרחת\s*שמאי|חשבונית\s*שמאי|קבלה\s*שמאי|חשבון\s*עיסקה\s*שכ"?ט/i.test(clean)) {
+    return 'surveyor_fee';
+  }
+
+  // 7. תמונות נזק / רכב ללא סכומים
+  if (
+    /(?:^|\b)(?:תמונ|רכב|פגוש|דלת|כנף|מוקד|photo|img|image|bumper|dsc|pic|damage)(?:$|\b)/i.test(clean) &&
+    !/דוח|שומה|חוות\s*דעת|חשבונית|הודעת\s*תשלום|שכ"?ט/i.test(clean)
+  ) {
+    return 'vehicle_photo';
+  }
+
+  // 8. דוח שמאי רגיל (ברירת מחדל לדוח שלנו אם אין סממני נגדי)
   if (
     /חוות\s*דעת\s*שמאי|שומת\s*נזק|דוח\s*שמאי|דו"ח\s*שמאי|שמאות\s*רכב|הערכת\s*נזק\s*לרכב/i.test(
       clean
@@ -441,7 +456,18 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   // חילוץ סעיפי נזק: חלפים
   const parts = extractAmountForLabel(
     clean,
-    ['סה"כ חלקי חילוף', 'סה״כ חלקי חילוף', 'חלקי חילוף', 'סה"כ חלפים', 'סה״כ חלפים', 'חלפים', 'סה"כ חלקים', 'חלקים'],
+    [
+      'סה"כ חלקי חילוף',
+      'סה״כ חלקי חילוף',
+      'מחיר חלקי חילוף',
+      'מחיר חלפים',
+      'חלקי חילוף',
+      'סה"כ חלפים',
+      'סה״כ חלפים',
+      'חלפים',
+      'סה"כ חלקים',
+      'חלקים',
+    ],
     {
       rejectIfKeyword: ['הובלת חלקים', 'משלוח חלקים', 'הובלה'],
       preferLast: true,
@@ -598,6 +624,9 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
       'הוצאות משרד',
       'נסיעות',
       'שכ"ט',
+      'סה"כ כולל מע"מ',
+      'סה״כ כולל מע״מ',
+      'סך הכל כולל מע"מ',
     ],
   });
   if (vat.amount > 0) citations['מע"מ'] = vat.sourceSnippet;
@@ -661,7 +690,7 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   const claimNumber = claimMatch ? claimMatch[1].trim() : undefined;
 
   let surveyorName: string | undefined;
-  const surveyorMatch = clean.match(/(?:שם\s*(?:ה)?שמאי|שמאי(?:\s*מטעם)?)\s*[:\-–—]\s*([א-ת\s]{2,25})/i);
+  const surveyorMatch = clean.match(/(?:שם\s*(?:ה)?שמאי|שמאי(?:\s*בודק|\s*מטעם)?)\s*[:\-–—]\s*([א-ת ]{2,25})/i);
   if (surveyorMatch) {
     surveyorName = surveyorMatch[1].trim();
   } else {

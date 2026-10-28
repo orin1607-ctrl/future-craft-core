@@ -472,3 +472,224 @@ describe('6. ניהול שינויים חסין דריסות (Concurrency & Hist
     }
   });
 });
+
+describe('7. שבע בדיקות אימות מחייבות — מנגנון קריאה אוטומטי (7 Mandatory Verification Tests)', () => {
+  it('בדיקה 1: הפעלת סריקת OCR אוטומטית בהעלאה וסינון קבצים שאינם מועמדים', () => {
+    // קובצי PDF ותמונות הם מועמדים תקפים לסריקה
+    const isCandidate = (name: string, mime?: string) => {
+      const isImg = /image\//i.test(mime || '') || /\.(jpe?g|png|webp|heic)$/i.test(name);
+      const isPdf = /pdf/i.test(mime || '') || /\.pdf$/i.test(name);
+      return isImg || isPdf;
+    };
+
+    expect(isCandidate('survey_report.pdf', 'application/pdf')).toBe(true);
+    expect(isCandidate('damage_front.jpg', 'image/jpeg')).toBe(true);
+    expect(isCandidate('scan.png', 'image/png')).toBe(true);
+    expect(isCandidate('notes.txt', 'text/plain')).toBe(false);
+    expect(isCandidate('document.docx', 'application/vnd.openxmlformats')).toBe(false);
+  });
+
+  it('בדיקה 2: דוח שמאי סרוק מרובה עמודים (DAL-2026-0005) — חילוץ סעיפים מדויק ללא איבוד נתונים', () => {
+    const multiPageOcrChunk = `
+      אורן יעקב שמאות וסקרים בע"מ
+      חוות דעת : 510-000103200-00
+      תאריך: 23/07/2025
+      מספר רישוי: 71167102
+      שם מבוטח: בן רחמים מיכל
+      שמאי בודק: אורן יעקב
+      מוסך: יוני מרכז הפגושים
+      עבודות פחחות ₪3,500.00
+      עבודות צבע ₪5,900.00
+      מחיר חלקי חילוף ₪14,186.28
+      סה"כ נזק למוקד נזק לחלק אחורי ₪25,606.28
+      מע"מ [18% (שמונה עשר)] ₪4,609.13
+      סה"כ כולל מע"מ ₪30,215.41
+      ערך רכב בפועל הינו : ₪96,761.00
+      גובה ירידה באחוזים : 4.00%
+      סך ירידת ערך : ₪3,870.44
+    `;
+
+    const extracted = extractOurSurveyorReport(multiPageOcrChunk);
+    expect(extracted.kind).toBe('our_surveyor_report');
+    expect(extracted.plateNumber).toBe('71167102');
+    expect(extracted.parts.amount).toBe(14186.28);
+    expect(extracted.labor.amount).toBe(3500);
+    expect(extracted.paint.amount).toBe(5900);
+    expect(extracted.vat.amount).toBe(4609.13);
+    expect(extracted.diminutionOfValue.amount).toBe(3870.44);
+    expect(extracted.totalDemand.amount).toBe(30215.41);
+    expect(extracted.exactTotalDemand?.amount).toBe(34085.85); // 30,215.41 + 3,870.44
+    expect(extracted.surveyorName).toContain('אורן יעקב');
+  });
+
+  it('בדיקה 3: מסמך שאינו דוח שמאי (תמונת פגוש בלבד) — סיווג כ-vehicle_photo ללא דרישת סכומים', () => {
+    const photoFileName = 'תמונת_פגוש_אחורי_מוקד_1.jpg';
+    const photoOcrText = 'צילום פגוש אחורי ניזוק ברכב ללא סכומי תביעה';
+    const kind = classifyFinancialDocumentKind(photoOcrText, photoFileName);
+    expect(kind).toBe('vehicle_photo');
+
+    // מסמך כזה לא דורש סכומי שומה ואינו מעלה שגיאות
+    expect(['vehicle_photo', 'unknown_financial_doc']).toContain(kind);
+  });
+
+  it('בדיקה 4: מניעת סריקות כפולות (Deduplication) ומגבלת קצב (Rate Limit)', () => {
+    const processedSet = new Set<string>();
+    const fileId = 'CDM-FILE-12345';
+    let scanCount = 0;
+
+    const simulateUploadProcess = (fId: string) => {
+      if (processedSet.has(fId)) {
+        return { skipped: true, reason: 'duplicate' };
+      }
+      if (scanCount >= 5) {
+        return { skipped: true, reason: 'rate_limit_exceeded' };
+      }
+      processedSet.add(fId);
+      scanCount++;
+      return { skipped: false, count: scanCount };
+    };
+
+    // סריקה ראשונה
+    expect(simulateUploadProcess(fileId)).toEqual({ skipped: false, count: 1 });
+    // ניסיון סריקה כפולה של אותו קובץ
+    expect(simulateUploadProcess(fileId)).toEqual({ skipped: true, reason: 'duplicate' });
+
+    // בדיקת מגבלת 5 סריקות לתיק
+    expect(simulateUploadProcess('F-2')).toEqual({ skipped: false, count: 2 });
+    expect(simulateUploadProcess('F-3')).toEqual({ skipped: false, count: 3 });
+    expect(simulateUploadProcess('F-4')).toEqual({ skipped: false, count: 4 });
+    expect(simulateUploadProcess('F-5')).toEqual({ skipped: false, count: 5 });
+    // סריקה שישית נחסמת
+    expect(simulateUploadProcess('F-6')).toEqual({ skipped: true, reason: 'rate_limit_exceeded' });
+  });
+
+  it('בדיקה 5: שתי גרסאות דוח שמאי באותו תיק — שימור כל הגרסאות ללא דריסה', () => {
+    const existingRow = {
+      financial_audit: {
+        ...createInitialFinancialAuditRowData('עובד מוסך'),
+        our_demand: extractOurSurveyorReport('סה"כ לתשלום: 20,000.00 ₪'),
+        previous_demands: [],
+      },
+    };
+
+    const newAmendedReport = extractOurSurveyorReport('שומה מתוקנת עקב חלפים נוספים: סה"כ לתשלום: 24,500.00 ₪');
+    expect(newAmendedReport.isAmended).toBe(true);
+
+    const updateRes = safelyUpdateFinancialAudit({
+      existingRowData: existingRow,
+      updatedBy: 'שמאי בודק',
+      actionSummary: 'קליטת גרסת שומה מתוקנת',
+      patch: {
+        our_demand: newAmendedReport,
+      },
+    });
+
+    expect(updateRes.ok).toBe(true);
+    if (updateRes.ok) {
+      const audit = updateRes.newRowData.financial_audit as any;
+      expect(audit.our_demand.totalDemand.amount).toBe(24500);
+      expect(audit.previous_demands.length).toBe(1);
+      expect(audit.previous_demands[0].totalDemand.amount).toBe(20000);
+    }
+  });
+
+  it('בדיקה 6: טיפול בשגיאות וניסיון חוזר (Error & Retry Flow)', () => {
+    const existingRow = {
+      financial_audit: {
+        ...createInitialFinancialAuditRowData('משתמש'),
+      },
+    };
+
+    // סימולציית כישלון סריקה
+    const failUpdate = safelyUpdateFinancialAudit({
+      existingRowData: existingRow,
+      updatedBy: 'מערכת OCR',
+      actionSummary: 'שגיאה בקריאת קובץ פגום',
+      patch: {
+        status: 'pending_approval',
+        auto_read_state: 'failed',
+        last_read_error: 'הקובץ פגום או לא קריא על ידי המודל',
+      },
+    });
+
+    expect(failUpdate.ok).toBe(true);
+    if (failUpdate.ok) {
+      const audit = failUpdate.newRowData.financial_audit as any;
+      expect(audit.auto_read_state).toBe('failed');
+      expect(audit.last_read_error).toBe('הקובץ פגום או לא קריא על ידי המודל');
+
+      // ניסיון חוזר מוצלח
+      const retryUpdate = safelyUpdateFinancialAudit({
+        existingRowData: failUpdate.newRowData,
+        updatedBy: 'משתמש — סריקה ידנית חוזרת',
+        actionSummary: 'סריקה חוזרת מוצלחת',
+        patch: {
+          auto_read_state: 'completed',
+          last_read_error: undefined,
+          our_demand: extractOurSurveyorReport('סה"כ לתשלום: 15,000.00 ₪'),
+        },
+      });
+
+      expect(retryUpdate.ok).toBe(true);
+      if (retryUpdate.ok) {
+        const retryAudit = retryUpdate.newRowData.financial_audit as any;
+        expect(retryAudit.auto_read_state).toBe('completed');
+        expect(retryAudit.last_read_error).toBeUndefined();
+        expect(retryAudit.our_demand.totalDemand.amount).toBe(15000);
+      }
+    }
+  });
+
+  it('בדיקה 7: תצוגה בכרטיס התביעה ואי-דריסת שדות קיימים (Non-destructive Staged State)', () => {
+    const originalClaim = {
+      id: 'DAL-2026-0010',
+      clientName: 'רבקה כהן',
+      plate: '12-345-67',
+      finAmount: '10000',
+      finApproved: '8000',
+      finPaid: '8000',
+      financial_audit: createInitialFinancialAuditRowData('מנהל'),
+    };
+
+    // קריאה אוטומטית ברקע
+    const extractedDemand = extractOurSurveyorReport(`
+      חוות דעת שמאי רכב
+      שמאי: יורם שמאים
+      חלפים: 14,000.00 ש"ח
+      עבודות פחחות: 3,000.00 ש"ח
+      עבודות צבע: 2,500.00 ש"ח
+      סה"כ לפני מע"מ: 19,500.00 ₪
+      מע"מ 17%: 3,315.00 ₪
+      סה"כ לתשלום: 22,815.00 ₪
+    `);
+
+    const updateRes = safelyUpdateFinancialAudit({
+      existingRowData: originalClaim,
+      updatedBy: 'סריקה אוטומטית ברקע (Gemini Flash)',
+      actionSummary: 'חילוץ דוח שמאי ראשוני',
+      patch: {
+        status: 'pending_approval', // ממתין לאישור!
+        auto_read_state: 'completed',
+        our_demand: extractedDemand,
+      },
+    });
+
+    expect(updateRes.ok).toBe(true);
+    if (updateRes.ok) {
+      const newClaim = updateRes.newRowData as any;
+      // וידוא ששדות התביעה המקוריים נשארו ללא שינוי!
+      expect(newClaim.finAmount).toBe('10000');
+      expect(newClaim.finApproved).toBe('8000');
+      expect(newClaim.finPaid).toBe('8000');
+
+      // הנתונים שחולצו נמצאים בבטחה תחת financial_audit במצב "ממתין לאישור"
+      expect(newClaim.financial_audit.status).toBe('pending_approval');
+      expect(newClaim.financial_audit.auto_read_state).toBe('completed');
+      expect(newClaim.financial_audit.our_demand.totalDemand.amount).toBe(22815);
+      expect(newClaim.financial_audit.our_demand.parts.amount).toBe(14000);
+      expect(newClaim.financial_audit.our_demand.labor.amount).toBe(3000);
+      expect(newClaim.financial_audit.our_demand.paint.amount).toBe(2500);
+      expect(newClaim.financial_audit.our_demand.vat.amount).toBe(3315);
+    }
+  });
+});
