@@ -82,6 +82,13 @@ const confirm = await page.waitForSelector('[data-testid="claims-ai-confirm-btn"
 const secs = Math.round((Date.now() - t0) / 1000);
 const card = await page.locator('.claims-ai-msg, [data-testid="claims-ai-workspace"]').last().innerText().catch(() => '');
 await page.screenshot({ path: join(OUT, '03-quote-preview.png'), fullPage: false });
+// The card is long: its top (claim, client, categories) and its middle (parts, checks) as well.
+const cardTop = page.getByText('הזנת הצעת מחיר למחשבון — תיק', { exact: false }).last();
+await cardTop.scrollIntoViewIfNeeded().catch(() => {});
+await cardTop.evaluate((el) => el.scrollIntoView({ block: 'start' })).catch(() => {});
+await page.screenshot({ path: join(OUT, '03a-quote-preview-top.png') });
+await page.getByText('חלקי חילוף (', { exact: false }).last().evaluate((el) => el.scrollIntoView({ block: 'start' })).catch(() => {});
+await page.screenshot({ path: join(OUT, '03b-quote-preview-parts.png') });
 rec('תצוגה', `תצוגה מקדימה הוצגה לאישור (${secs} שניות)`, !!confirm);
 rec('שיוך', 'שויך לתיק הנכון לפי מספר הרכב שבהצעה', card.includes(Q.id) && card.includes(Q.client));
 rec('תצוגה', 'הבדיקה מול הסיכומים שבהצעה: פחחות 15.5, מכונאות 6.5, 24 שעות, 5,390 ₪', ['✓ עבודות פחחות', '✓ עבודות מכונאות', '✓ סה״כ שעות', '✓ סכומים ידועים'].every((s) => card.includes(s)));
