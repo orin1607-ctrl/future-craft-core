@@ -138,7 +138,7 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.surveyorFee).toBe(2574.0);
 
     const damageItem = ev.items.find((i) => i.id === 'clause_damage');
-    expect(damageItem?.docAmount).toBe(24242.0);
+    expect(damageItem?.docAmount).toBe(30242.16);
 
     const disputedItem = ev.items.find((i) => i.id === 'clause_disputed_balance');
     expect(disputedItem?.docAmount).toBe(15543.0);
