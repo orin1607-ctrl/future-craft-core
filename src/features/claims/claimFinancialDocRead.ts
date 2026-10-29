@@ -752,13 +752,14 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
       'שכר טרחת השמאי',
       'שכר טרחת שמאי',
       'שכ"ט שמאי',
-      'חשבון עיסקה מס',
-      'חשבון עסקה מס',
+      'סה"כ לתשלום שכר טרחה',
       'חשבון עיסקה',
       'חשבון עסקה',
+      'שמאי רכב',
     ],
     {
-      rejectIfKeyword: ['לפי כרטיס עבודה', 'מוסך יוני', 'מרכז הפגושים'],
+      rejectIfKeyword: ['לפי כרטיס עבודה', 'מוסך יוני', 'מרכז הפגושים', 'תאריך'],
+      minAmount: 500, // שכר טרחת שמאי לא יכול להיות 25 ₪ או מספר חשבונית/תאריך
     }
   );
   if (surveyorFee.amount > 0) citations['שכר טרחת שמאי'] = surveyorFee.sourceSnippet;
@@ -1395,7 +1396,11 @@ export function compareFinancialAudit(params: {
   } else if (hasUnexplainedDeductions) {
     recommendedAction = 'נדרש מכתב השגה דחוף למבטחת עקב קיזוזים לא מוסברים.';
   } else if (hasPartCuts || hasLaborCuts || hasPaintCuts) {
-    recommendedAction = 'חברת הביטוח ביצעה הפחתות בשומה. מומלץ להוציא מכתב דרישה להפרשים.';
+    recommendedAction = paymentNotice
+      ? 'חברת הביטוח ביצעה הפחתות בשומה ושילמה תשלום חלקי — יתרה במחלוקת בהכנה לטיפול משפטי.'
+      : 'חברת הביטוח ביצעה הפחתות בשומה. מומלץ להוציא מכתב דרישה להפרשים.';
+  } else if (paymentNotice && totalRemainingUnpaid > 0) {
+    recommendedAction = 'תגובת חברת הביטוח התקבלה — תשלום חלקי — יתרה במחלוקת — בהכנה לטיפול משפטי';
   } else if (diffApprovedVsPaid > 0) {
     recommendedAction = `קיים פער של ${diffApprovedVsPaid.toLocaleString()} ₪ בין הסכום שאושר לתשלום שהתקבל בפועל.`;
   }
