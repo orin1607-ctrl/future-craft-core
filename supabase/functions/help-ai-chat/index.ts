@@ -626,6 +626,13 @@ async function callGemini(
             parts: responseParts,
           });
 
+          // A fill-from-documents card is the answer: no further tools (a report here only adds a minute,
+          // and the chat screen gives up after 90 seconds).
+          if (accumulatedPendingActions.some((p) => p?.action_type === "fill_claim_from_documents")) {
+            const finalPending = bundlePendingActions(accumulatedPendingActions);
+            return { text: fillCardText(finalPending), model, pendingAction: finalPending };
+          }
+
           // Guard against runaway tool loops or slow sequential requests
           if (hasComprehensiveReport || totalToolCalls >= 5 || (Date.now() - turnStartTime > 30000)) {
             passTools = false;
@@ -942,6 +949,11 @@ async function callClaude(
             });
           }
 
+          // Same stop as the Gemini loop once the fill-from-documents card is ready.
+          if (accumulatedPendingActions.some((p) => p?.action_type === "fill_claim_from_documents")) {
+            const finalPending = bundlePendingActions(accumulatedPendingActions);
+            return { text: fillCardText(finalPending), model, pendingAction: finalPending };
+          }
           claudeMessages.push({
             role: "user",
             content: toolResults,
@@ -1019,6 +1031,15 @@ async function callClaude(
 
   console.error("Claude all candidates failed:", attemptErrors);
   return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", details: attemptErrors, status: 500 };
+}
+
+/**
+ * The answer once a fill-from-documents card is ready, written here instead of asking the model again
+ * (one model call less; the chat screen gives up after 90 seconds). The card itself holds the details.
+ */
+function fillCardText(pending: ClaimsPendingAction | null | undefined) {
+  const claimId = String((pending?.parameters as Record<string, unknown> | undefined)?.claim_id || "");
+  return `הכנתי כרטיס אישור להשלמת פרטים${claimId ? ` בתיק ${claimId}` : ""}. בכרטיס מופיע מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. שום דבר לא נשמר עד שתלחץ "אישור".`;
 }
 
 function streamTextAsSse(

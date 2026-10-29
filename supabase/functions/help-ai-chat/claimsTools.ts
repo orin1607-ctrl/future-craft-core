@@ -2650,14 +2650,17 @@ async function readFillDocuments(
     try { return (await ocr(bytes, mime)).text || ""; } catch (err) { console.error("fill ocr failed:", err instanceof Error ? err.message : "error"); return ""; }
   };
 
+  // All files at once: the chat screen gives up after 90 seconds.
   const chatFiles = (attachments || []).filter((a) => a && a.data_base64).slice(0, FILL_MAX_FILES);
-  for (const f of chatFiles) {
+  const texts = await Promise.all(chatFiles.map((f) => {
     let mime = String(f.mime_type || "").toLowerCase();
     if (mime === "image/jpg") mime = "image/jpeg";
-    const text = await ocrBytes(base64ToBytes(String(f.data_base64)), mime);
-    if (text.trim()) docs.push({ name: f.name, text, file: f, file_id: f.file_id });
+    return ocrBytes(base64ToBytes(String(f.data_base64)), mime);
+  }));
+  chatFiles.forEach((f, i) => {
+    if (texts[i].trim()) docs.push({ name: f.name, text: texts[i], file: f, file_id: f.file_id });
     else unread.push(f.name);
-  }
+  });
 
   const wanted = new Set<string>((Array.isArray(args.file_ids) ? args.file_ids : []).map((x) => String(x || "").trim()).filter(Boolean));
   for (const f of attachments || []) if (f?.file_id && !f.data_base64) wanted.add(String(f.file_id));
