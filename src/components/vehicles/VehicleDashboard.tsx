@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ResolvedStorageLink } from '@/components/documents/DocumentViewer';
 import { Input } from '@/components/ui/input';
+import UpcomingChecksSection from '@/components/vehicles/UpcomingChecksSection';
+import type { UpcomingInspection } from '@/lib/vehicleUpcomingChecks';
 import {
   Sheet,
   SheetContent,
@@ -125,6 +127,7 @@ function SectionLabel({ children }: { children: string }) {
 export default function VehicleDashboard({
   vehicle: v,
   inspectionSchedule,
+  inspectionDueMeta = null,
   lastInspectionDate = null,
   latestInsurer,
   openIssuesCount,
@@ -139,6 +142,8 @@ export default function VehicleDashboard({
 }: {
   vehicle: VehicleHubVehicle;
   inspectionSchedule: InspectionDashboardCard | null;
+  /** Saved vs derived next due date, and the inspection it was read from. */
+  inspectionDueMeta?: { derived: boolean; inspectionId: string | null } | null;
   /** Date of the last tri/semi inspection actually performed (never a future date). */
   lastInspectionDate?: string | null;
   latestInsurer: string | null;
@@ -632,8 +637,24 @@ export default function VehicleDashboard({
     }
   };
 
+  const upcomingInspection: UpcomingInspection | null = inspectionSchedule
+    ? {
+        label: inspectionSchedule.label,
+        nextDueDate: inspectionSchedule.nextDueDate,
+        derived: inspectionDueMeta?.derived ?? false,
+        inspectionId: inspectionDueMeta?.inspectionId ?? null,
+      }
+    : null;
+
   return (
     <>
+      <UpcomingChecksSection
+        vehicle={v}
+        inspection={upcomingInspection}
+        onOpenDrill={openDrill}
+        previewMode={previewMode}
+      />
+
       <div className="card-elevated mb-4">
         <div className="px-4 pt-3 pb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-bold text-muted-foreground uppercase">דשבורד רכב</p>

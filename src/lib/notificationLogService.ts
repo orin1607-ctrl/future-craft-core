@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isArchivedVehicleRef } from '@/lib/vehicleArchive';
+import { loadArchivedVehicleRefs } from '@/lib/vehicleArchiveRefs';
 import type {
   LogChannel,
   LogScope,
@@ -180,7 +182,17 @@ export async function fetchUnifiedAlertLogEntries(filters?: {
   driverId?: string | null;
   limit?: number;
 }): Promise<NotificationLogEntry[]> {
-  const custom = await fetchCustomAlertLogEntries(filters);
+  const [allCustom, archivedRefs] = await Promise.all([
+    fetchCustomAlertLogEntries(filters),
+    loadArchivedVehicleRefs(filters?.companyName || null),
+  ]);
+  // Pending (active / future) alerts of an archived vehicle are not shown or counted;
+  // past entries stay visible as history.
+  const custom = allCustom.filter(
+    (e) =>
+      e.timing === 'history' ||
+      !isArchivedVehicleRef(archivedRefs, { vehicleId: e.vehicleId, plate: e.vehiclePlate }),
+  );
 
   let vq = supabase
     .from('vehicles')

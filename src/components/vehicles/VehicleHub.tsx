@@ -41,6 +41,7 @@ import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
 import { DocumentCard } from '@/components/documents/DocumentViewer';
 import {
   getInspectionDashboardCard,
+  resolveNextInspectionDue,
   pickInspectionForDashboard,
   statusLabel,
   type InspectionDashboardCard,
@@ -50,6 +51,7 @@ import {
   TRI_FAMILY_INSPECTION_TYPES,
 } from '@/lib/triInspectionDisplay';
 import { fetchCompanyVehicleHubDisplay } from '@/lib/companyVehicleHubDisplay';
+import { isVehicleArchived } from '@/lib/vehicleArchive';
 import {
   loadVehicleHubData,
   formatHubDate,
@@ -247,6 +249,8 @@ export default function VehicleHub({
   const [savingDepartment, setSavingDepartment] = useState(false);
   const savingDepartmentRef = useRef(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
+  // Where the next due date came from (saved vs derived) and the inspection it was read from.
+  const [inspectionDueMeta, setInspectionDueMeta] = useState<{ derived: boolean; inspectionId: string | null } | null>(null);
   const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
   const [inspectionRefreshKey, setInspectionRefreshKey] = useState(0);
   const [showRecentActions, setShowRecentActions] = useState(true);
@@ -425,6 +429,7 @@ export default function VehicleHub({
     if (previewMode && previewHubExtras) {
       setLastInspectionDate(null);
       const previewDueDate = previewHubExtras.semiInspection || previewHubExtras.triInspection;
+      setInspectionDueMeta(null);
       setInspectionSchedule(
         previewDueDate
           ? {
@@ -443,7 +448,7 @@ export default function VehicleHub({
     }
     supabase
       .from('vehicle_inspections')
-      .select('inspection_type, inspection_date, next_due_date, created_at')
+      .select('id, inspection_type, inspection_date, next_due_date, created_at')
       .eq('vehicle_id', v.id)
       .order('inspection_date', { ascending: false })
       .order('created_at', { ascending: false, nullsFirst: false })
@@ -451,6 +456,8 @@ export default function VehicleHub({
       .then(({ data }) => {
         const row = pickInspectionForDashboard(data || []);
         setInspectionSchedule(getInspectionDashboardCard(row, v.next_inspection_date));
+        const due = resolveNextInspectionDue(row, v.next_inspection_date);
+        setInspectionDueMeta(due ? { derived: due.derived, inspectionId: row?.id ?? null } : null);
         setLastInspectionDate(pickLatestPerformedInspectionDate(data || [], TRI_FAMILY_INSPECTION_TYPES));
       });
   }, [v.id, v.next_inspection_date, previewMode, previewHubExtras, inspectionRefreshKey]);
@@ -650,7 +657,10 @@ export default function VehicleHub({
       v.next_inspection_date && { title: 'התראת קצין רכב', date: v.next_inspection_date, isInsurance: false },
       v.next_service_date && { title: 'טיפול מתוכנן', date: v.next_service_date, isInsurance: false },
     ].filter(Boolean) as { title: string; date: string; isInsurance: boolean }[]
-  ).filter((a) => Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000) >= 0);
+  )
+    .filter((a) => Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000) >= 0)
+    // An archived vehicle takes no part in active alerts.
+    .filter(() => !isVehicleArchived(v.status));
   const insRedHighlight = shouldShowInsuranceRed(v);
 
   const renderActionTabContent = () => {
@@ -1039,6 +1049,7 @@ export default function VehicleHub({
           <VehicleDashboard
             vehicle={v}
             inspectionSchedule={inspectionSchedule}
+            inspectionDueMeta={inspectionDueMeta}
             lastInspectionDate={lastInspectionDate}
             latestInsurer={latestInsurer}
             openIssuesCount={openIssuesCount}

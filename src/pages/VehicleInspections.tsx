@@ -526,15 +526,6 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
         </div>
       )}
 
-      {signatureUrl && (
-        <div className="card-elevated mb-4" data-testid="inspection-signature">
-          <h2 className="text-lg font-bold mb-3">חתימה דיגיטלית</h2>
-          <div className="rounded-xl border border-border bg-white p-3">
-            <img src={signatureUrl} alt="חתימה דיגיטלית" className="max-h-40 max-w-full mx-auto" />
-          </div>
-        </div>
-      )}
-
       <div className="card-elevated mb-4">
         <h2 className="text-lg font-bold mb-4">סעיפי הבדיקה</h2>
         <div className="space-y-2">
@@ -570,6 +561,19 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* The officer's signature closes the form, in its own area at the bottom; kept whole when printed. */}
+      {signatureUrl && (
+        <div className="card-elevated mb-4 break-inside-avoid" data-testid="inspection-signature">
+          <h2 className="text-lg font-bold mb-3">חתימת קצין הרכב</h2>
+          <div className="rounded-xl border border-border bg-white p-3">
+            <img src={signatureUrl} alt="חתימה דיגיטלית" className="max-h-40 max-w-full mx-auto" />
+          </div>
+          {inspection.inspector_name && (
+            <p className="text-sm text-muted-foreground mt-2 text-right">{inspection.inspector_name}</p>
+          )}
         </div>
       )}
     </div>

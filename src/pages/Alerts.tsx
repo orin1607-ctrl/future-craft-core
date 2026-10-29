@@ -30,7 +30,8 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 import { formatVehicleIds, InternalNumber, InternalPrefixSuffix, VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
-import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
+import { applyExcludeArchivedVehicles, isArchivedVehicleRef } from '@/lib/vehicleArchive';
+import { loadArchivedVehicleRefs } from '@/lib/vehicleArchiveRefs';
 import {
   alertCategoryMatches,
   alertInScope,
@@ -732,14 +733,26 @@ export default function Alerts() {
       }
     }
 
-    allAlerts.sort((a, b) => {
+    // Archived vehicles take no part in active alerts. Faults, tasks, service orders,
+    // work assignments and custom alerts reach a vehicle by plate or `vid:` only, so
+    // they are checked here against the vehicle's current status. Nothing is deleted.
+    const archivedRefs = await loadArchivedVehicleRefs(companyFilter);
+    const activeAlerts = allAlerts.filter(
+      (a) =>
+        !isArchivedVehicleRef(archivedRefs, {
+          vehicleId: vehicleIdFromAlertText(a.meta),
+          plate: a.vehiclePlate,
+        }),
+    );
+
+    activeAlerts.sort((a, b) => {
       const severityOrder: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
       const diff = severityOrder[a.severity] - severityOrder[b.severity];
       if (diff !== 0) return diff;
       return (a.daysLeft ?? 999) - (b.daysLeft ?? 999);
     });
 
-    setAlerts(allAlerts);
+    setAlerts(activeAlerts);
     setAlertsLoading(false);
   };
 

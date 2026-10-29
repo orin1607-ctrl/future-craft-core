@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { buildVehicleHubUrl } from '@/lib/entityNavContext';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
 import { getCompanyReminderOffsets } from '@/lib/companySettings';
+import { isVehicleArchivedNow } from '@/lib/vehicleArchiveRefs';
 
 const PLATE_TAG = 'vplate:';
 const VEHICLE_ID_TAG = 'vid:';
@@ -176,6 +177,8 @@ export async function createTargetDateAlerts(params: {
 
   const target = new Date(`${params.targetDate}T09:00:00`);
   if (Number.isNaN(target.getTime())) return;
+  // An archived vehicle takes no part in active alerts: no reminders are written for it.
+  if (await isVehicleArchivedNow({ ...params })) return;
 
   const meta = formatVehicleAlertMeta(params.vehiclePlate, params.vehicleId);
   const today = new Date();
@@ -223,6 +226,8 @@ export async function createOfficerInspectionAlert(params: {
   if (!params.nextDueDate || !params.userId) return { ok: false, error: 'חסר תאריך או משתמש' };
   const when = new Date(`${params.nextDueDate}T09:00:00`);
   if (Number.isNaN(when.getTime())) return { ok: false, error: 'תאריך לא תקין' };
+  // Archived vehicle: the inspection itself is saved by the caller, but no active alert is written.
+  if (await isVehicleArchivedNow({ ...params })) return { ok: true };
   const meta = formatVehicleAlertMeta(params.vehiclePlate, params.vehicleId);
 
   const prev = await supabase

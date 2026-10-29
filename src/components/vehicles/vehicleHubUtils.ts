@@ -30,24 +30,43 @@ export function pickInspectionForDashboard<T extends InspectionScheduleRow>(rows
   return future[0] || rows[0];
 }
 
-function resolveNextDueDate(
+export type NextInspectionDue = {
+  nextDueDate: string;
+  /** False: a date saved on the inspection or the vehicle. True: derived from the performed date and type. */
+  derived: boolean;
+};
+
+/**
+ * Next tri/semi due date from the saved inspection rows (the authoritative source):
+ * a saved next due later than the performed date, else the vehicle's
+ * next_inspection_date when it is later than the performed date, else the
+ * interval of the inspection type counted from the performed date.
+ */
+export function resolveNextInspectionDue(
   inspection: InspectionScheduleRow | null | undefined,
   vehicleNextInspection?: string | null,
-): string | null {
+): NextInspectionDue | null {
   const performed = ymd(inspection?.inspection_date);
   const fromRow = ymd(inspection?.next_due_date);
   const fromVehicle = ymd(vehicleNextInspection);
   const usable = [fromRow, fromVehicle].filter((due) => isAfterPerformed(due, performed));
-  if (usable.length) return usable.sort()[usable.length - 1];
+  if (usable.length) return { nextDueDate: usable.sort()[usable.length - 1], derived: false };
 
   if (performed) {
     const type = inspection?.inspection_type;
-    if (type === 'semi_annual') return addCalendarMonths(performed, 6);
+    if (type === 'semi_annual') return { nextDueDate: addCalendarMonths(performed, 6), derived: true };
     if (type === 'quarterly' || type === 'tri_semi_annual') {
-      return addCalendarMonths(performed, 3);
+      return { nextDueDate: addCalendarMonths(performed, 3), derived: true };
     }
   }
   return null;
+}
+
+function resolveNextDueDate(
+  inspection: InspectionScheduleRow | null | undefined,
+  vehicleNextInspection?: string | null,
+): string | null {
+  return resolveNextInspectionDue(inspection, vehicleNextInspection)?.nextDueDate ?? null;
 }
 
 export function getInspectionDashboardCard(

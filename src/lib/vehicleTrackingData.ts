@@ -19,6 +19,8 @@ import {
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
 import { calendarDaysLeft } from '@/lib/expiryOfficerApproval';
+import { officerAlertWindowDays, type VehicleOfficerAlertLight } from '@/lib/vehicleOfficerAlertLight';
+import { loadVehicleOfficerAlertsMap } from '@/lib/vehicleOfficerAlertIndicator';
 
 export type { TrackingAlertItem, TrackingAlertKind };
 
@@ -72,6 +74,8 @@ export interface TrackingVehicleRow {
   alert_items: TrackingAlertItem[];
   alert_kinds: TrackingAlertKind[];
   notes: string | null;
+  /** Open fleet-officer actions due within the company window (yellow) or overdue (red). */
+  officer_alert?: VehicleOfficerAlertLight | null;
 }
 
 export type SummaryFilterKey =
@@ -144,15 +148,17 @@ function isOpen(list: string[], status: string | null | undefined) {
 
 async function loadCompanyThresholdsMap(
   companyNames: string[],
-): Promise<Map<string, CompanyAlertThresholds>> {
-  const map = new Map<string, CompanyAlertThresholds>();
+): Promise<{ thresholds: Map<string, CompanyAlertThresholds>; officerWindowDays: Map<string, number> }> {
+  const thresholds = new Map<string, CompanyAlertThresholds>();
+  const officerWindowDays = new Map<string, number>();
   await Promise.all(
     companyNames.map(async (name) => {
       const settings = await fetchCompanySettings(name);
-      map.set(name, thresholdsFromCompanySettings(settings));
+      thresholds.set(name, thresholdsFromCompanySettings(settings));
+      officerWindowDays.set(name, officerAlertWindowDays(settings?.alert_days_before));
     }),
   );
-  return map;
+  return { thresholds, officerWindowDays };
 }
 
 function compactExpiryReason(
@@ -235,7 +241,7 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
       supabase
         .from('vehicles')
         .select(
-          'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled, notes',
+          'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled, notes, next_inspection_date',
         )
         .order('license_plate'),
     ),
@@ -246,7 +252,8 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
   if (vehicles.length === 0) return [];
 
   const companyNames = [...new Set(vehicles.map((v) => v.company_name).filter(Boolean))] as string[];
-  const thresholdsMap = await loadCompanyThresholdsMap(companyNames);
+  const { thresholds: thresholdsMap, officerWindowDays } = await loadCompanyThresholdsMap(companyNames);
+  const officerLights = await loadVehicleOfficerAlertsMap(vehicles, companyFilter, officerWindowDays);
 
   const driverIds = [...new Set(vehicles.map((v) => v.assigned_driver_id).filter(Boolean))] as string[];
   const driverMap = new Map<string, string>();
@@ -445,6 +452,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       alert_items,
       alert_kinds: alert_items.map((a) => a.kind),
       notes: typeof v.notes === 'string' && v.notes.trim() ? v.notes : null,
+      officer_alert: officerLights.get(v.id) ?? null,
     };
   });
 }

@@ -16,6 +16,8 @@ const PAGE_W = 794;
 const PAGE_H = 1123;
 const MARGIN = 36;
 const BOTTOM = 46;
+/** Signature heading (24) + box (112) + gap: placed as one block. */
+const SIGNATURE_BLOCK_H = 24 + 124;
 const FONT = 'Heebo, "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif';
 
 type PdfPage = { jpeg: Uint8Array; widthPx: number; heightPx: number };
@@ -269,28 +271,6 @@ export async function buildTriInspectionFormPdf(source: TriFormSource): Promise<
     sheet.y += 42;
   }
 
-  if (form.signatureSrc && signature) {
-    heading('חתימת קצין הרכב');
-    need(128);
-    const top = sheet.y;
-    sheet.ctx.strokeStyle = '#1e3a8a';
-    sheet.ctx.lineWidth = 1.5;
-    sheet.ctx.strokeRect(MARGIN, top, innerW, 112);
-    const maxW = 240;
-    const maxH = 84;
-    const ratio = Math.min(maxW / Math.max(signature.width, 1), maxH / Math.max(signature.height, 1), 1);
-    const w = signature.width * ratio;
-    const h = signature.height * ratio;
-    sheet.ctx.drawImage(signature, right - w - 12, top + 14, w, h);
-    if (form.inspectorName) {
-      sheet.ctx.fillStyle = '#334155';
-      sheet.ctx.font = `600 12px ${FONT}`;
-      sheet.ctx.textAlign = 'right';
-      sheet.ctx.fillText(form.inspectorName, right - 12, top + 104);
-    }
-    sheet.y = top + 124;
-  }
-
   heading(form.notes.length ? `הערות הביקורת (${form.notes.length})` : 'הערות הביקורת');
   if (form.notes.length === 0) paragraph('הערות', 'לא נרשמו הערות בביקורת זו');
   form.notes.forEach((note) => paragraph(note.label, note.text));
@@ -332,6 +312,30 @@ export async function buildTriInspectionFormPdf(source: TriFormSource): Promise<
   if (form.tasks.length) {
     heading('משימות טיפול שנפתחו מהביקורת');
     form.tasks.forEach((task) => paragraph(task.label, task.text));
+  }
+
+  // The officer signs the form: the signature closes it, after every section.
+  // Heading and box are kept together, so the signature never splits across pages.
+  if (form.signatureSrc && signature) {
+    need(SIGNATURE_BLOCK_H);
+    heading('חתימת קצין הרכב');
+    const top = sheet.y;
+    sheet.ctx.strokeStyle = '#1e3a8a';
+    sheet.ctx.lineWidth = 1.5;
+    sheet.ctx.strokeRect(MARGIN, top, innerW, 112);
+    const maxW = 240;
+    const maxH = 84;
+    const ratio = Math.min(maxW / Math.max(signature.width, 1), maxH / Math.max(signature.height, 1), 1);
+    const w = signature.width * ratio;
+    const h = signature.height * ratio;
+    sheet.ctx.drawImage(signature, right - w - 12, top + 14, w, h);
+    if (form.inspectorName) {
+      sheet.ctx.fillStyle = '#334155';
+      sheet.ctx.font = `600 12px ${FONT}`;
+      sheet.ctx.textAlign = 'right';
+      sheet.ctx.fillText(form.inspectorName, right - 12, top + 104);
+    }
+    sheet.y = top + 124;
   }
 
   const pdf = wrapJpegsAsPdf(await Promise.all(sheets.map(async (page) => ({

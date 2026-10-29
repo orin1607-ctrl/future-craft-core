@@ -4,7 +4,8 @@ import type { HomeAlertSlotPrefs, HomeAlertSlotType } from '@/lib/homeAlertPrefs
 import { HOME_ALERT_SLOT_LABELS } from '@/lib/homeAlertPrefsTypes';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { isUpcomingInWindow } from '@/lib/expiryOfficerApproval';
-import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
+import { applyExcludeArchivedVehicles, isArchivedVehicleRef } from '@/lib/vehicleArchive';
+import { loadArchivedVehicleRefs } from '@/lib/vehicleArchiveRefs';
 import { getThirdPartyInsuranceExpiry } from '@/lib/vehicleInsuranceUtils';
 import { buildAlertsHref } from '@/lib/alertListScope';
 
@@ -49,10 +50,10 @@ export async function loadFleetAlertSlotSummaries(
     companyFilter,
   );
 
-  const { data: faults } = await applyCompanyScope(
+  const { data: urgentFaults } = await applyCompanyScope(
     supabase
       .from('faults')
-      .select('id, urgency, status')
+      .select('id, urgency, status, vehicle_plate')
       .in('urgency', ['urgent', 'high', 'critical', 'דחוף', 'גבוהה'])
       .in('status', ['new', 'open', 'חדש', 'פתוח', 'בטיפול', 'in_progress']),
     companyFilter,
@@ -63,8 +64,14 @@ export async function loadFleetAlertSlotSummaries(
     companyFilter,
   );
 
+  // Faults and service orders reach a vehicle by plate only; archived vehicles are left out.
+  const archivedRefs = await loadArchivedVehicleRefs(companyFilter);
+  const onActiveVehicle = (row: { vehicle_plate?: string | null }) =>
+    !isArchivedVehicleRef(archivedRefs, { plate: row.vehicle_plate });
+  const faults = (urgentFaults || []).filter(onActiveVehicle);
+
   const fleet = vehicles || [];
-  const openOrders = (serviceOrders || []).filter((o) =>
+  const openOrders = (serviceOrders || []).filter(onActiveVehicle).filter((o) =>
     OPEN_STATUSES.includes((o.treatment_status || '').toLowerCase()) ||
     OPEN_STATUSES.includes(o.treatment_status || ''),
   );
