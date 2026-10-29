@@ -250,6 +250,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           <Field id="in_tdrv" label="שם הנהג"><input className="fi" id="in_tdrv" value={value.thirdDriver} onChange={(e) => set('thirdDriver', e.target.value)} /></Field>
           <Field id="in_tid" label="מס׳ ת.ז."><input className="fi" id="in_tid" inputMode="numeric" value={value.thirdId} onChange={(e) => set('thirdId', e.target.value)} /></Field>
           <label className="pick-row"><input type="checkbox" checked={missing('thirdId')} onChange={() => toggleMissing('thirdId')} /><span>חסר להשלמה</span></label>
+          <Field id="in_tlic" label="מס׳ רישיון נהיגה"><input className="fi" id="in_tlic" data-testid="intake-third-license" inputMode="numeric" value={value.thirdLicense} onChange={(e) => set('thirdLicense', e.target.value)} /></Field>
           <Field id="in_tphone" label="טלפון"><input className="fi" id="in_tphone" type="tel" inputMode="tel" value={value.thirdPhone} onChange={(e) => set('thirdPhone', e.target.value)} /></Field>
           <Field id="in_taddr" label="כתובת"><input className="fi" id="in_taddr" data-testid="intake-third-address" value={value.thirdAddress} onChange={(e) => set('thirdAddress', e.target.value)} /></Field>
           <Field id="in_town" label="שם בעל הרכב"><input className="fi" id="in_town" value={value.thirdOwner} onChange={(e) => set('thirdOwner', e.target.value)} /></Field>
@@ -264,6 +265,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           </div>
           <Field id="in_tmm" label="תוצר ודגם"><input className="fi" id="in_tmm" value={value.thirdMakeModel} onChange={(e) => set('thirdMakeModel', e.target.value)} /></Field>
           <Field id="in_tins" label="שם חברת הביטוח"><input className="fi" id="in_tins" value={value.thirdInsCompany} onChange={(e) => set('thirdInsCompany', e.target.value)} /></Field>
+          <Field id="in_tinsd" label="שם המבוטח בפוליסה"><input className="fi" id="in_tinsd" data-testid="intake-third-insured" value={value.thirdInsured} onChange={(e) => set('thirdInsured', e.target.value)} /></Field>
           <Field id="in_tpol" label="מס׳ הפוליסה"><input className="fi" id="in_tpol" value={value.thirdPolicy} onChange={(e) => set('thirdPolicy', e.target.value)} /></Field>
           <div className="fg full">
             <div className="fl">סוג הביטוח</div>
