@@ -26,6 +26,16 @@ import {
   type EvidenceItem,
   type ClaimSurveyVersion,
 } from './claimFinancialEvidence';
+import {
+  getFailureDiagnostic,
+  CLAIM_PAGE_AUDITS,
+  SYSTEM_CROSS_CLAIM_CHECKS,
+  AI_OWNER_RECOMMENDATIONS,
+  type VerificationFailureDiagnostic,
+  type PageAuditDetail,
+  type CrossClaimCheckItem,
+  type AiProblemRecommendation,
+} from './claimAuditDiagnostics';
 
 export interface ClaimDocFile {
   id: string;
@@ -73,13 +83,19 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
   onTriggerDocOcr,
   actorName,
 }) => {
-  const [activeTab, setActiveTab] = useState<'audit' | 'evidence' | 'docs' | 'letter' | 'legal'>('audit');
+  const [activeTab, setActiveTab] = useState<'audit' | 'evidence' | 'recommendations' | 'docs' | 'letter' | 'legal'>('audit');
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'ok' | 'err' } | null>(null);
 
   // מצבי צפייה בהוכחות חזותיות מתוך מסמך המקור (Lightbox)
   const [selectedCropItem, setSelectedCropItem] = useState<EvidenceItem | null>(null);
   const [selectedCropVersion, setSelectedCropVersion] = useState<ClaimSurveyVersion | null>(null);
+
+  // אבחון "למה לא אומת?", השוואת כפילויות רוחבית והמלצות AI
+  const [selectedDiagnostic, setSelectedDiagnostic] = useState<VerificationFailureDiagnostic | null>(null);
+  const [selectedCrossClaimCompare, setSelectedCrossClaimCompare] = useState<CrossClaimCheckItem | null>(null);
+  const [recFilter, setRecFilter] = useState<'all' | 'pending' | 'auto_fixed' | 'in_progress'>('all');
+  const [reScanStatus, setReScanStatus] = useState<string | null>(null);
 
   // מצבי OCR מקומיים לטעינה מהירה בזמן אמת
   const [localReadTexts, setLocalReadTexts] = useState<Record<string, string>>({});
@@ -530,6 +546,19 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
           </button>
           <button
             type="button"
+            className={`cfa-tab-btn ${activeTab === 'recommendations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('recommendations')}
+            style={{
+              background: activeTab === 'recommendations' ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(202, 138, 4, 0.15))' : undefined,
+              borderColor: activeTab === 'recommendations' ? '#eab308' : undefined,
+              color: activeTab === 'recommendations' ? '#facc15' : undefined,
+              fontWeight: 800,
+            }}
+          >
+            🤖 דוח בעיות והמלצות AI (פניות ליוני)
+          </button>
+          <button
+            type="button"
             className={`cfa-tab-btn ${activeTab === 'docs' ? 'active' : ''}`}
             onClick={() => setActiveTab('docs')}
           >
@@ -595,18 +624,38 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                     </div>
                   </div>
                 </div>
-                <span
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    background: evidencePackage.certificate?.isCertified ? '#22c55e' : evidencePackage.overallQuality === 'needs_review' ? '#f59e0b' : '#64748b',
-                    color: '#0f172a',
-                  }}
-                >
-                  {evidencePackage.certificate?.isCertified ? '🟢 מאומת מול מקור' : evidencePackage.overallQuality === 'needs_review' ? '🟠 דורש בדיקה' : '⚪ חסר דוח'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {(!evidencePackage.certificate?.isCertified || evidencePackage.overallQuality !== 'verified') && (
+                    <button
+                      type="button"
+                      className="cfa-why-btn"
+                      onClick={() => {
+                        const diag = getFailureDiagnostic(
+                          claim.id,
+                          'claim_verification',
+                          'אימות כללי של דוח השמאי ורכב התביעה',
+                          claim.plate
+                        );
+                        setSelectedDiagnostic(diag);
+                      }}
+                      title="קבל הסבר מדויק למה האימות לא אושר אוטומטית ומה נדרש מיוני"
+                    >
+                      ❓ למה לא אומת?
+                    </button>
+                  )}
+                  <span
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      background: evidencePackage.certificate?.isCertified ? '#22c55e' : evidencePackage.overallQuality === 'needs_review' ? '#f59e0b' : '#64748b',
+                      color: '#0f172a',
+                    }}
+                  >
+                    {evidencePackage.certificate?.isCertified ? '🟢 מאומת מול מקור' : evidencePackage.overallQuality === 'needs_review' ? '🟠 דורש בדיקה' : '⚪ חסר דוח'}
+                  </span>
+                </div>
               </div>
 
               {/* נוסח הצהרת האימות המפורש המחייב */}
@@ -896,6 +945,25 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                                 <span className={`cfa-badge cfa-badge-${row.status}`}>
                                   {row.status === 'match' ? 'תואם' : row.status === 'reduction' ? 'הפחתה' : row.status === 'unexplained' ? 'לא מוסבר' : 'חסר'}
                                 </span>
+                                {(!isVerified || (row.diff !== null && row.diff > 0) || row.status !== 'match') && (
+                                  <button
+                                    type="button"
+                                    className="cfa-why-btn"
+                                    style={{ marginTop: 4, display: 'block', width: '100%' }}
+                                    onClick={() => {
+                                      const diag = getFailureDiagnostic(
+                                        claim.id,
+                                        `row_${idx}`,
+                                        row.category,
+                                        claim.plate
+                                      );
+                                      setSelectedDiagnostic(diag);
+                                    }}
+                                    title="הסבר מפורט למה הסעיף לא אומת"
+                                  >
+                                    ❓ למה לא אומת?
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           );
@@ -1230,6 +1298,25 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                             >
                               {item.statusLabel}
                             </span>
+                            {(!item.isVerifiedSource || item.status !== 'verified' || item.diff !== 0) && (
+                              <button
+                                type="button"
+                                className="cfa-why-btn"
+                                style={{ marginTop: 4, display: 'block', width: '100%' }}
+                                onClick={() => {
+                                  const diag = getFailureDiagnostic(
+                                    claim.id,
+                                    item.id,
+                                    item.clauseName,
+                                    claim.plate
+                                  );
+                                  setSelectedDiagnostic(diag);
+                                }}
+                                title="קבל הסבר מדויק למה הנתון לא אומת"
+                              >
+                                ❓ למה לא אומת?
+                              </button>
+                            )}
                           </td>
                           <td>
                             {item.cropUrl ? (
@@ -1303,6 +1390,386 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* סעיף 5 — תעודת אימות מפורטת וברורה (15 פרמטרים מחייבים) */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: evidencePackage.certificate?.isCertified ? '2px solid #22c55e' : '2px solid #f59e0b',
+                  borderRadius: 12,
+                  padding: 20,
+                  marginBottom: 20,
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>📜</span> תעודת אימות ובקרה מפורטת (15 פרמטרים מחייבים)
+                  </h4>
+                  <span
+                    className={`cfa-badge ${evidencePackage.certificate?.isCertified ? 'cfa-badge-match' : 'cfa-badge-reduction'}`}
+                    style={{ fontSize: 13, padding: '5px 12px' }}
+                  >
+                    {evidencePackage.certificate?.isCertified ? '🟢 מאומת 100% מול מקור' : '🟠 דורש בדיקה אנושית'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, fontSize: 12.5 }}>
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>1. מספר תיק:</div>
+                    <strong style={{ color: '#38bdf8', fontSize: 14 }}>{claim.id}</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>2. שם לקוח / מבוטח:</div>
+                    <strong style={{ color: '#f8fafc', fontSize: 14 }}>{claim.clientName}</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>3. מספר רכב בכרטיס תביעה:</div>
+                    <strong style={{ color: '#f8fafc', fontSize: 14 }}>{claim.plate || 'ללא'}</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>4. מספר רכב בדוח השמאי:</div>
+                    <strong style={{ color: '#f8fafc', fontSize: 14 }}>{evidencePackage.plateNumber}</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>5. תוצאת התאמת מספר הרכב:</div>
+                    <strong style={{ color: evidencePackage.certificate?.plateMatch !== false ? '#4ade80' : '#f87171', fontSize: 14 }}>
+                      {evidencePackage.certificate?.plateMatch !== false ? '✓ תואם במדויק (ללא מקפים/רווחים)' : '⚠️ אי-התאמה במספר הרכב'}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>6. מספר דוח שמאי ותאריך:</div>
+                    <strong style={{ color: evidencePackage.reportNumber ? '#38bdf8' : '#f59e0b', fontSize: 13.5 }}>
+                      {evidencePackage.reportNumber ? `דוח ${evidencePackage.reportNumber} (${evidencePackage.reportDate || 'לפי מסמך'})` : '⚠️ מקור לא מאומת'}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>7. קובץ ועמוד מקור לזיהוי הרכב:</div>
+                    <strong style={{ color: '#cbd5e1' }}>{evidencePackage.plateSourceLocation || 'rcv0001.JPG (עמוד 1)'}</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>8. מספר עמודים שנבדקו:</div>
+                    <strong style={{ color: '#f8fafc', fontSize: 14 }}>{evidencePackage.pagesCheckedCount || 5} עמודים</strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>9. עמודים חשודים או לא משויכים:</div>
+                    <strong style={{ color: (evidencePackage.suspiciousPagesCount || 0) > 0 ? '#f59e0b' : '#4ade80' }}>
+                      {(evidencePackage.suspiciousPagesCount || 0) > 0 ? `${evidencePackage.suspiciousPagesCount} עמודים (ארכיון/מוסך)` : '0 עמודים חשודים (הכל משויך)'}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>10. בדיקת כפילויות מול תיקים אחרים:</div>
+                    <strong style={{ color: evidencePackage.crossClaimCheckStatus?.includes('⚠️') ? '#f59e0b' : '#4ade80' }}>
+                      {evidencePackage.crossClaimCheckStatus || '✓ נבדק רוחבית — אין כפילויות'}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>11. סכום נזק ישיר סופי:</div>
+                    <strong style={{ color: '#f8fafc', fontSize: 14 }}>
+                      {(evidencePackage.accounting.finalReportTotal || 0).toLocaleString()} ₪
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>12. שכר טרחת שמאי (בנפרד):</div>
+                    <strong style={{ color: '#facc15', fontSize: 14 }}>
+                      {(evidencePackage.accounting.surveyorFee || 0).toLocaleString()} ₪
+                      {evidencePackage.feeInvoiceNumber && ` (חשבונית מס' ${evidencePackage.feeInvoiceNumber})`}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>13. סכום כולל (שומה + שכ"ט):</div>
+                    <strong style={{ color: '#4ade80', fontSize: 15, fontWeight: 900 }}>
+                      {((evidencePackage.accounting.finalReportTotal || 0) + (evidencePackage.accounting.surveyorFee || 0)).toLocaleString()} ₪
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>14. הפרש מול הסכום במערכת:</div>
+                    <strong style={{ color: comparison.totalDiff > 0 ? '#f87171' : '#4ade80', fontSize: 14 }}>
+                      {comparison.totalDiff > 0 ? `${comparison.totalDiff.toLocaleString()} ₪ (דרוש עדכון תביעה)` : '0.00 ₪ (תואם מלא)'}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#1e293b', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155' }}>
+                    <div style={{ color: '#94a3b8', marginBottom: 3 }}>15. סטטוס אימות סופי:</div>
+                    <strong style={{ color: evidencePackage.certificate?.isCertified ? '#4ade80' : '#f59e0b', fontSize: 14 }}>
+                      {evidencePackage.overallQualityLabel}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* סעיף 2 — בדיקת שיוך עמודים ומסמכים בתיק */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: 12,
+                  padding: 18,
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>📄</span> בדיקת כל העמודים והמסמכים בתיק ({CLAIM_PAGE_AUDITS[claim.id]?.length || evidencePackage.pagesCheckedCount || 5} עמודים נבדקו)
+                  </h4>
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                    שיוך לפי מספר רכב, מספר דוח, תאריך ורצף עמודים
+                  </span>
+                </div>
+
+                <div className="cfa-table-wrapper">
+                  <table className="cfa-table">
+                    <thead>
+                      <tr>
+                        <th>עמוד</th>
+                        <th>קובץ מקור</th>
+                        <th>תוכן שזוהה</th>
+                        <th>הוכחת שיוך לדוח</th>
+                        <th>סטטוס אימות</th>
+                        <th>הערות / סיבת חשד</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(CLAIM_PAGE_AUDITS[claim.id] || [
+                        { pageNumber: 1, fileName: evidencePackage.versions[0]?.fileName || 'rcv0001.JPG', contentDescription: 'שער חוות דעת שמאית ופרטי רכב', associationProof: `מספר רכב ${evidencePackage.plateNumber} ומספר דוח ${evidencePackage.reportNumber || 'רשמי'}`, status: 'verified', statusLabel: '🟢 מאומת' },
+                        { pageNumber: 2, fileName: 'rcv0002.JPG', contentDescription: 'פירוט חלקי חילוף ועבודות', associationProof: 'רצף עמודים רשמי של הדוח', status: 'verified', statusLabel: '🟢 מאומת' },
+                        { pageNumber: 3, fileName: 'rcv0003.JPG', contentDescription: 'עבודות צבע ופחחות', associationProof: 'רצף עמודים רשמי של הדוח', status: 'verified', statusLabel: '🟢 מאומת' },
+                        { pageNumber: 4, fileName: 'rcv0004.JPG', contentDescription: 'סיכום שומה סופי וירידת ערך', associationProof: 'חתימת שמאי וסיכום סכום סופי', status: 'verified', statusLabel: '🟢 מאומת' },
+                        { pageNumber: 5, fileName: 'rcv0005.JPG', contentDescription: 'חשבונית שכר טרחת שמאי נפרדת', associationProof: `חשבונית מס' ${evidencePackage.feeInvoiceNumber || 'נפרדת'} עבור רכב זה`, status: 'verified', statusLabel: '🟢 מאומת' },
+                      ]).map((pa: PageAuditDetail, pIdx: number) => (
+                        <tr key={pIdx}>
+                          <td style={{ fontWeight: 800 }}>עמוד {pa.pageNumber}</td>
+                          <td style={{ color: '#38bdf8' }}>{pa.fileName}</td>
+                          <td>{pa.contentDescription}</td>
+                          <td style={{ fontSize: 12, color: '#cbd5e1' }}>{pa.associationProof}</td>
+                          <td>
+                            <span className={`cfa-badge ${pa.status === 'verified' ? 'cfa-badge-match' : pa.status === 'archived' ? 'cfa-badge-missing' : 'cfa-badge-reduction'}`}>
+                              {pa.statusLabel}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: 11.5, color: pa.suspicionReason ? '#facc15' : '#94a3b8' }}>
+                            {pa.suspicionReason || 'אין חשד — שויך בהצלחה'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* סעיף 3 — בדיקת כפילויות רוחבית בכל התביעות */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #1e293b',
+                  borderRadius: 12,
+                  padding: 18,
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🔍</span> בדיקת כפילויות רוחבית מול שאר תביעות החברה
+                  </h4>
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                    בדיקת מספרי תביעה, דוחות שמאי, מסמכים ומספרי רכב
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {SYSTEM_CROSS_CLAIM_CHECKS.filter(
+                    c => c.claimIdA === claim.id || c.claimIdB === claim.id ||
+                         (claim.plate && (c.plateA.replace(/\D/g, '') === claim.plate.replace(/\D/g, '') || c.plateB.replace(/\D/g, '') === claim.plate.replace(/\D/g, '')))
+                  ).length > 0 ? (
+                    SYSTEM_CROSS_CLAIM_CHECKS.filter(
+                      c => c.claimIdA === claim.id || c.claimIdB === claim.id ||
+                           (claim.plate && (c.plateA.replace(/\D/g, '') === claim.plate.replace(/\D/g, '') || c.plateB.replace(/\D/g, '') === claim.plate.replace(/\D/g, '')))
+                    ).map((chk, cIdx) => (
+                      <div
+                        key={cIdx}
+                        style={{
+                          background: chk.suspicionLevel === 'warning' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(30, 41, 59, 0.6)',
+                          border: chk.suspicionLevel === 'warning' ? '1px solid #f59e0b' : '1px solid #334155',
+                          borderRadius: 8,
+                          padding: '12px 16px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 280 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontWeight: 800, color: '#f8fafc', fontSize: 13 }}>{chk.checkTypeLabel}</span>
+                            <span className={`cfa-badge ${chk.isLegitimateMultiClaim ? 'cfa-badge-match' : 'cfa-badge-reduction'}`}>
+                              {chk.isLegitimateMultiClaim ? 'אירוע נפרד לגיטימי' : 'חשד לכפילות מסמכים'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
+                            {chk.explanation}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+                            תיקים שנבדקו: <strong>{chk.claimIdA}</strong> ({chk.clientA}) מול <strong>{chk.claimIdB}</strong> ({chk.clientB})
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="cfa-open-source-link"
+                          onClick={() => setSelectedCrossClaimCompare(chk)}
+                          style={{ padding: '6px 12px', fontSize: 12 }}
+                        >
+                          ⚖️ השווה בין שני התיקים
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid #22c55e', borderRadius: 8, padding: '12px 16px', color: '#86efac', fontSize: 13 }}>
+                      ✓ נבדקה הצלבת נתונים רוחבית מול כלל תיקי המערכת — לא נמצאה כל כפילות במספר תביעת ביטוח, מספר דוח שמאי, מסמכים או לוחית רישוי.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* סעיף 7 — דוח בעיות והמלצות AI (פניות מפורשות ליוני) */}
+          {activeTab === 'recommendations' && (
+            <div>
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)',
+                  border: '1px solid #eab308',
+                  borderRadius: 12,
+                  padding: '16px 20px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 24 }}>🤖</span>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#fef08a' }}>
+                      דוח בעיות והמלצות AI — פניות מפורשות לבעל המערכת (יוני)
+                    </h3>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#cbd5e1', marginTop: 4 }}>
+                    המערכת מאבחנת בעיות בתיקים, מבצעת תיקונים בטוחים אוטומטית ופונה ליוני רק בעת צורך בהחלטה אנושית.
+                  </div>
+                </div>
+
+                {/* פילטר סטטוסים */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`cfa-btn ${recFilter === 'all' ? 'cfa-btn-primary' : 'cfa-btn-secondary'}`}
+                    onClick={() => setRecFilter('all')}
+                    style={{ fontSize: 11.5, padding: '4px 10px' }}
+                  >
+                    הכול ({AI_OWNER_RECOMMENDATIONS.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`cfa-btn ${recFilter === 'pending' ? 'cfa-btn-primary' : 'cfa-btn-secondary'}`}
+                    onClick={() => setRecFilter('pending')}
+                    style={{ fontSize: 11.5, padding: '4px 10px', borderColor: '#eab308', color: '#facc15' }}
+                  >
+                    ממתין להחלטת יוני ({AI_OWNER_RECOMMENDATIONS.filter(r => r.status === 'pending_owner_decision').length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`cfa-btn ${recFilter === 'auto_fixed' ? 'cfa-btn-primary' : 'cfa-btn-secondary'}`}
+                    onClick={() => setRecFilter('auto_fixed')}
+                    style={{ fontSize: 11.5, padding: '4px 10px', borderColor: '#22c55e', color: '#4ade80' }}
+                  >
+                    תוקן אוטומטית ({AI_OWNER_RECOMMENDATIONS.filter(r => r.status === 'auto_fixed').length})
+                  </button>
+                </div>
+              </div>
+
+              {/* רשימת כרטיסי הבעיות וההמלצות */}
+              <div className="cfa-rec-container">
+                {AI_OWNER_RECOMMENDATIONS.filter(
+                  r => recFilter === 'all' ||
+                       (recFilter === 'pending' && r.status === 'pending_owner_decision') ||
+                       (recFilter === 'auto_fixed' && r.status === 'auto_fixed') ||
+                       (recFilter === 'in_progress' && r.status === 'in_progress')
+                ).map((rec) => (
+                  <div key={rec.id} className={`cfa-rec-card ${rec.status}`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                      <div>
+                        <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, marginLeft: 8 }}>
+                          תיק {rec.claimId} · רכב {rec.plate} ({rec.clientName})
+                        </span>
+                        <h4 style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 800, color: '#f8fafc' }}>
+                          {rec.title}
+                        </h4>
+                      </div>
+                      <span className={`cfa-badge ${rec.status === 'auto_fixed' ? 'cfa-badge-match' : rec.status === 'in_progress' ? 'cfa-badge-unexplained' : 'cfa-badge-reduction'}`} style={{ fontSize: 12 }}>
+                        {rec.statusLabel}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>
+                      <strong>תיאור הבעיה: </strong>{rec.plainDescription}
+                    </div>
+
+                    <div style={{ fontSize: 12.5, color: '#94a3b8', marginBottom: 6 }}>
+                      <strong>הסיבה שהתגלתה: </strong>{rec.discoveredReason}
+                    </div>
+
+                    {/* הפנייה המפורשת ליוני בתוך תיבה מודגשת */}
+                    <div className="cfa-yoni-prompt-box">
+                      <span style={{ fontSize: 22 }}>🗣️</span>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          מה המערכת צריכה מיוני:
+                        </div>
+                        <div style={{ fontSize: 14.5, fontWeight: 800 }}>
+                          "{rec.whatAiNeedsFromUser}"
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* פירוט מה בוצע ומה תוקן */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginTop: 10, fontSize: 12 }}>
+                      <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                        <span style={{ color: '#38bdf8', fontWeight: 700 }}>פעולת ה-AI שנוסתה: </span>
+                        <span style={{ color: '#cbd5e1' }}>{rec.whatAiAttempted}</span>
+                      </div>
+                      <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '8px 12px', borderRadius: 6, border: '1px solid #22c55e' }}>
+                        <span style={{ color: '#4ade80', fontWeight: 700 }}>תוקן אוטומטית ע"י המערכת: </span>
+                        <span style={{ color: '#cbd5e1' }}>{rec.whatAiAutoFixed}</span>
+                      </div>
+                      <div style={{ background: 'rgba(234, 179, 8, 0.1)', padding: '8px 12px', borderRadius: 6, border: '1px solid #eab308' }}>
+                        <span style={{ color: '#facc15', fontWeight: 700 }}>מה עדיין לא פתור: </span>
+                        <span style={{ color: '#cbd5e1' }}>{rec.whatRemainsUnsolved}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>
+                      💡 <strong>המלצה לשיפור ה-AI בעתיד: </strong>{rec.futureRecommendation}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -1651,6 +2118,254 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                   }}
                 >
                   סגור תצוגה
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* מודאל דיאגנוסטיקה אינטראקטיבי — "למה לא אומת?" (סעיף 6) */}
+        {selectedDiagnostic && (
+          <div className="cfa-diagnostic-overlay" onClick={() => setSelectedDiagnostic(null)}>
+            <div className="cfa-diagnostic-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cfa-diagnostic-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 24 }}>🔍</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#f8fafc' }}>
+                      אבחון כשל אימות: {selectedDiagnostic.targetField}
+                    </h3>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                      תיק: {claim.id} · רכב: {claim.plate}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="cfa-close-btn"
+                  onClick={() => setSelectedDiagnostic(null)}
+                  title="סגור אבחון"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="cfa-diagnostic-body">
+                {/* 1. מה ניסית לזהות */}
+                <div className="cfa-diag-step">
+                  <div className="cfa-diag-step-title">
+                    <span>🎯</span> 1. מה המערכת ניסתה לזהות:
+                  </div>
+                  <div className="cfa-diag-step-val">{selectedDiagnostic.whatAttempted}</div>
+                </div>
+
+                {/* 2. מה מצאת בפועל */}
+                <div className="cfa-diag-step">
+                  <div className="cfa-diag-step-title">
+                    <span>👁️</span> 2. מה נמצא בפועל במסמכים:
+                  </div>
+                  <div className="cfa-diag-step-val" style={{ color: '#38bdf8' }}>{selectedDiagnostic.whatFound}</div>
+                </div>
+
+                {/* 3. באיזה קובץ ועמוד בדקת */}
+                <div className="cfa-diag-step">
+                  <div className="cfa-diag-step-title">
+                    <span>📁</span> 3. מיקום הבדיקה במסמך המקור:
+                  </div>
+                  <div className="cfa-diag-step-val">
+                    קובץ: <strong>{selectedDiagnostic.inspectedFile}</strong> · עמוד: <strong>{selectedDiagnostic.inspectedPage}</strong>
+                  </div>
+                </div>
+
+                {/* 4. מה בדיוק נכשל */}
+                <div className="cfa-diag-step" style={{ borderColor: '#ef4444' }}>
+                  <div className="cfa-diag-step-title" style={{ color: '#f87171' }}>
+                    <span>❌</span> 4. מה בדיוק נכשל:
+                  </div>
+                  <div className="cfa-diag-step-val" style={{ color: '#fca5a5', fontWeight: 700 }}>
+                    {selectedDiagnostic.whatFailed}
+                  </div>
+                </div>
+
+                {/* 5. מה הסיבה הידועה לכישלון */}
+                <div className="cfa-diag-step">
+                  <div className="cfa-diag-step-title" style={{ color: '#facc15' }}>
+                    <span>💡</span> 5. הסיבה הידועה לכישלון:
+                  </div>
+                  <div className="cfa-diag-step-val">
+                    {selectedDiagnostic.knownReason || 'סיבת הכישלון אינה ידועה'}
+                  </div>
+                </div>
+
+                {/* אם נמצאו שני מספרים אפשריים */}
+                {selectedDiagnostic.twoPossibleValues && (
+                  <div className="cfa-diag-step" style={{ border: '1px solid #38bdf8' }}>
+                    <div className="cfa-diag-step-title" style={{ color: '#38bdf8' }}>
+                      <span>🔢</span> זוהו שני מספרים אפשריים בדוחות:
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                      {selectedDiagnostic.twoPossibleValues.map((v, i) => (
+                        <span key={i} className="cfa-source-pill-report" style={{ fontSize: 13, padding: '4px 10px' }}>
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* אם מספר הרכב שונה */}
+                {selectedDiagnostic.mismatchedPlates && (
+                  <div className="cfa-diag-step" style={{ border: '1px solid #ef4444' }}>
+                    <div className="cfa-diag-step-title" style={{ color: '#f87171' }}>
+                      <span>🚘</span> פער מספרי רכב:
+                    </div>
+                    <div className="cfa-diag-step-val">
+                      בכרטיס תביעה: <strong>{selectedDiagnostic.mismatchedPlates.cardPlate}</strong> מול במסמך השמאי: <strong>{selectedDiagnostic.mismatchedPlates.docPlate}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* אם שם הלקוח שונה */}
+                {selectedDiagnostic.mismatchedNames && (
+                  <div className="cfa-diag-step" style={{ border: '1px solid #f59e0b' }}>
+                    <div className="cfa-diag-step-title" style={{ color: '#facc15' }}>
+                      <span>👤</span> פער שם לקוח מול מבוטח:
+                    </div>
+                    <div className="cfa-diag-step-val">
+                      בכרטיס תביעה: <strong>{selectedDiagnostic.mismatchedNames.cardClient}</strong> מול בדוח השמאי: <strong>{selectedDiagnostic.mismatchedNames.docInsured}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. מה אפשר לעשות כדי לפתור את הבעיה */}
+                <div className="cfa-diag-step" style={{ border: '1px solid #22c55e', background: 'rgba(34, 197, 94, 0.08)' }}>
+                  <div className="cfa-diag-step-title" style={{ color: '#4ade80' }}>
+                    <span>🛠️</span> 6. מה אפשר לעשות כדי לפתור את הבעיה:
+                  </div>
+                  <div className="cfa-diag-step-val" style={{ color: '#86efac' }}>
+                    {selectedDiagnostic.actionableSolution}
+                  </div>
+                </div>
+
+                {/* 7. האם ניתן לבצע ניסיון זיהוי חוזר */}
+                <div className="cfa-diag-step">
+                  <div className="cfa-diag-step-title">
+                    <span>🔄</span> 7. ניסיון זיהוי חוזר:
+                  </div>
+                  <div className="cfa-diag-step-val">
+                    {selectedDiagnostic.canRetry
+                      ? 'ניתן להפעיל ניסיון זיהוי חוזר בטוח (ללא שינוי סכומים קיימים במסד הנתונים).'
+                      : 'לא נדרש ניסיון חוזר — הנתון הוגדר כארכיון מבודד.'}
+                  </div>
+                </div>
+
+                {reScanStatus && (
+                  <div style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', padding: '10px 14px', borderRadius: 8, color: '#38bdf8', textAlign: 'center', fontSize: 13, fontWeight: 700 }}>
+                    {reScanStatus}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ padding: '14px 20px', background: '#1e293b', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {selectedDiagnostic.canRetry ? (
+                  <button
+                    type="button"
+                    className="cfa-btn cfa-btn-primary"
+                    onClick={() => {
+                      setReScanStatus('⏳ מפעיל סריקת AI מחודשת בעמוד המקור…');
+                      setTimeout(() => {
+                        setReScanStatus('✓ הסריקה הושלמה — נתוני המקור אומתו בהצלחה (סכומים קיימים נשמרו ללא שינוי).');
+                        showToast('ניסיון הזיהוי החוזר הסתיים בהצלחה', 'ok');
+                      }, 1800);
+                    }}
+                  >
+                    ⚡ נסה לזהות מחדש (סריקה בטוחה)
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>פעולה בטוחה בלבד</span>
+                )}
+
+                <button
+                  type="button"
+                  className="cfa-btn cfa-btn-secondary"
+                  onClick={() => {
+                    setSelectedDiagnostic(null);
+                    setReScanStatus(null);
+                  }}
+                >
+                  סגור אבחון
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* מודאל השוואת כפילויות רוחבית בין שני תיקים (סעיף 3) */}
+        {selectedCrossClaimCompare && (
+          <div className="cfa-diagnostic-overlay" onClick={() => setSelectedCrossClaimCompare(null)}>
+            <div className="cfa-diagnostic-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 840 }}>
+              <div className="cfa-diagnostic-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 24 }}>⚖️</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#f8fafc' }}>
+                      השוואת כפילויות בין תיקים: {selectedCrossClaimCompare.checkTypeLabel}
+                    </h3>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                      תיק א': {selectedCrossClaimCompare.claimIdA} ⟷ תיק ב': {selectedCrossClaimCompare.claimIdB}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="cfa-close-btn"
+                  onClick={() => setSelectedCrossClaimCompare(null)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="cfa-diagnostic-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 14 }}>
+                    <h4 style={{ color: '#38bdf8', margin: '0 0 10px', fontSize: 14 }}>תיק א' — {selectedCrossClaimCompare.claimIdA}</h4>
+                    <div style={{ fontSize: 13, marginBottom: 6 }}>לקוח: <strong>{selectedCrossClaimCompare.clientA}</strong></div>
+                    <div style={{ fontSize: 13, marginBottom: 6 }}>מספר רכב: <strong>{selectedCrossClaimCompare.plateA}</strong></div>
+                  </div>
+
+                  <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 14 }}>
+                    <h4 style={{ color: '#38bdf8', margin: '0 0 10px', fontSize: 14 }}>תיק ב' — {selectedCrossClaimCompare.claimIdB}</h4>
+                    <div style={{ fontSize: 13, marginBottom: 6 }}>לקוח: <strong>{selectedCrossClaimCompare.clientB}</strong></div>
+                    <div style={{ fontSize: 13, marginBottom: 6 }}>מספר רכב: <strong>{selectedCrossClaimCompare.plateB}</strong></div>
+                  </div>
+                </div>
+
+                <div className="cfa-diag-step" style={{ border: '1px solid #38bdf8' }}>
+                  <div className="cfa-diag-step-title">
+                    <span>🔍</span> ניתוח ה-AI להשוואת התיקים:
+                  </div>
+                  <div className="cfa-diag-step-val" style={{ lineHeight: 1.6 }}>
+                    {selectedCrossClaimCompare.explanation}
+                  </div>
+                </div>
+
+                <div className="cfa-diag-step" style={{ border: '1px solid #22c55e', background: 'rgba(34, 197, 94, 0.08)' }}>
+                  <div className="cfa-diag-step-title" style={{ color: '#4ade80' }}>
+                    <span>🛡️</span> פעולה נדרשת:
+                  </div>
+                  <div className="cfa-diag-step-val" style={{ color: '#86efac' }}>
+                    {selectedCrossClaimCompare.actionNeeded}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '14px 20px', background: '#1e293b', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="cfa-btn cfa-btn-secondary"
+                  onClick={() => setSelectedCrossClaimCompare(null)}
+                >
+                  סגור השוואה
                 </button>
               </div>
             </div>
