@@ -19,6 +19,7 @@ import ClaimWhatsAppModal from './ClaimWhatsAppModal';
 import ClaimWhatsAppDueList, { type WaDueItem } from './ClaimWhatsAppDueList';
 import CustomerRequestModal from './CustomerRequestModal';
 import SecureShareModal from './SecureShareModal';
+import ClaimEmailPackageModal from './ClaimEmailPackageModal';
 import { type ShareRow } from './claimSecureShare';
 import ClaimDocsLibrary from './ClaimDocsLibrary';
 import { DOC_LIB_SECTIONS, fileDocBucket, generalLibFiles, garageLibFiles } from './claimDocLibrary';
@@ -1067,6 +1068,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [updateTreatId, setUpdateTreatId] = useState('');
   const [treatDocPick, setTreatDocPick] = useState<string[]>([]);
   const [treatContinueChoice, setTreatContinueChoice] = useState<'continue' | 'done'>('continue');
+  const [emailPackageOpen, setEmailPackageOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [sharePresetIds, setSharePresetIds] = useState<string[]>([]);
   const [shares, setShares] = useState<ShareRow[]>([]);
@@ -4173,6 +4175,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div className="ab ab-regroup">
               <div className="ab-primary">
+                <button
+                  type="button"
+                  className="ab-btn ab-mail ab-pri"
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  data-testid="claims-email-package-btn"
+                  onClick={() => {
+                    setCardMore(false);
+                    setEmailPackageOpen(true);
+                  }}
+                  title="שליחת מייל מקצועי עם חבילת מסמכים מאובטחת והורדת ZIP"
+                >
+                  <span>📦 שליחת מייל וחבילת מסמכים</span>
+                </button>
                 <button className="ab-btn ab-mail ab-pri" data-testid="claims-send-mail" onClick={() => { setCardMore(false); void openSendModal('draft'); }}>מייל חדש</button>
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
@@ -6586,6 +6609,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           onMail={(to, subject, body) => {
             setShareOpen(false);
             void openSendModal('draft', { to, subject, body, file_ids: [] });
+          }}
+        />
+      ) : null}
+
+      {cur && emailPackageOpen ? (
+        <ClaimEmailPackageModal
+          open={emailPackageOpen}
+          claim={cur}
+          files={generalLibFiles(docs.files)}
+          api={apiRef.current}
+          actorName={actor?.full_name || 'משתמש דליה'}
+          toast={(m, k) => toast(m, k || 'ok')}
+          onClose={() => {
+            setEmailPackageOpen(false);
+            if (cur) void loadCardData(cur.id);
           }}
         />
       ) : null}
