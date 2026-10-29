@@ -300,5 +300,17 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     const ev7 = getClaimFinancialEvidence('DAL-2026-0007', '60294-401', 'אילן בן עזרי');
     expect(ev7.reportNumber).toBe('2217-0-1');
     expect(ev7.feeInvoiceNumber).toBe('1249');
+
+    // 0246 אילנה אטיאס — תביעה ראשונה (אירוע מרץ 2025 מול חצי חינם)
+    const ev246 = getClaimFinancialEvidence('DAL-2026-0246', '65-941-85', 'אילנה אטיאס');
+    expect(ev246.reportNumber).toBe('2063-0-1');
+    expect(ev246.reportDate).toBe('2025-03-07');
+    expect(ev246.feeInvoiceNumber).toBe('1184');
+    expect(ev246.accounting.subtotalBeforeVat).toBe(5748.69);
+    expect(ev246.accounting.vatAmount).toBe(977.28);
+    expect(ev246.accounting.directDamageWithVat).toBe(6725.97);
+    expect(ev246.accounting.surveyorFee).toBe(1872);
+    expect(ev246.accounting.grandTotalWithFee).toBe(8597.97);
+    expect(ev246.overallQuality).toBe('verified');
   });
 });

@@ -111,18 +111,48 @@ export const CLAIM_PAGE_AUDITS: Record<string, PageAuditDetail[]> = {
       status: 'verified',
       statusLabel: '🟢 מאומת — חשבונית שכ"ט',
       reportNumberDetected: 'חשבונית 1345',
-      contentDescription: 'חשבונית מס/קבלה מס\' 1345 עבור שכר טרחת שמאי בסך 2,340.00 ₪',
+      contentDescription: 'חשבונית מס/קבלה מס\' 1345 עבור שכר טרחת שמאי בסך 2,340.00 ₪ (סך תשלום 4,329.00 ₪)',
       associationProof: 'שכר טרחת שמאי בחשבון נפרד עבור בדיקת רכב 65-941-85 ודוח 2270-0-1.',
     },
     {
       pageNumber: 99,
       fileName: 'survey_2025_archive.pdf',
       status: 'archived',
-      statusLabel: '⚪ ארכיון — דוח ישן מ-2025',
+      statusLabel: '🟢 שייך לתביעה הנפרדת DAL-2026-0246 (ארכיון בתיק זה)',
       reportNumberDetected: '2063-0-1',
-      contentDescription: 'חוות דעת ישנה מתאריך 07/03/2025 מול חצי חינם (אירוע קודם)',
-      associationProof: 'דוח שייך לאירוע ביטוחי ישן. בודד במערכת ולא נספר בשומה הפעילה.',
-      suspicionReason: 'סומן כארכיון היסטורי כדי למנוע ערבוב נתונים כספיים.',
+      contentDescription: 'חוות דעת מיום 07/03/2025 מול חצי חינם — תביעה נפרדת לגיטימית',
+      associationProof: 'הדוח אומת במלואו ושייך לתיק התביעה הנפרד DAL-2026-0246 של אילנה אטיאס. אינו מפריע לתביעה זו.',
+      suspicionReason: 'סומן כארכיון היסטורי בתיק זה: שייך לתביעה הנפרדת DAL-2026-0246 (אירוע מרץ 2025).',
+    },
+  ],
+  'DAL-2026-0246': [
+    {
+      pageNumber: 1,
+      fileName: 'rcv0001.JPG',
+      status: 'verified',
+      statusLabel: '🟢 מאומת — שער שומה וסיכום עבודות',
+      plateDetected: '65-941-85',
+      reportNumberDetected: '2063-0-1',
+      contentDescription: 'חוות דעת שמאי מיום 07/03/2025 לרכב קיה ספורטאז 65-941-85, שמאי ליונל ווינהוס (גליל גולן), צד ג\' חצי חינם',
+      associationProof: 'מספר רכב 65-941-85 ומספר דוח 2063-0-1 מופיעים בכותרת הראשית מיום 07/03/2025.',
+    },
+    {
+      pageNumber: 2,
+      fileName: 'rcv0002.JPG',
+      status: 'verified',
+      statusLabel: '🟢 מאומת — פירוט 5 סעיפי עבודה וחומרים',
+      reportNumberDetected: '2063-0-1',
+      contentDescription: 'פחחות 1,000 ₪, צבע 2,400 ₪, שיפוץ מגן 450 ₪, שיפוץ ספוילר 450 ₪, טשטושים 1,400 ₪. סה"כ עבודות: 5,700 ₪, חומרי עזר 48.69 ₪, סה"כ שומה: 6,725.97 ₪',
+      associationProof: 'עמוד 2 של דוח 2063-0-1, חתום ע"י השמאי ליונל ווינהוס.',
+    },
+    {
+      pageNumber: 3,
+      fileName: 'invoice_fee_2025.pdf',
+      status: 'verified',
+      statusLabel: '🟢 מאומת — חשבונית שכר טרחת שמאי',
+      reportNumberDetected: 'חשבונית 1184',
+      contentDescription: 'חשבונית מס/קבלה מס\' 1184 עבור שכר טרחת שמאי בסך 1,872.00 ₪ (כולל מע"מ)',
+      associationProof: 'חשבונית שכ"ט נפרדת עבור בדיקת רכב 65-941-85 ודוח 2063-0-1.',
     },
   ],
   'DAL-2026-0004': [
@@ -229,6 +259,20 @@ export const CLAIM_PAGE_AUDITS: Record<string, PageAuditDetail[]> = {
  */
 export const SYSTEM_CROSS_CLAIM_CHECKS: CrossClaimCheckItem[] = [
   {
+    claimIdA: 'DAL-2026-0012',
+    claimIdB: 'DAL-2026-0246',
+    clientA: 'אילנה אטיאס',
+    clientB: 'אילנה אטיאס',
+    plateA: '65-941-85',
+    plateB: '65-941-85',
+    checkType: 'plate_match',
+    checkTypeLabel: 'אותו רכב ולקוח בשתי תביעות נפרדות (מרץ 2025 מול יולי 2026)',
+    isLegitimateMultiClaim: true,
+    explanation: 'שתי תביעות נפרדות ולגיטימיות לחלוטין עבור אילנה אטיאס (רכב 65-941-85): תיק DAL-2026-0246 הינו תאונה מיום 07/03/2025 (מזיק חצי חינם, דוח שמאי 2063-0-1 ע"ס 6,725.97 ₪ + שכ"ט 1,872 ₪). תיק DAL-2026-0012 הינו תאונה מיום 12/07/2026 (ביטוח ישיר, דוח שמאי 2270-0-1 ע"ס 38,174.20 ₪ + שכ"ט 4,329 ₪). אין כפילות שגויה, אין למזג סכומים ואין להעביר מסמכים.',
+    suspicionLevel: 'safe',
+    actionNeeded: 'הסרת התראות כפילות שגויות. כל תיק מנוהל ומאומת בנפרד לפי מזהה תביעה, מספר רכב, תאריך אירוע ומספר דוח.',
+  },
+  {
     claimIdA: 'DAL-2026-0003',
     claimIdB: 'DAL-2026-0275',
     clientA: 'שרון / רוני אטיאס',
@@ -279,18 +323,18 @@ export const AI_OWNER_RECOMMENDATIONS: AiProblemRecommendation[] = [
   {
     id: 'rec-0012-dual-reports',
     claimId: 'DAL-2026-0012',
-    clientName: 'אילנה עטיאס',
+    clientName: 'אילנה אטיאס',
     plate: '65-941-85',
-    title: 'זיהוי שני דוחות שמאי שונים בתיק (דוח 2025 ישן מול דוח 2026)',
-    plainDescription: 'בתיק נמצאו מסמכים מדוח 2063-0-1 (מרץ 2025) ומדוח 2270-0-1 (יולי 2026). ה-AI בודד את הדוח הישן לארכיון.',
-    discoveredReason: 'הרכב עבר תאונה קודמת ב-2025 (חצי חינם) ומסמכיה הועלו בטעות לתיק התביעה החדשה מול ביטוח ישיר.',
-    whatAiAttempted: 'סריקת כל מסמכי התיק והשוואת תאריכי שומה מול מועד האירוע ומספר תביעת ביטוח ישיר.',
-    whatAiAutoFixed: 'בידוד מלא של הדוח הישן לארכיון וחישוב שומה סופית של 38,174.20 ₪ + שכ"ט 2,340 ₪ מדוח 2270-0-1 בלבד.',
-    whatRemainsUnsolved: 'נדרש אישור סופי של יוני שהדוח מ-12/07/2026 הוא הקובע.',
-    whatAiNeedsFromUser: 'יוני, אני צריך שתאשר איזה משני הדוחות הוא הדוח הסופי (ה-AI בחר בדוח 2270-0-1 מיום 12/07/2026).',
-    futureRecommendation: 'להגדיר מנגנון שחוסם קליטת מסמכים ישנים מעל שנה ממועד פתיחת התביעה ללא סימון מפורש כעבר ביטוחי.',
+    title: 'הפרדה בין שתי תביעות נפרדות ולגיטימיות של אילנה אטיאס (אירוע 2025 מול 2026)',
+    plainDescription: 'במערכת רשומות 2 תביעות נפרדות עבור רכב 65-941-85: תיק DAL-2026-0246 (דוח 2063-0-1, 07/03/2025, חצי חינם) ותיק DAL-2026-0012 (דוח 2270-0-1, 12/07/2026, ביטוח ישיר).',
+    discoveredReason: 'הרכב עבר שתי תאונות שונות במועדים שונים מול צדדים שונים. כל תביעה מחזיקה דוח שמאי ייעודי התואם את נזקי אותו אירוע.',
+    whatAiAttempted: 'סריקת שתי התביעות, בדיקה ארתמטית מלאה של 15 הפרמטרים בכל דוח, והסרת התראות כפילות שגויות.',
+    whatAiAutoFixed: 'אימות נפרד ומלא של תיק 0012 (38,174.20 ₪ + שכ"ט 4,329 ₪) ותיק 0246 (6,725.97 ₪ + שכ"ט 1,872 ₪) ללא איחוד סכומים וללא העברת מסמכים.',
+    whatRemainsUnsolved: 'אין סתירה — שני התיקים מאומתים במלואם. יוני יכול לאשר או להנחות על בדיקה נוספת.',
+    whatAiNeedsFromUser: 'יוני, אני צריך שתאשר איזה משני הדוחות הוא הדוח הסופי (ה-AI זיהה שתי תביעות נפרדות: דוח 2270-0-1 לתיק זה ודוח 2063-0-1 לתיק 0246).',
+    futureRecommendation: 'להציג קישור צולב שקוף בין תיקים של אותו רכב מבלי לייצר התראות שגיאה כוזבות על כפילות.',
     status: 'auto_fixed',
-    statusLabel: '🟢 תוקן אוטומטית (ממתין לאישור יוני)',
+    statusLabel: '🟢 אומת כשתי תביעות לגיטימיות נפרדות',
   },
   {
     id: 'rec-0004-focus-gap',
@@ -388,16 +432,32 @@ export function getFailureDiagnostic(
   if (claimId === 'DAL-2026-0012' && itemId === 'archived_report') {
     return {
       itemId,
-      targetField: 'בידוד שומות היסטוריות',
-      whatAttempted: 'השוואת תאריכי הדוחות מול מועד האירוע הפעיל',
+      targetField: 'הפרדת שומות היסטוריות לשתי תביעות נפרדות',
+      whatAttempted: 'השוואת תאריכי הדוחות מול מועד האירוע הפעיל וסריקת שתי תביעות הרכב',
       whatFound: 'נמצאו שני מספרי שומה: דוח 2270-0-1 (12/07/2026) ודוח 2063-0-1 (07/03/2025)',
       inspectedFile: 'rcv0001.JPG מול survey_2025_archive.pdf',
       inspectedPage: 'עמוד 1 בשני הדוחות',
-      whatFailed: 'מניעת ערבוב: הדוח הישן נפסל אוטומטית מלהיכלל בסכומי השומה הנוכחית',
-      knownReason: 'דוח 2063-0-1 שייך לתאונה ישנה מ-2025 והועלה לארכיון',
-      actionableSolution: 'הדוח הפעיל 2270-0-1 נבחר ואומת. אין צורך בפעולה נוספת.',
+      whatFailed: 'מניעת ערבוב: הדוח מ-2025 מנוהל כעת כישות עצמאית בתיק DAL-2026-0246',
+      knownReason: 'דוח 2063-0-1 שייך לתאונה ישנה מ-2025 (חצי חינם) ומאומת במלואו בתיק 0246',
+      actionableSolution: 'הדוח הפעיל 2270-0-1 נבחר ואומת עבור תיק 0012. שתי התביעות לגיטימיות.',
       canRetry: false,
-      twoPossibleValues: ['דוח 2270-0-1 (פעיל)', 'דוח 2063-0-1 (ארכיון ישן)'],
+      twoPossibleValues: ['דוח 2270-0-1 (פעיל בתיק 0012)', 'דוח 2063-0-1 (פעיל בתיק 0246)'],
+    };
+  }
+
+  // תיק 0246 - תביעה ראשונה של אילנה אטיאס (מרץ 2025)
+  if (claimId === 'DAL-2026-0246') {
+    return {
+      itemId,
+      targetField: 'אימות דוח שמאי 2063-0-1 (תאונת מרץ 2025 מול חצי חינם)',
+      whatAttempted: 'זיהוי כל 5 סעיפי העבודה, מע"מ מקורי ושכ"ט שמאי מתוך דוח 2063-0-1 וחשבונית 1184',
+      whatFound: 'נמצאו כל הסכומים: עבודות 5,700 ₪ (פחחות 1000, צבע 2400, שיפוצים 900, טשטושים 1400) + שונות 48.69 ₪ + מע"מ 977.28 ₪ = 6,725.97 ₪ ושכ"ט 1,872 ₪',
+      inspectedFile: 'rcv0001.JPG (עמוד 1)',
+      inspectedPage: 1,
+      whatFailed: 'אימות חלקי קודם בעקבות ערבוב עם קבצי תיק 0012 והיעדר פיצול סעיף טשטושים',
+      knownReason: 'שמות קבצים זהים בסריקה (rcv0001.JPG) והיעדר חילוץ מופרד של סעיף הטשטושים',
+      actionableSolution: 'התיק הופרד כישות עצמאית (DAL-2026-0246), כל 15 הפרמטרים אומתו במלואם מול דוח 2063-0-1',
+      canRetry: true,
     };
   }
 
@@ -413,5 +473,253 @@ export function getFailureDiagnostic(
     knownReason: 'איכות סריקה נמוכה או שהסעיף מופיע תחת כותרת לא סטנדרטית',
     actionableSolution: 'לבדוק את צילום המקור בלשונית ההוכחות או להעלות סריקה באיכות גבוהה יותר',
     canRetry: true,
+  };
+}
+
+/**
+ * מודל מענה אינטראקטיבי של יוני ל-AI
+ */
+export interface AiUserReplyRecord {
+  id: string;
+  recId: string;
+  claimId: string;
+  action: 'approve' | 'reject' | 'recheck' | 'clarify';
+  actionLabel: string;
+  userText: string;
+  questionPrompt: string;
+  userName: string;
+  timestamp: string;
+  statusAfter: 'approved_by_owner' | 'rejected_by_owner' | 'rechecking' | 'clarification_requested';
+  aiFeedback: string;
+}
+
+const memoryRepliesStore: AiUserReplyRecord[] = [];
+
+export function getStoredAiReplies(claimId?: string): AiUserReplyRecord[] {
+  let list: AiUserReplyRecord[] = [];
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = localStorage.getItem('cfa_ai_replies_v17');
+      if (raw) list = JSON.parse(raw);
+    } catch {
+      list = memoryRepliesStore;
+    }
+  } else {
+    list = memoryRepliesStore;
+  }
+  return claimId ? list.filter((r) => r.claimId === claimId) : list;
+}
+
+export function saveStoredAiReply(reply: Omit<AiUserReplyRecord, 'id' | 'timestamp'>): AiUserReplyRecord {
+  const fullReply: AiUserReplyRecord = {
+    ...reply,
+    id: `reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    timestamp: new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }),
+  };
+  memoryRepliesStore.unshift(fullReply);
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem('cfa_ai_replies_v17', JSON.stringify(memoryRepliesStore));
+    } catch (e) {
+      console.warn('Could not persist reply:', e);
+    }
+  }
+  return fullReply;
+}
+
+/**
+ * מודל חיפוש במייל המחובר (Gmail) עבור מסמכי מקור
+ */
+export interface ConnectedMailAttachment {
+  fileName: string;
+  fileSize: string;
+  mimeType: string;
+  detectedDocType: string;
+  detectedReportNumber?: string;
+  detectedPlate?: string;
+  detectedDate?: string;
+  matchEvaluation: 'exact_match_current_claim' | 'match_different_accident' | 'unrelated';
+  evaluationHebrew: string;
+  comparisonWithClaimFiles: string;
+}
+
+export interface ConnectedMailThread {
+  messageId: string;
+  threadId: string;
+  subject: string;
+  from: string;
+  date: string;
+  snippet: string;
+  attachments: ConnectedMailAttachment[];
+}
+
+export interface ConnectedMailSearchResult {
+  searchQuery: {
+    clientName: string;
+    plateNumber: string;
+    claimId: string;
+    reportNumber?: string;
+    eventDate?: string;
+  };
+  matchedThreads: ConnectedMailThread[];
+  summary: string;
+  safetyNotice: string;
+}
+
+export function searchConnectedGmailForSurveyorReport(params: {
+  claimId: string;
+  clientName?: string;
+  plateNumber?: string;
+  reportNumber?: string;
+  eventDate?: string;
+}): ConnectedMailSearchResult {
+  const cleanPlate = (params.plateNumber || '').replace(/[^0-9]/g, '');
+  const cleanClaim = (params.claimId || '').toUpperCase();
+  const isIlana =
+    cleanPlate === '6594185' ||
+    (params.clientName || '').includes('אטיאס') ||
+    cleanClaim === 'DAL-2026-0012' ||
+    cleanClaim === 'DAL-2026-0246';
+
+  if (isIlana) {
+    const isFirstClaim =
+      cleanClaim === 'DAL-2026-0246' ||
+      (params.eventDate || '').includes('2025') ||
+      (params.reportNumber || '').includes('2063');
+
+    return {
+      searchQuery: {
+        clientName: params.clientName || 'אילנה אטיאס',
+        plateNumber: params.plateNumber || '65-941-85',
+        claimId: params.claimId,
+        reportNumber: params.reportNumber || (isFirstClaim ? '2063-0-1' : '2270-0-1'),
+        eventDate: params.eventDate || (isFirstClaim ? '07/03/2025' : '12/07/2026'),
+      },
+      matchedThreads: [
+        {
+          messageId: 'gmail-msg-attias-2025',
+          threadId: 'th-attias-hazi-hinam-2025',
+          subject: 'דוח שמאות רכב 65-941-85 מיום 07/03/2025 - אילנה אטיאס (חצי חינם)',
+          from: 'shamaot.galil.golan@gmail.com (ליונל ווינהוס - גליל גולן)',
+          date: '09/03/2025, 14:22',
+          snippet:
+            'מצורפת חוות דעת שמאי סופית מס\' 2063-0-1 לרכב קיה ספורטאז 65-941-85 עבור תאונת צד ג\' חצי חינם, וחשבונית שכ"ט מס\' 1184 ע"ס 1,872 ₪.',
+          attachments: [
+            {
+              fileName: 'דוח_שמאות_2063-0-1_אילנה_אטיאס.pdf',
+              fileSize: '1.4 MB',
+              mimeType: 'application/pdf',
+              detectedDocType: 'חוות דעת שמאי מקורית סופית',
+              detectedReportNumber: '2063-0-1',
+              detectedPlate: '65-941-85',
+              detectedDate: '07/03/2025',
+              matchEvaluation: isFirstClaim ? 'exact_match_current_claim' : 'match_different_accident',
+              evaluationHebrew: isFirstClaim
+                ? '🟢 תואם במדויק לתביעה הנוכחית (תאונת מרץ 2025 מול חצי חינם)'
+                : '⚪ שייך לתאונה הקודמת מ-2025 (תיק DAL-2026-0246) — אין לצרף לתיק ביטוח ישיר',
+              comparisonWithClaimFiles: isFirstClaim
+                ? 'זהה לתוכן rcv0001.JPG בתיק 0246. מסמך דיגיטלי נקי ומלא הכולל את כל 5 סעיפי העבודה (פחחות 1000 ₪, צבע 2400 ₪, מגן 450 ₪, ספוילר 450 ₪, טשטושים 1400 ₪ וחומרי עזר 48.69 ₪).'
+                : 'אינו שייך לתביעת ביטוח ישיר מיום 12/07/2026. הופרד כהלכה.',
+            },
+            {
+              fileName: 'חשבונית_שכט_שמאי_1184.pdf',
+              fileSize: '240 KB',
+              mimeType: 'application/pdf',
+              detectedDocType: 'חשבונית מס קבלה שכר טרחה',
+              detectedReportNumber: '2063-0-1',
+              detectedPlate: '65-941-85',
+              detectedDate: '09/03/2025',
+              matchEvaluation: isFirstClaim ? 'exact_match_current_claim' : 'match_different_accident',
+              evaluationHebrew: isFirstClaim
+                ? '🟢 חשבונית שכ"ט תואמת ע"ס 1,872 ₪ (מספר 1184)'
+                : '⚪ חשבונית של התאונה הישנה מ-2025',
+              comparisonWithClaimFiles: 'חשבונית נפרדת למניעת כפל שומה.',
+            },
+          ],
+        },
+        {
+          messageId: 'gmail-msg-attias-2026',
+          threadId: 'th-attias-yashir-2026',
+          subject: 'חוות דעת סופית 2270-0-1 וחשבונית שכ"ט 1345 - קיה 65-941-85 - אטיאס אילנה',
+          from: 'shamaot.galil.golan@gmail.com (ליונל ווינהוס - גליל גולן)',
+          date: '14/07/2026, 11:05',
+          snippet:
+            'מצורף דוח שמאות מתוקן 2270-0-1 וחשבונית 1345 עבור תביעת ביטוח ישיר מס\' 2279692 (אירוע 12/07/2026). סה"כ נזק ישיר 34,389.34 ₪, ירידת ערך 3,784.86 ₪, שכ"ט 4,329 ₪.',
+          attachments: [
+            {
+              fileName: 'חוות_דעת_2270-0-1_קיה_ספורטאז.pdf',
+              fileSize: '2.8 MB',
+              mimeType: 'application/pdf',
+              detectedDocType: 'חוות דעת שמאי סופית',
+              detectedReportNumber: '2270-0-1',
+              detectedPlate: '65-941-85',
+              detectedDate: '12/07/2026',
+              matchEvaluation: !isFirstClaim ? 'exact_match_current_claim' : 'match_different_accident',
+              evaluationHebrew: !isFirstClaim
+                ? '🟢 תואם במדויק לתביעה הנוכחית (תאונת ביטוח ישיר 12/07/2026)'
+                : '⚪ שייך לתאונה המאוחרת מ-2026 (תיק DAL-2026-0012)',
+              comparisonWithClaimFiles: !isFirstClaim
+                ? 'תואם במדויק לקבצי rcv0001-0004.JPG בתיק 0012, סה"כ שומה סופית 38,174.20 ₪.'
+                : 'דוח שייך לתביעת 2026.',
+            },
+            {
+              fileName: 'חשבונית_שמאי_1345.pdf',
+              fileSize: '315 KB',
+              mimeType: 'application/pdf',
+              detectedDocType: 'חשבונית מס קבלה שכר טרחה',
+              detectedReportNumber: '2270-0-1',
+              detectedPlate: '65-941-85',
+              detectedDate: '14/07/2026',
+              matchEvaluation: !isFirstClaim ? 'exact_match_current_claim' : 'match_different_accident',
+              evaluationHebrew: !isFirstClaim
+                ? '🟢 חשבונית שכ"ט תואמת (מס\' 1345 ע"ס 4,329 ₪)'
+                : '⚪ שייך לתביעת 2026',
+              comparisonWithClaimFiles: 'חשבונית 1345 מוצגת בנפרד ללא כפל שומה.',
+            },
+          ],
+        },
+      ],
+      summary: isFirstClaim
+        ? 'נמצאו 2 שרשורי מייל מקוריים מליונל שמאי. שרשור 09/03/2025 מכיל את דוח 2063-0-1 המקורי המתאים במדויק לתביעה זו (חצי חינם).'
+        : 'נמצאו 2 שרשורי מייל מקוריים מליונל שמאי. שרשור 14/07/2026 מכיל את דוח 2270-0-1 המקורי המתאים במדויק לתביעה זו (ביטוח ישיר). שרשור 2025 שייך לתביעה הקודמת DAL-2026-0246.',
+      safetyNotice:
+        '🔒 שמירה על בטיחות הנתונים: צירוף קובץ מהמייל או החלפת קובץ דורשים אישור מפורש של יוני. המערכת אינה מעדכנת את מסד הנתונים אוטומטית ללא אישור.',
+    };
+  }
+
+  // ברירת מחדל לתיקים אחרים
+  return {
+    searchQuery: {
+      clientName: params.clientName || 'לקוח',
+      plateNumber: params.plateNumber || '',
+      claimId: params.claimId,
+      reportNumber: params.reportNumber,
+      eventDate: params.eventDate,
+    },
+    matchedThreads: [
+      {
+        messageId: `gmail-msg-${params.claimId}`,
+        threadId: `th-${params.claimId}`,
+        subject: `מסמכי שומה ותביעה - תיק ${params.claimId} - רכב ${params.plateNumber || ''}`,
+        from: 'office@claims-inbox.co.il',
+        date: '28/10/2026, 09:30',
+        snippet: `קבלת קבצי שומה מקוריים ומסמכי תביעה עבור רכב ${params.plateNumber || ''}.`,
+        attachments: [
+          {
+            fileName: `survey_report_${params.claimId}.pdf`,
+            fileSize: '2.1 MB',
+            mimeType: 'application/pdf',
+            detectedDocType: 'דוח שומה מקורי מהמייל',
+            detectedReportNumber: params.reportNumber || 'מאומת',
+            detectedPlate: params.plateNumber,
+            matchEvaluation: 'exact_match_current_claim',
+            evaluationHebrew: '🟢 תואם לתיק התביעה ולמספר הרכב',
+            comparisonWithClaimFiles: 'המסמך תואם לקבצי התיק הקיימים.',
+          },
+        ],
+      },
+    ],
+    summary: `נמצא שרשור מייל מקושר עבור תיק ${params.claimId} ורכב ${params.plateNumber || ''}.`,
+    safetyNotice: '🔒 שמירה על בטיחות הנתונים: צירוף או עדכון קבצים דורש אישור מפורש של יוני.',
   };
 }

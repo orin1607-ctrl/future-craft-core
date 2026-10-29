@@ -573,4 +573,29 @@
   gap: 10px;
 }
 
+/* מענה אינטראקטיבי של יוני ל-AI ובאנר שתי תביעות (V17) */
+.cfa-ilana-dual-banner {
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+.cfa-reply-btn {
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.cfa-reply-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.cfa-reply-btn:active {
+  transform: translateY(0);
+}
+
+.cfa-yoni-reply-textarea:focus {
+  border-color: #38bdf8 !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+
 

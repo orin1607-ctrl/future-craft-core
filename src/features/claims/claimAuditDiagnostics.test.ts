@@ -4,6 +4,9 @@ import {
   CLAIM_PAGE_AUDITS,
   SYSTEM_CROSS_CLAIM_CHECKS,
   AI_OWNER_RECOMMENDATIONS,
+  searchConnectedGmailForSurveyorReport,
+  saveStoredAiReply,
+  getStoredAiReplies,
 } from './claimAuditDiagnostics';
 import { getClaimFinancialEvidence } from './claimFinancialEvidence';
 
@@ -89,5 +92,84 @@ describe('בדיקות מנגנון אבחון אימות, עמודים, כפי�
     expect(ev12.accounting.finalReportTotal).toBe(38174.2);
     expect(ev12.accounting.surveyorFee).toBe(4329);
     expect(ev12.overallQuality).toBe('verified');
+  });
+
+  it('7. תביעה ראשונה של אילנה אטיאס (DAL-2026-0246) — בדיקת 3 עמודים ואימות שומה 2063-0-1 מול חצי חינם', () => {
+    const pages = CLAIM_PAGE_AUDITS['DAL-2026-0246'];
+    expect(pages).toBeDefined();
+    expect(pages.length).toBe(3);
+
+    const p1 = pages.find((p) => p.pageNumber === 1);
+    expect(p1?.status).toBe('verified');
+    expect(p1?.reportNumberDetected).toBe('2063-0-1');
+    expect(p1?.plateDetected).toBe('65-941-85');
+
+    const p2 = pages.find((p) => p.pageNumber === 2);
+    expect(p2?.status).toBe('verified');
+    expect(p2?.contentDescription).toContain('טשטושים');
+
+    const p3 = pages.find((p) => p.pageNumber === 3);
+    expect(p3?.status).toBe('verified');
+    expect(p3?.reportNumberDetected).toBe('חשבונית 1184');
+  });
+
+  it('8. בדיקת כפילויות רוחבית לאילנה אטיאס — זיהוי שתי תביעות נפרדות ולגיטימיות (0012 מול 0246)', () => {
+    const check = SYSTEM_CROSS_CLAIM_CHECKS.find(
+      (c) =>
+        (c.claimIdA === 'DAL-2026-0012' && c.claimIdB === 'DAL-2026-0246') ||
+        (c.claimIdA === 'DAL-2026-0246' && c.claimIdB === 'DAL-2026-0012')
+    );
+    expect(check).toBeDefined();
+    expect(check?.isLegitimateMultiClaim).toBe(true);
+    expect(check?.suspicionLevel).toBe('safe');
+    expect(check?.explanation).toContain('שתי תביעות נפרדות ולגיטימיות לחלוטין');
+  });
+
+  it('9. חיפוש במייל המחובר (Gmail) — איתור מסמכי מקור נפרדים לשתי התאונות של אילנה אטיאס', () => {
+    // חיפוש עבור תביעה ראשונה (מרץ 2025)
+    const res2025 = searchConnectedGmailForSurveyorReport({
+      claimId: 'DAL-2026-0246',
+      clientName: 'אילנה אטיאס',
+      plateNumber: '65-941-85',
+      eventDate: '07/03/2025',
+    });
+    expect(res2025.matchedThreads.length).toBe(2);
+    const th2025 = res2025.matchedThreads.find((t) => t.date.includes('2025'));
+    expect(th2025).toBeDefined();
+    expect(th2025?.attachments[0].detectedReportNumber).toBe('2063-0-1');
+    expect(th2025?.attachments[0].matchEvaluation).toBe('exact_match_current_claim');
+
+    // חיפוש עבור תביעה שנייה (יולי 2026)
+    const res2026 = searchConnectedGmailForSurveyorReport({
+      claimId: 'DAL-2026-0012',
+      clientName: 'אילנה אטיאס',
+      plateNumber: '65-941-85',
+      eventDate: '12/07/2026',
+    });
+    const th2026 = res2026.matchedThreads.find((t) => t.date.includes('2026'));
+    expect(th2026).toBeDefined();
+    expect(th2026?.attachments[0].detectedReportNumber).toBe('2270-0-1');
+    expect(th2026?.attachments[0].matchEvaluation).toBe('exact_match_current_claim');
+  });
+
+  it('10. שמירה ואחזור של מענה יוני ל-AI (אינטראקציה, 4 כפתורי פעולה והיסטוריה)', () => {
+    const reply = saveStoredAiReply({
+      recId: 'rec-0012-dual-reports',
+      claimId: 'DAL-2026-0012',
+      action: 'approve',
+      actionLabel: 'אושר',
+      userText: 'מאושר, אלו שתי תאונות נפרדות ולא כפילות',
+      questionPrompt: 'יוני, אני צריך שתאשר איזה משני הדוחות הוא הדוח הסופי',
+      userName: 'יוני אטיאס (מנהל המערכת)',
+      statusAfter: 'approved_by_owner',
+      aiFeedback: 'החלטת יוני עודכנה: ההפרדה בין שתי התביעות אושרה. אין שינוי כספי במסד הנתונים.',
+    });
+    expect(reply.id).toBeDefined();
+    expect(reply.timestamp).toBeDefined();
+    expect(reply.action).toBe('approve');
+
+    const history = getStoredAiReplies('DAL-2026-0012');
+    expect(history.length).toBeGreaterThanOrEqual(1);
+    expect(history[0].userText).toContain('מאושר, אלו שתי תאונות נפרדות');
   });
 });
