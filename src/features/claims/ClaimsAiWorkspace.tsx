@@ -3327,12 +3327,13 @@ export function ClaimsAiWorkspace({
   const localConversationRef = useRef<string | null>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   /** How far the phone browser scrolled the visible area (keyboard open) — the window follows it. */
   const [viewportTop, setViewportTop] = useState(0);
-  /** Phone keyboard detection: the visible height shrinks well below the window height. */
-  const phoneKeyboardOpen = daliaComposerUi && typeof window !== 'undefined' && window.innerWidth <= 760
-    && !!viewportHeight && viewportHeight < window.innerHeight * 0.78;
+  /** Phone keyboard detection: the visible height shrinks well below window height or input is focused */
+  const phoneKeyboardOpen = typeof window !== 'undefined' && window.innerWidth <= 768
+    && (isInputFocused || (!!viewportHeight && viewportHeight < window.innerHeight * 0.82));
   const [batchUploadProgress, setBatchUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const prevClaimIdRef = useRef<string | null>(claimId);
 
@@ -3341,9 +3342,12 @@ export function ClaimsAiWorkspace({
     const vv = window.visualViewport;
     const updateSize = () => {
       if (!vv) return;
-      setViewportHeight(vv.height);
-      setViewportTop(Math.max(0, Math.round(vv.offsetTop || 0)));
-      document.documentElement.style.setProperty('--app-viewport-height', `${vv.height}px`);
+      const h = Math.round(vv.height);
+      const t = Math.max(0, Math.round(vv.offsetTop || 0));
+      setViewportHeight(h);
+      setViewportTop(t);
+      document.documentElement.style.setProperty('--app-viewport-height', `${h}px`);
+      document.documentElement.style.setProperty('--app-viewport-top', `${t}px`);
     };
     vv.addEventListener('resize', updateSize);
     vv.addEventListener('scroll', updateSize);
@@ -3358,7 +3362,7 @@ export function ClaimsAiWorkspace({
     const el = threadRef.current;
     if (!el) return;
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const nearBottom = distanceToBottom < 90;
+    const nearBottom = distanceToBottom < 60;
     isNearBottomRef.current = nearBottom;
     setShowScrollBottom(!nearBottom);
   }, []);
@@ -4213,9 +4217,41 @@ const toggleVoiceMute = useCallback(() => {
     const effectiveText = trimmed || (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה');
     const filesToUpload = [...stagedAttachments];
 
+    // Optimistic user message - display immediately so it NEVER vanishes from view
+    const tempUserMsgId = `optimistic-${Date.now()}`;
+    const optimisticAttachments = filesToUpload.map((s) => ({
+      name: s.file.name,
+      mime_type: s.file.type,
+      byte_size: s.file.size,
+      preview_url: s.previewUrl,
+    }));
+    const optimisticUserMsg: ClaimsAiMessage = {
+      id: tempUserMsgId,
+      conversation_id: activeId || 'local',
+      role: 'user',
+      content: effectiveText,
+      created_at: new Date().toISOString(),
+      tool_name: null,
+      metadata: {
+        claim_id: claimId,
+        source,
+        attachments: optimisticAttachments,
+        is_optimistic: true,
+      },
+    };
+    setMessages((prev) => deduplicateMessages([...prev, optimisticUserMsg]));
+    setShowWelcomeHub(false);
+    setClaimsChatOpen(true);
+    isNearBottomRef.current = true;
+    setShowScrollBottom(false);
+    setTimeout(() => scrollToBottom(false), 50);
+
     setStagedAttachments([]);
     setLoading(true);
     setBanner('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '40px';
+    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
     let didTimeout = false;
@@ -4389,8 +4425,11 @@ const toggleVoiceMute = useCallback(() => {
       });
       if (userSaved.error || !userSaved.data) throw new Error(userSaved.error?.message || 'שמירת ההודעה נכשלה');
       userSavedSuccessfully = true;
-      const history = deduplicateMessages([...messages, userSaved.data]);
+      const history = deduplicateMessages([...messages.filter((m) => m.id !== tempUserMsgId), userSaved.data]);
       setMessages(history);
+      if (isNearBottomRef.current) {
+        setTimeout(() => scrollToBottom(false), 50);
+      }
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
       let quoteCardFromStream: GarageQuoteCardData | null = null;
@@ -4426,6 +4465,9 @@ const toggleVoiceMute = useCallback(() => {
               ...(quoteCardFromStream ? { garage_quote_card: quoteCardFromStream } : {}),
             },
           }]);
+          if (isNearBottomRef.current && threadRef.current) {
+            threadRef.current.scrollTop = threadRef.current.scrollHeight;
+          }
         },
         onPendingAction: (pending) => {
           pendingFromStream = pending;
@@ -4469,6 +4511,10 @@ const toggleVoiceMute = useCallback(() => {
       }
     } catch (err) {
       if (!userSavedSuccessfully) {
+        setMessages((prev) => prev.map((m) => m.id === tempUserMsgId ? {
+          ...m,
+          metadata: { ...(m.metadata || {}), error: true, failed_to_send: true }
+        } : m));
         setInput(trimmed);
       }
       if (voiceModeActiveRef.current && replyIsCurrent()) {
@@ -5146,7 +5192,7 @@ const toggleVoiceMute = useCallback(() => {
     <div
       className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'claims' ? ' dalia-claims-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}${phoneKeyboardOpen ? ' kb-open' : ''}`}
       style={viewportHeight
-        ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px`, ...(daliaComposerUi && viewportTop > 0 ? { top: `${viewportTop}px` } : {}) }
+        ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px`, ...(viewportTop > 0 ? { top: `${viewportTop}px` } : {}) }
         : undefined}
       role="dialog"
       aria-modal="true"
@@ -7415,21 +7461,17 @@ const toggleVoiceMute = useCallback(() => {
               setInput(val);
               inputRef.current = val;
               baseInputRef.current = val;
-              if (daliaComposerUi && !composerExpanded) {
-                const el = e.target;
-                el.style.height = 'auto';
-                // grow with the text, up to a share of the VISIBLE height (the phone keyboard takes the rest)
-                const visible = window.visualViewport?.height || window.innerHeight;
-                el.style.height = `${Math.min(el.scrollHeight, Math.round(visible * (visible < window.innerHeight * 0.78 ? 0.22 : 0.35)))}px`;
-              }
+              const el = e.target;
+              el.style.height = 'auto';
+              const newH = Math.min(Math.max(el.scrollHeight, 40), 96);
+              el.style.height = `${newH}px`;
             }}
-            onFocus={(e) => {
+            onFocus={() => {
+              setIsInputFocused(true);
               baseInputRef.current = inputRef.current;
-              if (daliaComposerUi) {
-                // phone keyboard: keep the writing area and its buttons in view
-                const el = e.currentTarget;
-                window.setTimeout(() => { try { el.scrollIntoView({ block: 'nearest' }); } catch {} }, 300);
-              }
+            }}
+            onBlur={() => {
+              setIsInputFocused(false);
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -7486,10 +7528,10 @@ const toggleVoiceMute = useCallback(() => {
             type="button"
             className="claims-ai-scroll-bottom-pill"
             onClick={() => scrollToBottom(true)}
-            title="גלול לתחתית הצ'אט"
+            title="חזרה לתשובה האחרונה"
             data-testid="claims-ai-scroll-bottom"
           >
-            ↓ הודעות חדשות
+            ↓ חזרה לתשובה האחרונה
           </button>
         )}
         <input
