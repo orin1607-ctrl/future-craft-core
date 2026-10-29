@@ -9,6 +9,7 @@ import {
   executeClaimsPendingAction,
   executeClaimsTool,
   executeClaimsGeneralTool,
+  prefetchAttachmentTexts,
   recordAiAudit,
   type ClaimsPendingAction,
   type ClaimsDocumentCard,
@@ -1048,6 +1049,11 @@ function fillCardText(pending: ClaimsPendingAction | null | undefined) {
   return `הכנתי כרטיס אישור להשלמת פרטים${where}. בכרטיס מופיע מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. שום דבר לא נשמר עד שתלחץ "אישור".`;
 }
 
+/** Requests of the garage chat never use the claims document readers. */
+function isGarageModuleRequest(module: string) {
+  return module === "garage";
+}
+
 function streamTextAsSse(
   replyText: string,
   pendingAction?: ClaimsPendingAction | null,
@@ -1186,6 +1192,10 @@ Deno.serve(async (req) => {
     const userMessagesText = (messages || []).map((m: any) => typeof m?.content === "string" ? m.content : "").join(" ");
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user" && typeof m?.content === "string");
     const lastUserText = String(lastUserMessage?.content || "").trim();
+    // A fill-from-documents or quote-entry request: read the attachments now, alongside the model.
+    if (!isGarageModuleRequest(effectiveModule) && /📋 הזנת הצעת מחיר|📄 השלמת פרטי תיק|הצעת מחיר|תשלים|השלמ|תעדכן/.test(lastUserText)) {
+      prefetchAttachmentTexts(attachments);
+    }
     const isReportsModule = effectiveModule === "reports";
     const isGarageModule = (effectiveModule === "garage" || (effectiveModule === "dashboard" && !claimId)) && !isReportsModule;
     const hasClaimsIntent = !isGarageModule && !isReportsModule && !isFleetModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);

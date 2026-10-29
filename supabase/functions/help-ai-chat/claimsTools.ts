@@ -4,7 +4,7 @@ import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLab
 import { isApprovedQaClaimId, isQaClaimRow } from "../_shared/claimQaScope.ts";
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
 import { describeDocumentFill, missingClaimFields, planDocumentFill, type DocText } from "../_shared/claimDocFill.ts";
-import { geminiOcr } from "../_shared/claimDocumentOcr.ts";
+import { OCR_DEFAULT_MODEL, ocrRequestBody, parseOcrResponse } from "../_shared/claimDocumentOcr.ts";
 import { DEFAULT_HOUR_RATE, describeQuoteEntry, planQuoteEntry } from "../_shared/claimQuoteEntry.ts";
 import {
   historyRow,
@@ -2675,6 +2675,9 @@ type ChatFile = { name: string; mime_type: string; byte_size?: number; data_base
 
 const FILL_MAX_FILES = 8;
 const OCR_MIMES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+const CHAT_OCR_TRY_MS = 45_000;
+const CHAT_OCR_HEDGE_MS = 12_000;
+const CHAT_OCR_MAX_TOKENS = 3072;
 
 /** A title for a third-party document from its own text, so it is filed apart from the insured's documents. */
 function thirdPartyDocTitle(text: string, name: string) {
@@ -2689,6 +2692,107 @@ function thirdPartyDocTitle(text: string, name: string) {
  * reader as claims-doc-read) and documents already in the claim (their saved read, or OCR of the stored file).
  * The text stays on the server; it is never returned to the model.
  */
+/**
+ * The claim reader's OCR request (same prompt, same answer parsing), tuned for the chat's wait:
+ * a shorter answer limit (a licence or a quote fits easily, and a model that starts repeating a numbered
+ * list stops in seconds — a cut answer is handled by parseOcrResponse), and no "thinking" step, which a
+ * transcription does not need. If the API refuses the thinking option, the request is sent again without it.
+ */
+function chatOcr(apiKey: string, model: string) {
+  let thinkingOff = true;
+  return async (bytes: Uint8Array, mime: string, signal: AbortSignal) => {
+    for (;;) {
+      const body = ocrRequestBody(bytes, mime) as { generationConfig: Record<string, unknown> };
+      body.generationConfig.maxOutputTokens = CHAT_OCR_MAX_TOKENS;
+      if (thinkingOff) body.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify(body),
+        signal,
+      });
+      if (res.status === 400 && thinkingOff) { thinkingOff = false; continue; }
+      if (!res.ok) throw new Error(`ocr_http_${res.status}`);
+      return parseOcrResponse(await res.json());
+    }
+  };
+}
+
+function ocrFailureReason(err: unknown) {
+  const msg = err instanceof Error ? `${err.name}:${err.message}` : String(err || "error");
+  if (/Abort/i.test(msg)) return "הקריאה ארכה יותר מדי";
+  if (/429|503/.test(msg)) return "שירות הקריאה עמוס";
+  if (/empty/.test(msg)) return "שירות הקריאה לא החזיר תשובה";
+  return `שגיאת קריאה (${msg.slice(0, 40)})`;
+}
+
+/**
+ * Reads one file within the chat screen's wait. The OCR service usually answers in 5–20 seconds but
+ * sometimes much later, so a second request for the same file starts after CHAT_OCR_HEDGE_MS and the first
+ * answer with text wins; both stop at CHAT_OCR_TRY_MS.
+ */
+function ocrReader() {
+  const apiKey = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+  const ocr = apiKey ? chatOcr(apiKey, Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || OCR_DEFAULT_MODEL) : null;
+  return async (bytes: Uint8Array, mime: string): Promise<{ text: string; why: string }> => {
+    if (!ocr) return { text: "", why: "שירות הקריאה לא מוגדר" };
+    if (!OCR_MIMES.has(mime)) return { text: "", why: "סוג קובץ שלא נקרא (רק תמונה או PDF)" };
+    const ctrl = new AbortController();
+    const stop = setTimeout(() => ctrl.abort(), CHAT_OCR_TRY_MS);
+    let why = "";
+    const attempt = async (delayMs: number) => {
+      if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
+      if (ctrl.signal.aborted) throw new Error("done");
+      try {
+        const text = (await ocr(bytes, mime, ctrl.signal)).text || "";
+        if (!text.trim()) { why = why || "לא זוהה טקסט בקובץ"; throw new Error("no_text"); }
+        return text;
+      } catch (err) {
+        if (!(err instanceof Error && (err.message === "no_text" || err.message === "done"))) {
+          console.error("fill ocr failed:", err instanceof Error ? `${err.name}:${err.message}` : "error");
+          why = ocrFailureReason(err);
+        }
+        throw err;
+      }
+    };
+    try {
+      const text = await Promise.any([attempt(0), attempt(CHAT_OCR_HEDGE_MS)]);
+      return { text, why: "" };
+    } catch {
+      return { text: "", why: why || "הקריאה ארכה יותר מדי" };
+    } finally {
+      clearTimeout(stop);
+      ctrl.abort();
+    }
+  };
+}
+
+/** One OCR read per attachment list per request, whoever asks first (see prefetchAttachmentTexts). */
+const attachmentTextCache = new WeakMap<object, Promise<Array<{ text: string; why: string }>>>();
+
+function attachmentTexts(attachments?: ChatFile[]) {
+  const list = attachments || [];
+  const hit = attachmentTextCache.get(list);
+  if (hit) return hit;
+  const ocrBytes = ocrReader();
+  const chatFiles = list.filter((a) => a && a.data_base64).slice(0, FILL_MAX_FILES);
+  const run = Promise.all(chatFiles.map((f) => {
+    let mime = String(f.mime_type || "").toLowerCase();
+    if (mime === "image/jpg") mime = "image/jpeg";
+    return ocrBytes(base64ToBytes(String(f.data_base64)), mime);
+  }));
+  attachmentTextCache.set(list, run);
+  return run;
+}
+
+/**
+ * Starts reading the attached files as soon as the message arrives, while the model is still reading it,
+ * so a fill / quote card is ready well inside the chat screen's wait. The text stays on the server.
+ */
+export function prefetchAttachmentTexts(attachments?: ChatFile[]) {
+  if ((attachments || []).some((a) => a?.data_base64)) void attachmentTexts(attachments).catch(() => []);
+}
+
 async function readFillDocuments(
   supabase: ReturnType<typeof createClient>,
   claimId: string,
@@ -2697,23 +2801,14 @@ async function readFillDocuments(
 ) {
   const docs: Array<DocText & { file?: ChatFile; file_id?: string }> = [];
   const unread: string[] = [];
-  const apiKey = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
-  const ocr = apiKey ? geminiOcr(apiKey, Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || undefined) : null;
-  const ocrBytes = async (bytes: Uint8Array, mime: string) => {
-    if (!ocr || !OCR_MIMES.has(mime)) return "";
-    try { return (await ocr(bytes, mime)).text || ""; } catch (err) { console.error("fill ocr failed:", err instanceof Error ? err.message : "error"); return ""; }
-  };
+  const ocrBytes = ocrReader();
 
-  // All files at once: the chat screen gives up after 90 seconds.
+  // All files at once (and usually already read — prefetchAttachmentTexts).
   const chatFiles = (attachments || []).filter((a) => a && a.data_base64).slice(0, FILL_MAX_FILES);
-  const texts = await Promise.all(chatFiles.map((f) => {
-    let mime = String(f.mime_type || "").toLowerCase();
-    if (mime === "image/jpg") mime = "image/jpeg";
-    return ocrBytes(base64ToBytes(String(f.data_base64)), mime);
-  }));
+  const texts = await attachmentTexts(attachments);
   chatFiles.forEach((f, i) => {
-    if (texts[i].trim()) docs.push({ name: f.name, text: texts[i], file: f, file_id: f.file_id });
-    else unread.push(f.name);
+    if (texts[i].text.trim()) docs.push({ name: f.name, text: texts[i].text, file: f, file_id: f.file_id });
+    else unread.push(`${f.name} — ${texts[i].why}`);
   });
 
   const wanted = new Set<string>((Array.isArray(args.file_ids) ? args.file_ids : []).map((x) => String(x || "").trim()).filter(Boolean));
@@ -2732,7 +2827,7 @@ async function readFillDocuments(
       let text = meta.read_status === "ready" ? String(meta.read_text || "") : "";
       if (!text.trim() && row.storage_path) {
         const { data: blob } = await supabase.storage.from("claims-docs").download(String(row.storage_path));
-        if (blob) text = await ocrBytes(new Uint8Array(await blob.arrayBuffer()), String(row.mime_type || "").toLowerCase());
+        if (blob) text = (await ocrBytes(new Uint8Array(await blob.arrayBuffer()), String(row.mime_type || "").toLowerCase())).text;
       }
       if (text.trim()) docs.push({ name, text, file_id: String(row.id) });
       else unread.push(name);

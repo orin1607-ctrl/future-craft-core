@@ -4243,12 +4243,13 @@ const toggleVoiceMute = useCallback(() => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     let didTimeout = false;
+    // Attached documents are read twice on the server (the model, and OCR that checks its values): allow longer.
     const timeoutTimer = setTimeout(() => {
       didTimeout = true;
       try {
         controller.abort();
       } catch {}
-    }, 90000);
+    }, filesToUpload.length ? 150000 : 90000);
     let conversationId = activeId;
     let draft = '';
     let userSavedSuccessfully = false;
