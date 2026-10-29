@@ -5,6 +5,7 @@ import { isApprovedQaClaimId, isQaClaimRow } from "../_shared/claimQaScope.ts";
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
 import { describeDocumentFill, missingClaimFields, planDocumentFill, type DocText } from "../_shared/claimDocFill.ts";
 import { geminiOcr } from "../_shared/claimDocumentOcr.ts";
+import { DEFAULT_HOUR_RATE, describeQuoteEntry, planQuoteEntry } from "../_shared/claimQuoteEntry.ts";
 import {
   historyRow,
   normalizeDate,
@@ -76,6 +77,40 @@ const FILL_FROM_DOCS_PARAMS = {
     items: { type: "STRING" },
   },
 };
+const QUOTE_ENTRY_DESC = "הזנת הצעת מחיר של מוסך (טקסט, תמונה או PDF) למחשבון הצעות המחיר של התיק: קרא את כל ההצעה והעבר כל סעיף עבודה בנפרד (section = שם הקטגוריה כפי שכתוב בהצעה, label = תיאור הסעיף, hours = שעות אם כתוב, price = מחיר אם כתוב; לרכב חלופי וכדומה quantity + unit_price) וכל חלק חילוף בנפרד (name, type = הסוג כפי שכתוב, price רק אם כתוב). אל תעביר שורות סיכום (סה\"כ) כסעיפים. אל תעביר עבודות צבע או חומרי צבע עם מחיר — הם מחושבים רק במחשבון הצבע; אפשר להעביר section 'עבודות צבע' בלי מחיר כדי לציין שיש צבע. השרת מוודא שכל סעיף ומספר כתובים בהצעה, ממפה לקטגוריות המחשבון, ומכין תצוגה מקדימה. אחרי אישור המשתמש נוצרת הצעת מחיר חדשה בתיק (הצעות קיימות לא משתנות).";
+const QUOTE_ENTRY_PARAMS = {
+  works: {
+    type: "ARRAY",
+    description: "סעיפי העבודה, כל סעיף בנפרד, בסדר שבהצעה",
+    items: {
+      type: "OBJECT",
+      properties: {
+        section: { type: "STRING", description: "שם הקטגוריה בהצעה (עבודות פחחות, עבודות מכונאות, עבודות חשמל, כיוון פרונט, תקנה, כיול..., רכב חלופי...)" },
+        label: { type: "STRING", description: "תיאור הסעיף כפי שכתוב" },
+        hours: { type: "NUMBER", description: "שעות עבודה, אם כתוב" },
+        price: { type: "NUMBER", description: "מחיר (גלובלי) בש\"ח, אם כתוב" },
+        quantity: { type: "NUMBER", description: "כמות (למשל ימים), אם כתוב" },
+        unit_price: { type: "NUMBER", description: "מחיר ליחידה, אם כתוב" },
+      },
+      required: ["section", "label"],
+    },
+  },
+  parts: {
+    type: "ARRAY",
+    description: "חלקי החילוף, כל חלק בנפרד",
+    items: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "תיאור החלק" },
+        type: { type: "STRING", description: "סוג החלק כפי שכתוב (מקורי / משומש / חליפי / טרם נקבע...)" },
+        qty: { type: "NUMBER", description: "כמות, אם כתוב" },
+        price: { type: "NUMBER", description: "מחיר רק אם כתוב מספר; 'להשלמה' = בלי מחיר" },
+      },
+      required: ["name"],
+    },
+  },
+};
+
 const MISSING_FIELDS_DESC = "אילו פרטים עדיין חסרים בתיק: שדות ריקים בפרטי התביעה ובפרטי צד ג׳ (שמות השדות בלבד). קריאה בלבד. למסמכים חסרים השתמש ב-get_missing_claim_documents.";
 
 // -------------------------------------------------------------
@@ -772,6 +807,11 @@ export const CLAIMS_GEMINI_TOOLS = [
         description: MISSING_FIELDS_DESC,
       },
       {
+        name: "preview_claim_quote_entry",
+        description: QUOTE_ENTRY_DESC + " פועל על התיק הפתוח בלבד.",
+        parameters: { type: "OBJECT", properties: QUOTE_ENTRY_PARAMS, required: ["works"] },
+      },
+      {
         name: "preview_link_client_to_claim",
         description: "הכנת תצוגה מקדימה לקישור לקוח קיים ממערכת הלקוחות לתיק התביעה הנוכחי. דורש אישור מפורש של המשתמש.",
         parameters: {
@@ -992,6 +1032,18 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
             ...FILL_FROM_DOCS_PARAMS,
           },
           required: ["claim_ref", "values"],
+        },
+      },
+      {
+        name: "preview_claim_quote_entry",
+        description: QUOTE_ENTRY_DESC + " במצב כללי חובה claim_ref (מספר רכב / מספר תיק / שם לקוח מתוך ההצעה או מהמשתמש). אם לא נמצא תיק או שנמצאו כמה — הצג ושאל, אל תנחש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: { type: "STRING", description: "מספר רכב, מספר תיק (DAL-YYYY-NNNN או 4 ספרות), שם לקוח או מספר תביעה בחברת הביטוח" },
+            ...QUOTE_ENTRY_PARAMS,
+          },
+          required: ["claim_ref", "works"],
         },
       },
       {
@@ -1424,6 +1476,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
    - שליחת מספר אימיילים נפרדים: כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך.
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
+11ב. הזנת הצעת מחיר: הודעה שמתחילה ב-"📋 הזנת הצעת מחיר" (או בקשה להעלות/להזין הצעת מחיר של מוסך) — קרא את ההצעה (טקסט / תמונה / PDF) וקרא ל-preview_claim_quote_entry עם כל סעיף וכל חלק בנפרד. אל תכתוב את ההצעה בצ׳אט במקום להפעיל את הכלי, ואל תציג "בוצע" לפני אישור.
 11א. השלמת פרטים ממסמכים: כשהמשתמש מצרף מסמכים (רישיון נהיגה, רישיון רכב, ביטוח) ומבקש להשלים/לעדכן פרטים (למשל "תשלים את פרטי צד ג׳ לפי המסמכים") — קרא את המסמכים וקרא ל-preview_fill_claim_from_documents עם כל פרט שכתוב בהם, עם השדה הנכון לכל אדם (נהג / בעל רכב / מבוטח). אל תשלים מידע שלא כתוב. אחרי הכרטיס: סכם במילים מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. "מה חסר בתיק" → get_claim_missing_fields (ולמסמכים get_missing_claim_documents).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
 12. תזכורות: הצגה (list_claim_reminders), יצירה (preview_create_claim_reminder), שינוי מועד/נוסח או ביטול (preview_update_claim_reminder). תזכורת שבוטלה לא מופעלת מחדש — אפשר ליצור חדשה.
@@ -1534,6 +1587,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 5. משימות במערכת:
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 
+6ב. הזנת הצעת מחיר: הודעה שמתחילה ב-"📋 הזנת הצעת מחיר" (או בקשה להעלות/להזין הצעת מחיר של מוסך) — מצא את התיק לפי מספר הרכב / מספר התיק / שם הלקוח שבהצעה או בהודעה, וקרא ל-preview_claim_quote_entry עם claim_ref וכל סעיף וכל חלק בנפרד. אל תכתוב את ההצעה בצ׳אט במקום להפעיל את הכלי. הודעה שמתחילה ב-"📄 השלמת פרטי תיק" → preview_fill_claim_from_documents.
 6א. השלמת פרטי תיק ממסמכים שצורפו ("תמצא את תיק 1234 ותשלים את פרטי צד ג׳ לפי המסמכים", "תמצא את התביעה של רכב 12345678 ותשלים את פרטי הנהג הפוגע", "תיכנס לתיק של ישראל ישראלי ותוסיף את פרטי חברת הביטוח מהמסמך"): קרא ל-preview_fill_claim_from_documents עם claim_ref (מספר תיק / רכב / שם לקוח / מספר תביעה) וכל פרט שכתוב במסמכים, עם השדה הנכון לנהג, לבעל הרכב ולמבוטח. אם התיק לא נמצא או שנמצאו כמה — הצג את הרשימה ושאל, אל תנחש ואל תעדכן. "אילו פרטים חסרים בתיק" → get_claim_missing_fields.
 6. תיקון פרטי תיק קיים (גם מיד אחרי פתיחת תיק): קרא ל-preview_update_claim_fields עם claim_ref (מזהה התיק שנפתח או שנמצא בחיפוש) והשדות לתיקון. אם יש יותר מתיק אחד מתאים — שאל. לעולם אל תשלים ערך שהמשתמש לא מסר.
    חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
@@ -2793,6 +2847,91 @@ async function previewFillClaimFromDocuments(
     },
     preview,
   };
+}
+
+/** The hour rate the claim's calculator uses: the latest quote's rate, else the calculator default. */
+async function claimHourRate(supabase: ReturnType<typeof createClient>, claimId: string) {
+  const { data } = await supabase.from("claim_quotes").select("quote_no, data").eq("claim_id", claimId).order("quote_no", { ascending: false });
+  const rows = (data || []) as Array<{ quote_no: number; data?: { hourRate?: unknown } }>;
+  const rate = Number(rows[0]?.data?.hourRate);
+  return { rate: Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_HOUR_RATE, count: rows.length, nextNo: rows.reduce((m, r) => Math.max(m, Number(r.quote_no) || 0), 0) + 1 };
+}
+
+async function previewClaimQuoteEntry(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  toolName: string,
+  attachments?: ChatFile[],
+): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
+  // The user's own client: RLS hides a claim the user may not work on.
+  const { data: claim } = await supabase.from("claims_records").select("id, client_name, plate, company_name, row_data").eq("id", claimId).maybeSingle();
+  if (!claim || isDeletedClaim(claim.row_data)) {
+    return { result: { status: "not_found", error: `התיק ${claimId} לא נמצא, נמחק, או שאין לך הרשאה אליו. לא נשמר דבר.` } };
+  }
+  const rd = (claim.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
+  const clientName = String(claim.client_name || rd.clientName || "");
+  const plate = String(claim.plate || rd.plate || "");
+
+  // What the quote says: the user's messages, plus the text of attached images / PDFs (same OCR as the claim reader).
+  const { docs, unread } = await readFillDocuments(supabase, claimId, {}, attachments);
+  const sourceText = [String(args.__source_text || ""), ...docs.map((d) => d.text)].join("\n");
+  if (!sourceText.trim()) {
+    return { result: { status: "not_found", error: "לא התקבל טקסט של הצעת מחיר (וקבצים מצורפים לא נקראו). הדבק את ההצעה או צרף תמונה ברורה." } };
+  }
+
+  const { rate, count, nextNo } = await claimHourRate(supabase, claimId);
+  const plan = planQuoteEntry(
+    { works: Array.isArray(args.works) ? args.works as never : [], parts: Array.isArray(args.parts) ? args.parts as never : [] },
+    sourceText,
+    rate,
+  );
+  if (unread.length) plan.warnings.push(`לא הצלחתי לקרוא: ${unread.join(", ")}`);
+  const summary = describeQuoteEntry({ id: claimId, clientName, plate }, plan, { quoteNo: nextNo, existingQuotes: count });
+  const base = {
+    claim_id: claimId,
+    client_name: clientName,
+    plate,
+    works_read: plan.works.length,
+    parts_read: plan.parts.length,
+    paint: "לא הוזן ידנית — מחשבון הצבע",
+    checks: plan.checks,
+    warnings: plan.warnings,
+    not_captured: plan.rejected,
+  };
+  if (!plan.works.length && !plan.parts.length) {
+    return { result: { ...base, status: "no_change", message: "לא נקלט אף סעיף מההצעה. לא נשמר דבר." } };
+  }
+
+  const preview: ClaimsPendingAction = {
+    preview_id: `P-QUOTE-${Date.now()}`,
+    summary,
+    tool_name: toolName,
+    action_type: "create_claim_quote",
+    parameters: {
+      claim_id: claimId,
+      company_name: String((claim as Record<string, unknown>).company_name || ""),
+      hour_rate: plan.hourRate,
+      quote_no: nextNo,
+      works: plan.works,
+      parts: plan.parts,
+      paint_left_to_calculator: plan.paintLeftToCalculator,
+      checks: plan.checks,
+    },
+  };
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    claimId,
+    toolName,
+    actionType: "create_claim_quote",
+    previewSummary: summary,
+    previewPayload: preview.parameters,
+    status: "preview_created",
+  });
+  return { result: { ...base, status: "pending_approval", preview_id: preview.preview_id, message: "הוכנה תצוגה מקדימה. דבר לא נשמר עד שהמשתמש יאשר." }, preview };
 }
 
 async function getClaimMissingFields(supabase: ReturnType<typeof createClient>, claimId: string) {
@@ -4197,6 +4336,10 @@ export async function executeClaimsTool(
 
       case "get_claim_missing_fields": {
         return { result: await getClaimMissingFields(supabase, claimId) };
+      }
+
+      case "preview_claim_quote_entry": {
+        return await previewClaimQuoteEntry(supabase, claimId, args, userId, userName, name, attachments);
       }
 
       case "read_claim_document": {
@@ -7523,6 +7666,12 @@ export async function executeClaimsGeneralTool(
         return { result: await getClaimMissingFields(supabase, resolved.id) };
       }
 
+      case "preview_claim_quote_entry": {
+        const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
+        if (!resolved.ok) return { result: { status: "not_found", error: resolved.error } };
+        return await previewClaimQuoteEntry(supabase, resolved.id, args, userId, userName, name, attachments);
+      }
+
       case "get_claims_summary": {
         const { data: recs } = await supabase
           .from("claims_records")
@@ -9857,6 +10006,64 @@ export async function executeClaimsPendingAction(
 
       case "update_claim_fields": {
         return await executeUpdateClaimFields(supabase, claimId, parameters, userId, userName, summary, "preview_update_claim_fields");
+      }
+
+      case "create_claim_quote": {
+        // The screen saved the quote through the calculator's own service (claimQuoteService, the user's login);
+        // here the server checks that exactly this card's quote is in the claim, then records history and audit.
+        const params = parameters as { claim_id?: string; works?: unknown[]; parts?: unknown[]; saved_quote?: { id?: string } };
+        const target = String(params.claim_id || "");
+        const quoteId = String(params.saved_quote?.id || "");
+        if (!target || !quoteId) {
+          return { success: false, message: "הצעת המחיר לא נשמרה: יש לאשר מהכרטיס במסך.", error: "not_saved" };
+        }
+        const { data: q } = await supabase.from("claim_quotes").select("id, claim_id, quote_no, version, total_amount, data").eq("id", quoteId).maybeSingle();
+        const qd = ((q as Record<string, unknown> | null)?.data || {}) as { aiEntry?: { previewId?: string }; works?: unknown[]; parts?: unknown[] };
+        if (!q || (q as Record<string, unknown>).claim_id !== target || qd.aiEntry?.previewId !== pendingAction.preview_id) {
+          return { success: false, message: "לא נמצאה בתיק הצעת המחיר של הכרטיס הזה. לא בוצע דבר נוסף.", error: "not_verified" };
+        }
+        const row = q as { quote_no: number; version: number; total_amount: number };
+        const worksSaved = Array.isArray(qd.works) ? qd.works.length : 0;
+        const partsSaved = Array.isArray(qd.parts) ? qd.parts.length : 0;
+        const wantWorks = Array.isArray(params.works) ? params.works.length : 0;
+        const wantParts = Array.isArray(params.parts) ? params.parts.length : 0;
+        if (worksSaved < wantWorks || partsSaved < wantParts) {
+          return { success: false, message: `ההצעה נשמרה חלקית (${worksSaved}/${wantWorks} עבודות, ${partsSaved}/${wantParts} חלקים). בדוק במחשבון.`, error: "partial" };
+        }
+        const { data: already } = await supabase.from("claims_history").select("id").eq("claim_id", target).contains("row_data", { quoteId }).limit(1);
+        if (!(already || []).length) {
+          await supabase.from("claims_history").insert({
+            id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+            claim_id: target,
+            row_data: {
+              action: "הצעת מחיר הוזנה מצ'אט דליה AI",
+              note: `הצעת מחיר מס׳ ${row.quote_no} (גרסה ${row.version}): ${worksSaved} עבודות, ${partsSaved} חלקים — לאחר אישור המשתמש`,
+              type: "quote_entry_from_chat",
+              quoteId,
+              by: userName || "דליה AI",
+              at: nowHeIL(),
+            },
+          });
+          await recordAiAudit(supabase, {
+            userId,
+            userName,
+            claimId: target,
+            toolName: "preview_claim_quote_entry",
+            actionType: "create_claim_quote",
+            previewSummary: summary,
+            previewPayload: { claim_id: target, quote_id: quoteId, works: wantWorks, parts: wantParts },
+            approvedBy: userId,
+            approvedByName: userName,
+            executionAction: "create_claim_quote",
+            stateBefore: { quote: null },
+            stateAfter: { quote_id: quoteId, quote_no: row.quote_no, version: row.version, total_amount: row.total_amount },
+            status: "executed",
+          });
+        }
+        return {
+          success: true,
+          message: `נשמרה הצעת מחיר מס׳ ${row.quote_no} בתיק ${target}: ${worksSaved} עבודות ו-${partsSaved} חלקים. עבודות וחומרי צבע יתווספו מהמחשבון הצבע. אפשר לפתוח את ההצעה מכרטיס התיק.`,
+        };
       }
 
       case "fill_claim_from_documents": {

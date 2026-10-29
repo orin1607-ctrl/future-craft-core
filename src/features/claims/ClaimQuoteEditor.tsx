@@ -731,6 +731,7 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
             <label className="cq-f"><span>מק״ט</span><input className="cq-in cq-in-sku" value={p.sku} aria-label="מק״ט" onChange={(e) => setPart(p.id, { sku: e.target.value })} /></label>
             <label className="cq-f"><span>סוג</span>
               <select className="cq-in cq-in-sm" value={p.partType} aria-label="סוג החלק" onChange={(e) => setPart(p.id, { partType: e.target.value })}>
+                {!p.partType && <option value="">טרם נקבע</option>}
                 {PART_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
               </select>
             </label>

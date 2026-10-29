@@ -628,7 +628,7 @@ async function callGemini(
 
           // A fill-from-documents card is the answer: no further tools (a report here only adds a minute,
           // and the chat screen gives up after 90 seconds).
-          if (accumulatedPendingActions.some((p) => p?.action_type === "fill_claim_from_documents")) {
+          if (accumulatedPendingActions.some((p) => FAST_CARD_ACTIONS.has(String(p?.action_type || "")))) {
             const finalPending = bundlePendingActions(accumulatedPendingActions);
             return { text: fillCardText(finalPending), model, pendingAction: finalPending };
           }
@@ -950,7 +950,7 @@ async function callClaude(
           }
 
           // Same stop as the Gemini loop once the fill-from-documents card is ready.
-          if (accumulatedPendingActions.some((p) => p?.action_type === "fill_claim_from_documents")) {
+          if (accumulatedPendingActions.some((p) => FAST_CARD_ACTIONS.has(String(p?.action_type || "")))) {
             const finalPending = bundlePendingActions(accumulatedPendingActions);
             return { text: fillCardText(finalPending), model, pendingAction: finalPending };
           }
@@ -1034,12 +1034,18 @@ async function callClaude(
 }
 
 /**
- * The answer once a fill-from-documents card is ready, written here instead of asking the model again
+ * The answer once a fill-from-documents or quote-entry card is ready, written here instead of asking the model again
  * (one model call less; the chat screen gives up after 90 seconds). The card itself holds the details.
  */
+const FAST_CARD_ACTIONS = new Set(["fill_claim_from_documents", "create_claim_quote"]);
+
 function fillCardText(pending: ClaimsPendingAction | null | undefined) {
   const claimId = String((pending?.parameters as Record<string, unknown> | undefined)?.claim_id || "");
-  return `הכנתי כרטיס אישור להשלמת פרטים${claimId ? ` בתיק ${claimId}` : ""}. בכרטיס מופיע מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. שום דבר לא נשמר עד שתלחץ "אישור".`;
+  const where = claimId ? ` בתיק ${claimId}` : "";
+  if (pending?.action_type === "create_claim_quote") {
+    return `הכנתי תצוגה מקדימה של הצעת המחיר${where}. בכרטיס מופיעים כל הסעיפים לפי קטגוריות המחשבון, החלקים, הבדיקה מול הסיכומים שבהצעה ומה לא נקלט. עבודות וחומרי צבע יחושבו רק במחשבון הצבע. שום דבר לא נשמר עד שתלחץ "אישור".`;
+  }
+  return `הכנתי כרטיס אישור להשלמת פרטים${where}. בכרטיס מופיע מה יתווסף, מה סותר מידע קיים (לא יוחלף בלי בקשה מפורשת לשדה), ומה עדיין חסר. שום דבר לא נשמר עד שתלחץ "אישור".`;
 }
 
 function streamTextAsSse(
@@ -1252,6 +1258,16 @@ Deno.serve(async (req) => {
     // Tools that actually ran in this answer and how each ended — shown to the user under the answer.
     const toolsUsed: ToolTrace[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
+      if (toolName === "preview_claim_quote_entry") {
+        // The quote lines are checked against what the user actually sent, never against text the model passes.
+        toolArgs = {
+          ...toolArgs,
+          __source_text: (messages || [])
+            .filter((m: any) => m?.role === "user" && typeof m?.content === "string")
+            .map((m: any) => m.content)
+            .join("\n"),
+        };
+      }
       if (isReportsModule) {
         const isGarageTool = toolName.startsWith('get_garage_') || toolName.startsWith('search_garage_') || toolName.includes('garage');
         if (isGarageTool) {

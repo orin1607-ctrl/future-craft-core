@@ -211,6 +211,24 @@
   font-size: 13px;
 }
 
+/* "הזנת הצעת מחיר" / "השלמת פרטי תיק" above the composer. */
+.claims-root .claims-ai-entry-modes {
+  margin: 0 16px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.claims-root .claims-ai-entry-hint {
+  flex-basis: 100%;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--br2);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .claims-root .claims-ai-attachments-tray {
   margin: 0 16px 8px;
   padding: 8px 12px;
