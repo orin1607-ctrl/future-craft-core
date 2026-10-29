@@ -3765,114 +3765,65 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div
                   className="claims-origin-filter-bar"
                   data-testid="claims-origin-filters"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    marginBottom: 12,
-                    width: '100%',
-                    overflowX: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                  }}
                 >
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${caseOriginFilter === 'all' ? 'btn-p' : 'btn-g'}`}
-                    data-testid="filter-all-cases"
-                    style={{
-                      flex: '1 1 auto',
-                      minWidth: 0,
-                      whiteSpace: 'nowrap',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: caseOriginFilter === 'all' ? 700 : 500,
-                      textAlign: 'center',
-                      borderRadius: 'var(--r2)',
-                    }}
-                    onClick={() => setCaseOriginFilter('all')}
-                  >
-                    הכול ({currentTotalCount})
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${caseOriginFilter === 'garage' ? 'btn-p' : 'btn-g'}`}
-                    data-testid="filter-garage-cases"
-                    style={{
-                      flex: '1 1 auto',
-                      minWidth: 0,
-                      whiteSpace: 'nowrap',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: caseOriginFilter === 'garage' ? 700 : 500,
-                      textAlign: 'center',
-                      borderRadius: 'var(--r2)',
-                    }}
-                    onClick={() => setCaseOriginFilter('garage')}
-                  >
-                    ניהול מוסך ({currentGarageCount})
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${caseOriginFilter === 'insurance' ? 'btn-p' : 'btn-g'}`}
-                    data-testid="filter-insurance-cases"
-                    style={{
-                      flex: '1 1 auto',
-                      minWidth: 0,
-                      whiteSpace: 'nowrap',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: caseOriginFilter === 'insurance' ? 700 : 500,
-                      textAlign: 'center',
-                      borderRadius: 'var(--r2)',
-                    }}
-                    onClick={() => setCaseOriginFilter('insurance')}
-                  >
-                    ניהול תביעות ({currentInsuranceCount})
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-g btn-sm"
-                    style={{
-                      flex: '0 0 auto',
-                      whiteSpace: 'nowrap',
-                      padding: '6px 8px',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      borderRadius: 'var(--r2)',
-                      border: '1px solid var(--br2)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => showView('reports')}
-                    data-testid="claims-compact-reports-btn"
-                    title="מעבר לדוחות ניהול"
-                  >
-                    📊 דוחות
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-g btn-sm"
-                    style={{
-                      flex: '0 0 auto',
-                      whiteSpace: 'nowrap',
-                      padding: '6px 8px',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      borderRadius: 'var(--r2)',
-                      border: '1px solid var(--br2)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => navigate('/garage-management')}
-                    data-testid="claims-to-garage-btn"
-                    title="מעבר לניהול מוסך"
-                  >
-                    🚗 ניהול מוסך
-                  </button>
+                  <div className="claims-origin-main-group">
+                    <button
+                      type="button"
+                      className={`claims-origin-btn ${caseOriginFilter === 'insurance' ? 'active' : ''}`}
+                      data-testid="filter-insurance-cases"
+                      onClick={() => setCaseOriginFilter('insurance')}
+                      title="סינון: רק תיקי תביעות ביטוח"
+                    >
+                      <span className="claims-origin-icon">📋</span>
+                      <span className="claims-origin-label">רק תיקי תביעות</span>
+                      <span className="claims-origin-count">({currentInsuranceCount})</span>
+                      {caseOriginFilter === 'insurance' && <span className="claims-origin-check" aria-hidden="true">✓</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={`claims-origin-btn ${caseOriginFilter === 'garage' ? 'active' : ''}`}
+                      data-testid="filter-garage-cases"
+                      onClick={() => setCaseOriginFilter('garage')}
+                      title="סינון: תיקי מוסך בלבד"
+                    >
+                      <span className="claims-origin-icon">🔧</span>
+                      <span className="claims-origin-label">תיקי מוסך</span>
+                      <span className="claims-origin-count">({currentGarageCount})</span>
+                      {caseOriginFilter === 'garage' && <span className="claims-origin-check" aria-hidden="true">✓</span>}
+                    </button>
+                    <button
+                      type="button"
+                      className={`claims-origin-btn ${caseOriginFilter === 'all' ? 'active' : ''}`}
+                      data-testid="filter-all-cases"
+                      onClick={() => setCaseOriginFilter('all')}
+                      title="הצגת כל התיקים"
+                    >
+                      <span className="claims-origin-icon">🌐</span>
+                      <span className="claims-origin-label">כל התיקים</span>
+                      <span className="claims-origin-count">({currentTotalCount})</span>
+                      {caseOriginFilter === 'all' && <span className="claims-origin-check" aria-hidden="true">✓</span>}
+                    </button>
+                  </div>
+                  <div className="claims-origin-aux-group">
+                    <button
+                      type="button"
+                      className="claims-origin-aux-btn"
+                      onClick={() => showView('reports')}
+                      data-testid="claims-compact-reports-btn"
+                      title="מעבר לדוחות ניהול"
+                    >
+                      <span>📊 דוחות</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="claims-origin-aux-btn"
+                      onClick={() => navigate('/garage-management')}
+                      data-testid="claims-to-garage-btn"
+                      title="מעבר לניהול מוסך"
+                    >
+                      <span>🚗 ניהול מוסך</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="ph">
                   <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>

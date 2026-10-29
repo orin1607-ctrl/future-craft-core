@@ -597,5 +597,164 @@
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
+/* ==========================================================================
+   CLAIMS FINANCIAL AUDIT MODAL - MOBILE RESPONSIVENESS & TOUCH OPTIMIZATION
+   ========================================================================== */
+@media (max-width: 768px) {
+  .cfa-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .cfa-root {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .cfa-header {
+    padding: 10px 14px !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .cfa-title {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    gap: 6px !important;
+  }
+
+  .cfa-subtitle {
+    font-size: 11.5px !important;
+  }
+
+  .cfa-close-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Stats Grid on mobile: 2x2 grid with readable touch cards */
+  .cfa-stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .cfa-stat-card {
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .cfa-stat-label {
+    font-size: 11px !important;
+  }
+
+  .cfa-stat-val {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+  }
+
+  /* Navigation Tabs: Horizontally scrollable touch pills */
+  .cfa-nav-tabs {
+    padding: 8px 12px 0 12px !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 6px !important;
+    scrollbar-width: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  .cfa-nav-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .cfa-tab-btn {
+    padding: 8px 14px !important;
+    min-height: 42px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px 8px 0 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  /* Content area */
+  .cfa-content {
+    padding: 12px !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Actions bar */
+  .cfa-actions-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .cfa-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    font-size: 13.5px !important;
+    padding: 10px !important;
+  }
+
+  /* Tables: Wrapped in smooth horizontal scroll */
+  .cfa-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    border-radius: 10px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .cfa-table {
+    min-width: 580px !important;
+    font-size: 11.5px !important;
+  }
+
+  .cfa-table th,
+  .cfa-table td {
+    padding: 8px 10px !important;
+    white-space: nowrap !important;
+  }
+
+  /* Form grids on mobile */
+  .cfa-form-grid {
+    grid-template-columns: 1fr !important;
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+
+  /* Document cards & preview */
+  .cfa-doc-card {
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+
+  .cfa-crop-thumb-btn {
+    min-height: 38px !important;
+    padding: 6px 12px !important;
+  }
+}
+
+
 
 

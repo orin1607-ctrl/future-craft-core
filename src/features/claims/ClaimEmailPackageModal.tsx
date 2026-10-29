@@ -44,6 +44,7 @@ export default function ClaimEmailPackageModal({
   onClose,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'compose' | 'preview' | 'share_view' | 'tracking'>('compose');
+  const [mobileTab1View, setMobileTab1View] = useState<'docs' | 'details'>('docs');
   const [catFilter, setCatFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [pickedIds, setPickedIds] = useState<string[]>([]);
@@ -326,9 +327,9 @@ export default function ClaimEmailPackageModal({
   };
 
   return (
-    <div className="ov open" data-testid="mo-email-package" style={{ zIndex: 12000 }}>
+    <div className="ov open cep-overlay" data-testid="mo-email-package" style={{ zIndex: 12000 }}>
       <div
-        className="modal modal-lg"
+        className="modal modal-lg cep-modal"
         style={{
           maxWidth: 1100,
           width: '95vw',
@@ -342,7 +343,7 @@ export default function ClaimEmailPackageModal({
       >
         {/* MODAL HEADER */}
         <div
-          className="mh"
+          className="mh cep-header"
           style={{
             background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
             color: '#fff',
@@ -354,7 +355,7 @@ export default function ClaimEmailPackageModal({
           }}
         >
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span>📦</span>
               <span>שליחת מייל וחבילת מסמכים — תיק {claim.id}</span>
               <span
@@ -378,7 +379,7 @@ export default function ClaimEmailPackageModal({
             type="button"
             className="mcl"
             onClick={onClose}
-            style={{ color: '#fff', background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer' }}
+            style={{ color: '#fff', background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', padding: 8 }}
           >
             ✕
           </button>
@@ -386,17 +387,20 @@ export default function ClaimEmailPackageModal({
 
         {/* NAVIGATION TABS */}
         <div
+          className="cep-tabs-bar"
           style={{
             display: 'flex',
-            gap: 4,
+            gap: 6,
             padding: '8px 16px',
             background: 'var(--bg2)',
             borderBottom: '1px solid var(--br)',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'compose' ? 'btn-p' : 'btn-g'}`}
+            className={`btn btn-sm cep-tab-btn ${activeTab === 'compose' ? 'btn-p' : 'btn-g'}`}
             data-testid="tab-compose"
             onClick={() => setActiveTab('compose')}
           >
@@ -404,7 +408,7 @@ export default function ClaimEmailPackageModal({
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'preview' ? 'btn-p' : 'btn-g'}`}
+            className={`btn btn-sm cep-tab-btn ${activeTab === 'preview' ? 'btn-p' : 'btn-g'}`}
             data-testid="tab-preview"
             onClick={() => setActiveTab('preview')}
           >
@@ -412,7 +416,7 @@ export default function ClaimEmailPackageModal({
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'share_view' ? 'btn-p' : 'btn-g'}`}
+            className={`btn btn-sm cep-tab-btn ${activeTab === 'share_view' ? 'btn-p' : 'btn-g'}`}
             data-testid="tab-share-view"
             onClick={() => setActiveTab('share_view')}
           >
@@ -420,7 +424,7 @@ export default function ClaimEmailPackageModal({
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'tracking' ? 'btn-p' : 'btn-g'}`}
+            className={`btn btn-sm cep-tab-btn ${activeTab === 'tracking' ? 'btn-p' : 'btn-g'}`}
             data-testid="tab-tracking"
             onClick={() => setActiveTab('tracking')}
           >
@@ -429,22 +433,44 @@ export default function ClaimEmailPackageModal({
         </div>
 
         {/* MODAL BODY */}
-        <div className="mb" style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        <div className="mb cep-body" style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
           {/* TAB 1: COMPOSE & DOCUMENT SELECTION */}
           {activeTab === 'compose' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: 16 }}>
-              {/* LEFT COLUMN: EMAIL DETAILS */}
-              <div
-                style={{
-                  background: 'var(--bg3)',
-                  border: '1px solid var(--br)',
-                  borderRadius: 8,
-                  padding: 14,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
+            <div>
+              {/* MOBILE SUB-NAV FOR TAB 1 */}
+              <div className="cep-mobile-subnav">
+                <button
+                  type="button"
+                  className={`btn btn-sm ${mobileTab1View === 'docs' ? 'btn-p' : 'btn-g'}`}
+                  data-testid="mobile-subnav-docs"
+                  onClick={() => setMobileTab1View('docs')}
+                >
+                  📁 בחירת מסמכים ({pickedIds.length})
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${mobileTab1View === 'details' ? 'btn-p' : 'btn-g'}`}
+                  data-testid="mobile-subnav-details"
+                  onClick={() => setMobileTab1View('details')}
+                >
+                  ✉️ פרטי המייל והנמען
+                </button>
+              </div>
+
+              <div className="cep-compose-grid">
+                {/* LEFT COLUMN: EMAIL DETAILS */}
+                <div
+                  className={`cep-compose-sidebar ${mobileTab1View === 'details' ? 'mobile-visible' : 'mobile-hidden'}`}
+                  style={{
+                    background: 'var(--bg3)',
+                    border: '1px solid var(--br)',
+                    borderRadius: 8,
+                    padding: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}
+                >
                 <div style={{ fontWeight: 700, fontSize: 14, borderBottom: '1px solid var(--br)', paddingBottom: 6 }}>
                   ✉️ פרטי המייל והנמען
                 </div>
@@ -574,6 +600,7 @@ export default function ClaimEmailPackageModal({
 
               {/* RIGHT COLUMN: DOCUMENT SELECTOR (THE 9 CATEGORIES) */}
               <div
+                className={`cep-compose-main ${mobileTab1View === 'docs' ? 'mobile-visible' : 'mobile-hidden'}`}
                 style={{
                   background: 'var(--bg2)',
                   border: '1px solid var(--br)',
@@ -643,7 +670,7 @@ export default function ClaimEmailPackageModal({
                   </div>
 
                   {/* 9 CATEGORY PILLS */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <div className="cep-cat-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     <button
                       type="button"
                       className={`btn btn-sm ${catFilter === 'all' ? 'btn-p' : 'btn-g'}`}
@@ -794,6 +821,7 @@ export default function ClaimEmailPackageModal({
                   )}
                 </div>
               </div>
+            </div>
             </div>
           )}
 
@@ -1026,6 +1054,7 @@ export default function ClaimEmailPackageModal({
               }}
             >
               <div
+                className="cep-share-header"
                 style={{
                   background: '#ffffff',
                   border: '1px solid #e2e8f0',
@@ -1035,6 +1064,8 @@ export default function ClaimEmailPackageModal({
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 12,
                 }}
               >
                 <div>
@@ -1047,6 +1078,7 @@ export default function ClaimEmailPackageModal({
                 </div>
                 <button
                   type="button"
+                  className="cep-share-zip-btn"
                   style={{
                     background: '#059669',
                     color: '#fff',
@@ -1319,7 +1351,7 @@ export default function ClaimEmailPackageModal({
 
         {/* MODAL FOOTER */}
         <div
-          className="mf"
+          className="mf cep-footer"
           style={{
             background: 'var(--bg2)',
             borderTop: '1px solid var(--br)',
@@ -1329,11 +1361,11 @@ export default function ClaimEmailPackageModal({
             alignItems: 'center',
           }}
         >
-          <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+          <div className="cep-footer-info" style={{ fontSize: 12, color: 'var(--t3)' }}>
             תיק: <b>{claim.id}</b> | נבחרו <b>{pickedIds.length}</b> קבצים ({totalSelectedMb} MB) | תוקף: <b>{ttl}</b>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="cep-footer-acts" style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn btn-g" onClick={onClose}>
               סגור
             </button>
