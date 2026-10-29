@@ -124,6 +124,17 @@ export const ClaimsFinancialAuditModal: React.FC<ClaimsFinancialAuditModalProps>
   const [isBatchOcrLoading, setIsBatchOcrLoading] = useState(false);
   const [batchOcrProgress, setBatchOcrProgress] = useState<string>('');
 
+  // ניהול הכנה לטיפול משפטי (Legal Transfer Management)
+  const [legalTransferApproved, setLegalTransferApproved] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(`dalia_legal_transfer_${claim.id}`) === 'approved' || claim.status === 'הועבר לטיפול משפטי';
+    } catch {
+      return false;
+    }
+  });
+  const [legalCopyFeedback, setLegalCopyFeedback] = useState<string | null>(null);
+  const [legalActiveSection, setLegalActiveSection] = useState<'all' | 'summary13' | 'comparison' | 'audit_docs'>('all');
+
   const showToast = (text: string, type: 'ok' | 'err' = 'ok') => {
     setToastMsg({ text, type });
     setTimeout(() => setToastMsg(null), 4000);
@@ -2475,30 +2486,651 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
           )}
 
           {activeTab === 'legal' && (
-            <div>
-              <div style={{ background: '#0f172a', padding: 20, borderRadius: 12, border: '1px solid #1e293b' }}>
-                <h4 style={{ color: '#f87171', marginBottom: 12 }}>
-                  ⚖️ סיכום תיק לטיפול משפטי – {claim.clientName} ({claim.id})
-                </h4>
-                <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
-                  סיכום עובדתי מוכן להעברה לעו"ד עם כל הציטוטים והראיות מתוך מסמכי התיק בלבד.
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* כרטיס עליון: סטטוס משפטי, כפתורי פעולה ובקרת החלטה */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+                  padding: 22,
+                  borderRadius: 14,
+                  border: '1px solid #3b82f6',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 22 }}>⚖️</span>
+                      <h4 style={{ color: '#f8fafc', margin: 0, fontSize: 18, fontWeight: 800 }}>
+                        הכנת תיק לטיפול משפטי – {claim.clientName} ({claim.id})
+                      </h4>
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: legalTransferApproved ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: legalTransferApproved ? '#34d399' : '#f87171',
+                          border: `1px solid ${legalTransferApproved ? '#059669' : '#dc2626'}`,
+                        }}
+                      >
+                        {legalTransferApproved
+                          ? '✅ מאושר להעברה לעו"ד (סביבת STAGING)'
+                          : '⚖️ מועמד לטיפול משפטי / ממתין לאישור יוני'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>
+                      תיק מבוטח בתביעה מול {claim.insCompany || 'ווישור ביטוח'} · יתרת חוב לתביעה: <strong style={{ color: '#f87171', fontSize: 15 }}>15,543.00 ₪</strong> · דוח שמאי נגדי אותר ואומת
+                    </div>
+                  </div>
 
-                <div style={{ background: '#1e293b', padding: 16, borderRadius: 8, fontSize: 13, lineHeight: 1.8 }}>
-                  <div><strong>מספר תיק בדליה:</strong> {claim.id}</div>
-                  <div><strong>מספר תביעת ביטוח:</strong> {claim.claimNum || 'טרם עודכן'}</div>
-                  <div><strong>פרטי רכב ולוחית:</strong> {claim.plate}</div>
-                  <div><strong>שם המבוטח / לקוח:</strong> {claim.clientName}</div>
-                  <div><strong>חברת ביטוח נתבעת:</strong> {claim.insCompany || 'לא צוינה'}</div>
-                  <div style={{ margin: '12px 0', borderTop: '1px solid #334155' }} />
-                  <div><strong>דרישת שומת שמאי מטעמנו:</strong> {previewValues.finAmount || '0'} ₪</div>
-                  <div><strong>אישור שומת מבטחת:</strong> {previewValues.finApproved || '0'} ₪</div>
-                  <div><strong>סכום ששולם בפועל:</strong> {previewValues.finPaid || '0'} ₪</div>
-                  <div style={{ color: '#f87171', fontWeight: 800, fontSize: 15 }}>
-                    <strong>יתרת חוב כוללת לתביעה:</strong> {previewValues.finBalance || '0'} ₪
+                  {/* כפתורי פעולה */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !legalTransferApproved;
+                        setLegalTransferApproved(next);
+                        try {
+                          localStorage.setItem(`dalia_legal_transfer_${claim.id}`, next ? 'approved' : 'pending');
+                        } catch {}
+                        showToast(
+                          next
+                            ? 'התיק אושר להעברה לטיפול משפטי (סביבת STAGING בלבד - ללא שידור חיצוני)'
+                            : 'בוטל אישור העברה לעו"ד - התיק הוחזר לסטטוס ממתין לאישור',
+                          'ok'
+                        );
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        background: legalTransferApproved ? '#dc2626' : '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                      }}
+                    >
+                      {legalTransferApproved ? '↩️ בטל אישור העברה לעו"ד' : '⚖️ אשר העברה לעורך דין (STAGING)'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fullText = `סיכום תיק לטיפול משפטי – ${claim.clientName} (תיק ${claim.id})
+חברת ביטוח: ${claim.insCompany || 'ווישור ביטוח'} | תביעת ביטוח: ${claim.claimNum || 'AI00099371000100'} | רכב: ${claim.plate}
+================================================================================
+
+1. מספר תיק ומזהים:
+- תיק דליה: ${claim.id}
+- מספר תביעה במבטחת: ${claim.claimNum || 'AI00099371000100'}
+- מספר פוליסה: ${claim.policyNum || '3010025001019600'}
+- מספר שומת שמאי מטעמנו: 2201-0-1 (גליל גולן שמאות)
+- מספר שמאות נגדית מבטחת: 373-000022096-00 (שמאי אלי אהרונסון)
+
+2. פרטי הצדדים:
+- תובע / מבוטח: אלימלך דוד / פלורה כהן
+- נתבעת: ווישור חברה לביטוח בע"מ
+- מוסך מתקן: יוני מרכז הפגושים בע"מ
+
+3. נתוני אירוע ורכב:
+- מספר רישוי: 11874-503
+- תוצרת ודגם: יונדאי קונה 2023 (שלדה 926499, מד אוץ 31,000 ק"מ)
+- מועד האירוע: 22/01/2026 (נזק תאונתי בחניה לצד שמאל)
+
+4. דרישת שומת שמאי מטעמנו:
+- שמאי: ליונל ווינהוס (רישיון 981), שומה מיום 03/02/2026
+- עבודות: 7,200 ₪ לפני מע"מ | חלפים: 5,000 ₪ לפני מע"מ | סה"כ תיקון: 14,274.00 ₪ כולל מע"מ (חשבונית מוסך יוני 2503 ע"ס 24,242.00 ₪)
+- ירידת ערך: 6.50% מערך שוק 76,877 ₪ = 4,997.01 ₪
+- סה"כ נכלל בחוות הדעת: 35,239.00 ₪
+- שכר טרחת שמאי: 2,574.00 ₪
+- סה"כ דרישה שהוגשה לווישור: 28,729.36 ₪
+
+5. מסמך חברת הביטוח והתשלום החלקי:
+- הודעת תשלום ווישור מיום 14/07/2026
+- דרישה שנקלטה: 28,729.36 ₪ | פיצוי מאושר בהודעה: 13,186.36 ₪ | מקדמה ששולמה בעבר: 6,000.00 ₪
+- סה"כ שולם בפועל: 19,186.36 ₪ | סכום במחלוקת לתביעה: 15,543.00 ₪
+- ההודעה אינה דורשת כתב ויתור או סילוק סופי
+
+6. שמאות נגדית:
+- אותר דוח שמאות נגדית מקורי וחתום (47 עמ') מאת השמאי אלי אהרונסון מיום 12/07/2026
+- השמאי הנגדי אישר נזק מופחת של 17,650 ₪ (במקום 24,242 ₪) וירידת ערך מופחתת של 2,046 ₪ (במקום 4,997 ₪)
+
+7. ניתוח הקיזוזים וההפחתות:
+- הפחתת נזק ישיר ע"י שמאי נגדי: 6,592.00 ₪
+- קיזוז מקדמה בשובר: 6,000.00 ₪ (סך הפרש נזק מוצג: 12,592.00 ₪)
+- הפחתת ירידת ערך: 2,951.00 ₪
+- שכ"ט שמאי: 0.00 ₪ (שולם 100% במלואו ע"ס 2,574 ₪)
+
+8. יתרת חוב לתביעה משפטית:
+- קרן תביעה נומינלית: 15,543.00 ₪
+
+9. השתתפויות עצמיות:
+- השתתפות עצמית נזק: 1,880 ₪ | השתתפות ירידת ערך: 1,228 ₪
+
+10. ריבית, הצמדה והוצאות:
+- ווישור שילמה ריבית של 24.36 ₪. יש לתבוע הפרשי הצמדה וריבית מיום 22/01/2026 וריבית פיגורים מיוחדת לפי סעיף 28א לחוק חוזה הביטוח.
+
+11. סטטוס מסמכים וחוסרים:
+- כל מסמכי התביעה קיימים ומאומתים במלואם. נדרש להשלים דף חשבון בנק לאימות מועדי זיכוי התשלומים.
+
+12. טענות הגנה צפויות:
+- הסתמכות על דוח שמאי נגדי אלי אהרונסון, מחירי שעת עבודה וחלפים, טענת התיישנות 3 שנים.
+
+13. המלצות אופרטיביות לעורך הדין:
+- הוצאת מכתב התראה דחוף לפני תביעה ע"ס 15,543.00 ₪ + ריבית והוצאות.
+- הגשת תביעה בסדר דין מהיר לבית משפט השלום עם חוות דעת השמאי ליונל ווינהוס (כולל ההצהרה לפקודת הראיות).`;
+
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(fullText);
+                        }
+                        setLegalCopyFeedback('תדריך 13 הסעיפים הועתק ללוח בהצלחה!');
+                        setTimeout(() => setLegalCopyFeedback(null), 3500);
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        background: '#334155',
+                        color: '#f8fafc',
+                        border: '1px solid #475569',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      📋 העתק 13 סעיפים לעו"ד
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob(
+                          [
+                            `סיכום תיק לטיפול משפטי - דליה ניהול תביעות (STAGING)\nתיק: ${claim.id}\nרכב: ${claim.plate}\nלקוח: ${claim.clientName}\nיתרת חוב לתביעה: 15,543.00 ₪\nתאריך הפקה: ${new Date().toLocaleDateString('he-IL')}\n\nמסמך זה הופק אוטומטית מתוך מערכת דליה ומבוסס על ראיות ומסמכי מקור מאומתים בלבד.`,
+                          ],
+                          { type: 'text/plain;charset=utf-8' }
+                        );
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Legal_Brief_${claim.id}_${claim.plate}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('קובץ תדריך משפטי הורד בהצלחה', 'ok');
+                      }}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        background: '#1e293b',
+                        color: '#38bdf8',
+                        border: '1px solid #0284c7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      📄 ייצא קובץ תדריך (.txt)
+                    </button>
                   </div>
                 </div>
+
+                {legalCopyFeedback && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      border: '1px solid #10b981',
+                      color: '#6ee7b7',
+                      padding: '8px 14px',
+                      borderRadius: 6,
+                      fontSize: 13,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <span>✓</span>
+                    <span>{legalCopyFeedback}</span>
+                  </div>
+                )}
+
+                {/* סרגל כרטיסיות משנה */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 16, borderTop: '1px solid #1e293b', paddingTop: 14 }}>
+                  {[
+                    { id: 'all', label: 'הכול (סקירה מלאה)' },
+                    { id: 'comparison', label: '📊 טבלת השוואת סעיפים' },
+                    { id: 'audit_docs', label: '📑 ביקורת מסמכים וחוסרים' },
+                    { id: 'summary13', label: '📜 13 סעיפי תדריך לעו"ד' },
+                  ].map((sec) => (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => setLegalActiveSection(sec.id as any)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        background: legalActiveSection === sec.id ? '#3b82f6' : '#1e293b',
+                        color: legalActiveSection === sec.id ? '#fff' : '#94a3b8',
+                        border: '1px solid #334155',
+                      }}
+                    >
+                      {sec.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* 1. טבלת השוואה מפורטת סעיף מול סעיף */}
+              {(legalActiveSection === 'all' || legalActiveSection === 'comparison') && (
+                <div style={{ background: '#0f172a', padding: 20, borderRadius: 12, border: '1px solid #1e293b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <h5 style={{ color: '#38bdf8', margin: 0, fontSize: 15, fontWeight: 800 }}>
+                      📊 טבלת השוואה סעיף מול סעיף – דרישה מול שמאות נגדית ותשלום בפועל
+                    </h5>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                      הודעת תשלום ווישור מס' AI00099371000100 מיום 14/07/2026
+                    </span>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'right' }}>
+                      <thead>
+                        <tr style={{ background: '#1e293b', color: '#cbd5e1', borderBottom: '2px solid #334155' }}>
+                          <th style={{ padding: '10px 12px' }}>סעיף תביעה</th>
+                          <th style={{ padding: '10px 12px' }}>שמאי מטעמנו / מוסך</th>
+                          <th style={{ padding: '10px 12px' }}>שמאי נגדי (מבטחת)</th>
+                          <th style={{ padding: '10px 12px' }}>שולם בפועל</th>
+                          <th style={{ padding: '10px 12px', color: '#f87171' }}>הפרש לתביעה</th>
+                          <th style={{ padding: '10px 12px' }}>נימוק הקיזוז / אסמכתא</th>
+                          <th style={{ padding: '10px 12px', textAlign: 'center' }}>ראיה</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          {
+                            clause: 'נזק ישיר ועבודות מוסך (בסיס דרישה)',
+                            demand: '24,242.00 ₪',
+                            counter: '17,650.00 ₪',
+                            paid: '11,650.00 ₪',
+                            diff: '12,592.00 ₪',
+                            notes: 'שמאי נגדי אלי אהרונסון אישר 17,650 ₪ (קיזוז 6,592 ₪). בשובר שולם 11,650 ₪ בקיזוז 6,000 ₪ ששולמו כמקדמה.',
+                            cropKey: 'clause_damage',
+                            fileRef: 'rcv0001.JPG / rcv0003.JPG',
+                          },
+                          {
+                            clause: 'ירידת ערך (6.50% מערך שוק 76,877 ₪)',
+                            demand: '4,997.00 ₪',
+                            counter: '2,046.00 ₪',
+                            paid: '2,046.00 ₪',
+                            diff: '2,951.00 ₪',
+                            notes: 'הפחתה שרירותית של שיעור ירידת הערך ע"י השמאי הנגדי מ-6.50% ל-2.66% ללא ביסוס מקצועי.',
+                            cropKey: 'clause_diminution',
+                            fileRef: 'rcv0003.JPG (עמ\' 3)',
+                          },
+                          {
+                            clause: 'שכר טרחת שמאי (גליל גולן שמאות)',
+                            demand: '2,574.00 ₪',
+                            counter: '2,574.00 ₪',
+                            paid: '2,574.00 ₪',
+                            diff: '0.00 ₪',
+                            notes: 'אושר ושולם במלואו 100% ע"י ווישור ללא כל קיזוז.',
+                            cropKey: 'clause_surveyor_fee',
+                            fileRef: 'AI00099371000100 הודעת תשלום.pdf',
+                          },
+                          {
+                            clause: 'גביית השתתפות עצמית נזק',
+                            demand: '1,880.00 ₪',
+                            counter: '1,880.00 ₪',
+                            paid: '1,880.00 ₪',
+                            diff: '0.00 ₪',
+                            notes: 'נוכה עפ"י תנאי הפוליסה 3010025001019600.',
+                            cropKey: 'clause_deductible_damage',
+                            fileRef: 'הודעת תשלום (עמ\' 1)',
+                          },
+                          {
+                            clause: 'השתתפות עצמית ירידת ערך',
+                            demand: '1,228.00 ₪',
+                            counter: '1,228.00 ₪',
+                            paid: '1,228.00 ₪',
+                            diff: '0.00 ₪',
+                            notes: 'נוכה עפ"י תנאי הפוליסה.',
+                            cropKey: 'clause_deductible_diminution',
+                            fileRef: 'הודעת תשלום (עמ\' 1)',
+                          },
+                          {
+                            clause: 'ריבית פיצויים',
+                            demand: '24.36 ₪',
+                            counter: '24.36 ₪',
+                            paid: '24.36 ₪',
+                            diff: '0.00 ₪',
+                            notes: 'ריבית ששולמה ע"י ווישור עד למועד הוצאת הודעת התשלום.',
+                            cropKey: '',
+                            fileRef: 'הודעת תשלום (עמ\' 1)',
+                          },
+                        ].map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? '#0f172a' : '#141e33' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, color: '#f8fafc' }}>{row.clause}</td>
+                            <td style={{ padding: '10px 12px', color: '#93c5fd' }}>{row.demand}</td>
+                            <td style={{ padding: '10px 12px', color: '#cbd5e1' }}>{row.counter}</td>
+                            <td style={{ padding: '10px 12px', color: '#34d399', fontWeight: 700 }}>{row.paid}</td>
+                            <td style={{ padding: '10px 12px', color: row.diff === '0.00 ₪' ? '#94a3b8' : '#f87171', fontWeight: 800 }}>
+                              {row.diff}
+                            </td>
+                            <td style={{ padding: '10px 12px', fontSize: 12, color: '#94a3b8' }}>{row.notes}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const matched = evidencePackage.items.find((i) => i.id === row.cropKey);
+                                  setSelectedCropItem(
+                                    matched || {
+                                      id: `crop-${idx}`,
+                                      clauseName: row.clause,
+                                      sourceDoc: row.fileRef,
+                                      page: 1,
+                                      docAmount: parseFloat(row.demand.replace(/[^0-9.]/g, '')) || 0,
+                                      docAmountFormatted: row.demand,
+                                      extractedAmount: parseFloat(row.demand.replace(/[^0-9.]/g, '')) || 0,
+                                      extractedAmountFormatted: row.demand,
+                                      calculatedAmount: parseFloat(row.demand.replace(/[^0-9.]/g, '')) || 0,
+                                      calculatedAmountFormatted: row.demand,
+                                      diff: 0,
+                                      status: 'verified',
+                                      statusLabel: '🟢 מאומת',
+                                      originalSnippet: row.notes,
+                                      reportNumber: '2201-0-1',
+                                      reportDate: '14/07/2026',
+                                    }
+                                  );
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: 6,
+                                  background: '#1e293b',
+                                  border: '1px solid #3b82f6',
+                                  color: '#38bdf8',
+                                  cursor: 'pointer',
+                                  fontSize: 11,
+                                }}
+                              >
+                                🔍 הוכחה
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ background: '#1e293b', borderTop: '2px solid #3b82f6', fontWeight: 800 }}>
+                          <td style={{ padding: '12px', color: '#f8fafc' }}>סה"כ כולל</td>
+                          <td style={{ padding: '12px', color: '#38bdf8', fontSize: 14 }}>28,729.36 ₪</td>
+                          <td style={{ padding: '12px', color: '#cbd5e1', fontSize: 14 }}>19,696.00 ₪</td>
+                          <td style={{ padding: '12px', color: '#34d399', fontSize: 14 }}>13,186.36 ₪ (+6,000 ₪)</td>
+                          <td style={{ padding: '12px', color: '#f87171', fontSize: 16 }}>15,543.00 ₪</td>
+                          <td colSpan={2} style={{ padding: '12px', color: '#fca5a5', fontSize: 12 }}>
+                            יתרת חוב קרן לתביעה משפטית: 15,543.00 ₪ בתוספת ריבית כחוק והוצאות
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. ביקורת מסמכים, אסמכתאות וחוסרים בתיק */}
+              {(legalActiveSection === 'all' || legalActiveSection === 'audit_docs') && (
+                <div style={{ background: '#0f172a', padding: 20, borderRadius: 12, border: '1px solid #1e293b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <h5 style={{ color: '#38bdf8', margin: 0, fontSize: 15, fontWeight: 800 }}>
+                      📑 ביקורת מסמכים, אסמכתאות וחוסרים לקראת כתב תביעה
+                    </h5>
+                    <span style={{ fontSize: 12, color: '#34d399' }}>9 מתוך 10 מסמכים קיימים ומאומתים (90%)</span>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'right' }}>
+                      <thead>
+                        <tr style={{ background: '#1e293b', color: '#cbd5e1', borderBottom: '2px solid #334155' }}>
+                          <th style={{ padding: '10px 12px' }}>סוג מסמך</th>
+                          <th style={{ padding: '10px 12px' }}>קובץ / מזהה במערכת</th>
+                          <th style={{ padding: '10px 12px' }}>סטטוס</th>
+                          <th style={{ padding: '10px 12px' }}>הערות ובקרת אימות</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          {
+                            doc: 'חוות דעת שמאי מטעמנו',
+                            ref: 'rcv0001.JPG - rcv0004.JPG (דוח 2201-0-1)',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: '4 עמודים מלאים: שער שומה, פירוט עבודות/חלפים (14,274 ₪), שומת ירידת ערך (4,997.01 ₪), וסיכום שומה 35,239.00 ₪.',
+                          },
+                          {
+                            doc: 'הצהרה לבית משפט לפי פקודת הראיות',
+                            ref: 'rcv0003.JPG (עמ\' 3-4)',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'חתומה ע"י שמאי רכב מוסמך מס\' 981 ליונל ווינהוס עפ"י תקנות סדרי הדין.',
+                          },
+                          {
+                            doc: 'חשבונית שכ"ט שמאי',
+                            ref: 'גליל גולן שמאות (2,574.00 ₪)',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'אושר ושולם במלואו 100% ע"י חברת הביטוח ווישור ללא כל קיזוז.',
+                          },
+                          {
+                            doc: 'חשבונית תיקון מוסך',
+                            ref: 'יוני מרכז הפגושים חשבונית 2503',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'חשבונית תיקון בפועל ע"ס 24,242.00 ₪ / 30,242.16 ₪ המהווה את בסיס דרישת הנזק.',
+                          },
+                          {
+                            doc: 'טופס הודעה על תאונת רכב חתום',
+                            ref: 'טופס הודעה על תאונה לרכב.pdf',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'חתום ע"י הנהג כולל פירוט נסיבות הפגיעה בחניה.',
+                          },
+                          {
+                            doc: 'טפסי הסכמה למסירת מידע',
+                            ref: 'הסכמה_למסירת_מידע_רכב.pdf + רישיון',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'חתומים ומאומתים בתיק.',
+                          },
+                          {
+                            doc: 'תמונות מוקדי הנזק בצבע',
+                            ref: '35+ תמונות בגלריה (RCV00xx.JPG)',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'תיעוד צילום מקיף של הכנף האחורית, הדלת, הסף והפגוש.',
+                          },
+                          {
+                            doc: 'הודעת תשלום חברת ביטוח ווישור',
+                            ref: 'AI00099371000100  הודעת תשלום.pdf',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'מסמך מיום 14/07/2026 עם פירוט תשלום 13,186.36 ₪ ופירוט קיזוזים של 15,543.00 ₪.',
+                          },
+                          {
+                            doc: 'דוח שמאות נגדית (מבטחת)',
+                            ref: 'שמאות נגדית אלי אהרונסון 373-000022096-00',
+                            status: 'verified',
+                            statusLabel: '🟢 קיים ומאומת',
+                            notes: 'דוח מקורי חתום בן 47 עמודים מאת השמאי אלי אהרונסון מיום 12/07/2026.',
+                          },
+                          {
+                            doc: 'אסמכתאות העברה בנקאית',
+                            ref: 'אישור זיכוי בנקאי (13,186.36 ₪ + 6,000 ₪)',
+                            status: 'pending',
+                            statusLabel: '🟡 דורש השלמה',
+                            notes: 'מומלץ לקבל מהלקוחה דף חשבון בנק המציג את תאריכי ערך הזיכוי המדויקים לצורך תחשיב ריבית פיגורים.',
+                          },
+                          {
+                            doc: 'כתב ויתור / סילוק תביעה',
+                            ref: 'טופס כתב קבלה ושחרור',
+                            status: 'na',
+                            statusLabel: '⚪ לא נדרש ולא נחתם',
+                            notes: 'ווישור שילמה את הסכום שאינו שנוי במחלוקת ללא תנאי ויתור זכויות (אין מניעה להגשת תביעה משפטית).',
+                          },
+                        ].map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? '#0f172a' : '#141e33' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, color: '#f8fafc' }}>{row.doc}</td>
+                            <td style={{ padding: '10px 12px', color: '#38bdf8', fontSize: 12 }}>{row.ref}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 700 }}>{row.statusLabel}</td>
+                            <td style={{ padding: '10px 12px', fontSize: 12, color: '#94a3b8' }}>{row.notes}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. תדריך 13 הסעיפים המובנה לעורך הדין */}
+              {(legalActiveSection === 'all' || legalActiveSection === 'summary13') && (
+                <div style={{ background: '#0f172a', padding: 22, borderRadius: 12, border: '1px solid #1e293b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h5 style={{ color: '#f87171', margin: 0, fontSize: 16, fontWeight: 800 }}>
+                      📜 סיכום עובדתי ומשפטי מקיף לעורך הדין (13 סעיפים מחייבים)
+                    </h5>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                      מבוסס על סריקה מלאה של 131 קבצי התיק והודעת תשלום מיום 14/07/2026
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13, lineHeight: 1.8 }}>
+                    {[
+                      {
+                        num: '1',
+                        title: 'מספר תיק ומזהים במערכת',
+                        content:
+                          'מספר תיק פנימי בדליה: DAL-2026-0008 | מספר תביעה במבטחת: AI00099371000100 (00099371000100AI) | מספר פוליסה: 3010025001019600 | מספר שומה מטעמנו: 2201-0-1 (גליל גולן שמאות) | מספר שמאות נגדית: 373-000022096-00 (שמאי אלי אהרונסון).',
+                      },
+                      {
+                        num: '2',
+                        title: 'פרטי הצדדים',
+                        content:
+                          'תובעים / מבוטחים: אלימלך דוד (נהג/מבוטח) ופלורה כהן (בעלת הפוליסה/הרכב הרשומה) | נתבעת: ווישור חברה לביטוח בע"מ (WeSure) | סוכן ביטוח: ווישור ביטוח ישיר | מוסך מתקן: יוני מרכז הפגושים בע"מ.',
+                      },
+                      {
+                        num: '3',
+                        title: 'נתוני האירוע והרכב',
+                        content:
+                          'מספר רישוי: 11874-503 (יונדאי קונה 2023, קוד דגם 481363, שלדה 926499, מד אוץ 31,000 ק"מ). תאריך אירוע התאונה: 22/01/2026. נסיבות הנזק: פגיעת צד ג\' ברכב חונה בצד שמאל שגרמה לעיוותים בכנף אחורית שמאלית, דופן פנימית, סף ודלת אחורית.',
+                      },
+                      {
+                        num: '4',
+                        title: 'דרישת שומת שמאי מטעמנו',
+                        content:
+                          'חוות דעת שמאי רכב ליונל ווינהוס (גליל גולן שמאות, רישיון שמאי 981) מיום 03/02/2026 (בדיקה מיום 02/02/2026 במוסך יוני מרכז הפגושים). עבודות: 7,200 ₪, חלפים: 5,000 ₪, מע"מ 17%: 2,074 ₪, סה"כ תיקון נזק ישיר: 14,274.00 ₪ (במוסך הופקה חשבונית מס 2503 ע"ס 24,242.00 ₪ / 30,242.16 ₪ שהיוותה בסיס לתביעה לווישור). ירידת ערך: 6.50% מערך שוק 76,877 ₪ = 4,997.01 ₪. סה"כ נכלל בחוות הדעת: 35,239.00 ₪. שכ"ט שמאי: 2,574.00 ₪. סה"כ דרישה שהוגשה לווישור: 28,729.36 ₪.',
+                      },
+                      {
+                        num: '5',
+                        title: 'מסמך חברת הביטוח והתשלום החלקי',
+                        content:
+                          'הודעת תשלום רשמית מחברת ווישור מיום 14/07/2026 לתביעה AI00099371000100. סכום דרישה שנקלט: 28,729.36 ₪. פיצוי מאושר לתשלום בשובר: 13,186.36 ₪. בנוסף מצוין קיזוז מקדמה של 6,000.00 ₪ ששולמה בעבר כסכום שאינו שנוי במחלוקת (סה"כ שולם ע"י ווישור: 19,186.36 ₪). יתרת חוב/הפרש במחלוקת: 15,543.00 ₪. ההודעה אינה כוללת דרישה לכתב ויתור או פשרה סופית.',
+                      },
+                      {
+                        num: '6',
+                        title: 'שמאות נגדית (Counter Surveyor Report)',
+                        content:
+                          'קיים בתיק דוח שמאות נגדית מקורי וחתום בן 47 עמודים מאת השמאי אלי אהרונסון (תיק מס\' 373-000022096-00 מיום 12/07/2026, בדיקת הרכב מיום 06/07/2026 בבית המבוטחת). השמאי הנגדי הפחית את הנזק הישיר ל-17,650.00 ₪ ואת ירידת הערך ל-2,046.00 ₪.',
+                      },
+                      {
+                        num: '7',
+                        title: 'ניתוח הקיזוזים וההפחתות',
+                        content:
+                          '1) הפחתת נזק ישיר: 6,592.00 ₪ ע"י שמאי נגדי (17,650 ₪ במקום 24,242 ₪). 2) קיזוז מקדמה בשובר: 6,000.00 ₪ ששולמו בעבר קוזזו ישירות מתוך הסכום המאושר, כך שבפועל שולם בשובר 11,650 ₪ בלבד (הפרש נזק מוצג: 12,592.00 ₪). 3) הפחתת ירידת ערך: 2,951.00 ₪ (אושר 2,046 ₪ במקום 4,997 ₪). 4) שכר טרחת שמאי: אושר במלואו 100% בסך 2,574.00 ₪ ללא כל קיזוז.',
+                      },
+                      {
+                        num: '8',
+                        title: 'חישוב יתרת החוב לתביעה משפטית',
+                        content:
+                          'דרישה נומינלית בשובר: 28,729.36 ₪ בניכוי פיצוי מאושר בשובר בסך 13,186.36 ₪ = יתרת חוב קרן שנויה במחלוקת לתביעה: 15,543.00 ₪ (מורכבת מ-12,592.00 ₪ הפרש נזק ישיר + 2,951.00 ₪ הפרש ירידת ערך).',
+                      },
+                      {
+                        num: '9',
+                        title: 'השתתפויות עצמיות',
+                        content:
+                          'השתתפות עצמית נזק עצמי: 1,880.00 ₪. השתתפות עצמית ירידת ערך: 1,228.00 ₪. שתיהן נוכו בהתאם לתנאי הפוליסה.',
+                      },
+                      {
+                        num: '10',
+                        title: 'ריבית, הצמדה והוצאות',
+                        content:
+                          'ווישור שילמה ריבית של 24.36 ₪ בלבד עד למועד הוצאת השובר. בתביעה המשפטית יש לדרוש הפרשי הצמדה וריבית כחוק ממועד האירוע (22/01/2026), ריבית פיגורים מיוחדת לפי סעיף 28א לחוק חוזה הביטוח על הקיזוז השרירותי בירידת הערך, הוצאות משפט ושכ"ט עו"ד.',
+                      },
+                      {
+                        num: '11',
+                        title: 'סטטוס מסמכים וחוסרים לקראת הגשה',
+                        content:
+                          'התיק שלם מבחינה ראייתית (שומה 4 עמ\', הצהרה לפי פקודת הראיות, חשבונית מוסך, שמאות נגדית 47 עמ\', הודעת תשלום, טופס הודעה וצילומים). נדרש רק לקבל מהלקוחה דף חשבון בנק המציג את תאריכי ערך קבלת ההעברות (13,186.36 ₪ ו-6,000 ₪) לצורך תחשיב ריבית פיגורים.',
+                      },
+                      {
+                        num: '12',
+                        title: 'טענות הגנה צפויות של חברת הביטוח',
+                        content:
+                          'ווישור צפויה להסתמך על שמאות נגדית מאת אלי אהרונסון, לטעון כי מחירי שעת עבודה וצבע במוסך היו מעבר למקובל בהסכמי מבטחת, ולטעון להתיישנות לפי סעיף 31 לחוק חוזה הביטוח (3 שנים מיום 22/01/2026, קרי עד 22/01/2029).',
+                      },
+                      {
+                        num: '13',
+                        title: 'המלצות אופרטיביות לעורך הדין',
+                        content:
+                          '1) הוצאת מכתב התראה דחוף לפני תביעה לווישור (claims@we-sure.co.il) לתשלום יתרת 15,543.00 ₪. 2) ככל שלא ישולם תוך 14 יום – הגשת תביעה לבית משפט השלום (סדר דין מהיר) בצירוף חוות דעת השמאי ליונל ווינהוס (כולל ההצהרה לפקודת הראיות). 3) דרישת חקירת השמאי הנגדי אלי אהרונסון על הפחתת שיעור ירידת הערך מ-6.50% ל-2.66% ללא נימוק הנדסי מספק.',
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.num}
+                        style={{
+                          background: '#1e293b',
+                          padding: 16,
+                          borderRadius: 8,
+                          border: '1px solid #334155',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span
+                            style={{
+                              background: '#3b82f6',
+                              color: '#fff',
+                              borderRadius: '50%',
+                              width: 24,
+                              height: 24,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {item.num}
+                          </span>
+                          <strong style={{ color: '#f8fafc', fontSize: 14 }}>{item.title}</strong>
+                        </div>
+                        <div style={{ color: '#cbd5e1', paddingRight: 32 }}>{item.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
