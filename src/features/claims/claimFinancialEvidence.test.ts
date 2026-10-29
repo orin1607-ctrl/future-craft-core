@@ -128,13 +128,20 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.directDamageTotal).toBe(38204.24);
   });
 
-  it('DAL-2026-0008 — מסומן "דורש בדיקה" כיוון שקיימת הצעת תיקון (14,274 ₪) בלבד וללא חוות דעת סופית', () => {
+  it('DAL-2026-0008 — מוכן להעברה לעו"ד: אימות מלא של שומת שמאי (35,239 ₪), הודעת תשלום ווישור (13,186.36 ₪ + מקדמה 6,000 ₪) ויתרת חוב (15,543.00 ₪)', () => {
     const ev = getClaimFinancialEvidence('DAL-2026-0008', '11874503', 'אלימלך דוד / פלורה כהן');
-    expect(ev.overallQuality).toBe('needs_review');
-    expect(ev.overallQualityLabel).toContain('דורש בדיקה');
+    expect(ev.overallQuality).toBe('valid');
+    expect(ev.overallQualityLabel).toContain('מוכן להעברה לעו"ד');
+    expect(ev.reportNumber).toBe('2201-0-1');
+    expect(ev.accounting.finalReportTotal).toBe(35239.0);
+    expect(ev.accounting.diminutionOfValue).toBe(4997.01);
+    expect(ev.accounting.surveyorFee).toBe(2574.0);
 
-    const propItem = ev.items.find((i) => i.id === 'repair_proposal');
-    expect(propItem?.docAmount).toBe(14274.0);
+    const damageItem = ev.items.find((i) => i.id === 'clause_damage');
+    expect(damageItem?.docAmount).toBe(24242.0);
+
+    const disputedItem = ev.items.find((i) => i.id === 'clause_disputed_balance');
+    expect(disputedItem?.docAmount).toBe(15543.0);
   });
 
   it('DAL-2026-0015 — מסומן "דורש בדיקה" ומעדכן לסכום המקור 23,308 ₪ (במקום 21,500 ₪)', () => {

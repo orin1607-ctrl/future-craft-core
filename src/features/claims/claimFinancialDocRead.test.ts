@@ -53,6 +53,16 @@ describe('1. סיווג סוגי מסמכים כספיים (Financial Document C
     const text = 'צילום רישיון רכב ותעודת זהות של הלקוח';
     expect(classifyFinancialDocumentKind(text)).toBe('unknown_financial_doc');
   });
+
+  it('מזהה שמאות נגדית מקובץ מבוטח (כגון שמאות נגדית אלי אהרונסון)', () => {
+    const fileName = 'שמאות נגדית מבוטח לתביעה 00099371000100 רכב מספר 11874503 בתאריך נזק 22012026_sanitized.pdf';
+    expect(classifyFinancialDocumentKind('', fileName)).toBe('counter_surveyor_report');
+  });
+
+  it('מזהה הודעת תשלום של ווישור גם עם טקסט עברי מרווח מקובץ PDF', () => {
+    const spacedOcr = '14/07/2026 : ת א ר י ך : ל כ ב ו ד כ ה ן פ ל ו ר ה ת ש ל ו ם ה ו ד ע ת : ה נ ד ו ן 11874503';
+    expect(classifyFinancialDocumentKind(spacedOcr, 'AI00099371000100  הודעת תשלום.pdf')).toBe('payment_notice');
+  });
 });
 
 describe('2. חילוץ סעיפי נזק מדוח השמאי שלנו (Our Surveyor Report Extraction)', () => {

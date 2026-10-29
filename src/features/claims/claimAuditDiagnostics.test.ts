@@ -172,4 +172,30 @@ describe('בדיקות מנגנון אבחון אימות, עמודים, כפי�
     expect(history.length).toBeGreaterThanOrEqual(1);
     expect(history[0].userText).toContain('מאושר, אלו שתי תאונות נפרדות');
   });
+  it('11. תיק אלימלך / פלורה כהן (DAL-2026-0008) — בדיקת 7 עמודי ביקורת והמלצה להעברה לעו"ד', () => {
+    const pages = CLAIM_PAGE_AUDITS['DAL-2026-0008'];
+    expect(pages).toBeDefined();
+    expect(pages.length).toBe(7);
+
+    // וידוא עמודי שומה מטעמנו
+    const p1 = pages.find((p) => p.pageNumber === 1);
+    expect(p1?.plateDetected).toBe('11874-503');
+    expect(p1?.reportNumberDetected).toBe('2201-0-1');
+
+    // וידוא הודעת תשלום ווישור
+    const p5 = pages.find((p) => p.pageNumber === 5);
+    expect(p5?.fileName).toContain('הודעת תשלום');
+    expect(p5?.contentDescription).toContain('15,543.00 ₪');
+
+    // וידוא דוח שמאות נגדית אלי אהרונסון
+    const p7 = pages.find((p) => p.pageNumber === 7);
+    expect(p7?.reportNumberDetected).toBe('373-000022096-00');
+    expect(p7?.contentDescription).toContain('אלי אהרונסון');
+
+    // וידוא המלצת AI
+    const rec = AI_OWNER_RECOMMENDATIONS.find((r) => r.claimId === 'DAL-2026-0008');
+    expect(rec).toBeDefined();
+    expect(rec?.title).toContain('העברה לעורך דין');
+    expect(rec?.whatAiNeedsFromUser).toContain('יוני');
+  });
 });

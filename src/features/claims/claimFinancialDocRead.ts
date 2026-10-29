@@ -35,6 +35,7 @@ export type DeductionCategory =
   | 'labor_cut'       // הפחתת שעות עבודה / תעריף שעה
   | 'paint_cut'       // הפחתת צבע וחומרים
   | 'part_cut'        // אי-אישור חלף / קיזוז חלפים
+  | 'advance_payment' // קיזוז מקדמה ששולמה בעבר
   | 'unexplained';    // קיזוז שרירותי או לא מוסבר
 
 export interface DeductionItem {
@@ -391,7 +392,9 @@ export function extractAmountForLabel(
 // ==========================================
 
 export function classifyFinancialDocumentKind(text: string, fileName = ''): FinancialDocKind {
-  const clean = (text + ' ' + fileName).toLowerCase();
+  // נרמול אותיות עבריות מרווחות (למשל סריקות OCR או PDF שמוציאים "ת ש ל ו ם   ה ו ד ע ת")
+  const collapsedSpacedText = text.replace(/([א-ת])\s+([א-ת])/g, '$1$2').replace(/([א-ת])\s+([א-ת])/g, '$1$2');
+  const clean = (text + ' ' + collapsedSpacedText + ' ' + fileName).toLowerCase();
 
   // 1. קוד זיהוי מפורש של דוח שמאי שלנו
   if (/dalia-our-report/i.test(clean)) {
@@ -400,7 +403,7 @@ export function classifyFinancialDocumentKind(text: string, fileName = ''): Fina
 
   // 2. דוח נגדי / שומת בקרה / שמאי מטעם מבטחת
   if (
-    /דוח\s*נגדי|דו"ח\s*נגדי|שומת\s*בקרה|דוח\s*בקרה|חוות\s*דעת\s*נגדית|שמאי\s*מבטחת|שומת\s*ביטוח|הפחתות\s*שומה/i.test(
+    /דוח\s*נגדי|דו"ח\s*נגדי|שמאות\s*נגדית|שמאי\s*נגדי|שומת\s*בקרה|דוח\s*בקרה|חוות\s*דעת\s*נגדית|שמאי\s*מבטחת|שומת\s*ביטוח|הפחתות\s*שומה/i.test(
       clean
     )
   ) {
@@ -409,7 +412,7 @@ export function classifyFinancialDocumentKind(text: string, fileName = ''): Fina
 
   // 3. הודעת תשלום / אישור העברה
   if (
-    /הודעת\s*תשלום|הודעה\s*על\s*תשלום|אישור\s*תשלום|אישור\s*העברה\s*בנקאית|הודעה\s*על\s*ביצוע\s*תשלום|מכתב\s*העברת\s*תשלום/i.test(
+    /הודעת\s*תשלום|הודעה\s*על\s*תשלום|אישור\s*תשלום|אישור\s*העברה\s*בנקאית|הודעה\s*על\s*ביצוע\s*תשלום|מכתב\s*העברת\s*תשלום|תשלום\s*הודעת/i.test(
       clean
     )
   ) {
@@ -418,7 +421,7 @@ export function classifyFinancialDocumentKind(text: string, fileName = ''): Fina
 
   // 4. פירוט סילוק תביעה / פירוט תשלום
   if (
-    /פירוט\s*תשלום|פירוט\s*סילוק|מכתב\s*סילוק|דוח\s*חישוב\s*תשלום|פירוט\s*שובר/i.test(
+    /פירוט\s*תשלום|פירוט\s*סילוק|מכתב\s*סילוק|דוח\s*חישוב\s*תשלום|פירוט\s*שובר|סילוק\s*תביעה/i.test(
       clean
     )
   ) {
@@ -867,6 +870,12 @@ export function extractDeductions(text: string): DeductionItem[] {
       isUnexplained: false,
     },
     {
+      category: 'advance_payment',
+      keywords: ['סכום שאינו שנוי במחלוקת', 'שולמו כמקדמה', 'קיזוז מקדמה', 'מקדמה', 'ששולמו בעבר'],
+      defaultLabel: 'קיזוז מקדמה ששולמה כסכום שאינו שנוי במחלוקת',
+      isUnexplained: false,
+    },
+    {
       category: 'unexplained',
       keywords: ['הפחתה נוספת', 'קיזוז כללי', 'ניכוי מיוחד', 'הפחתה שרירותית', 'ניכוי שאינו מוסבר'],
       defaultLabel: 'קיזוז לא מוסבר שנדרש לבדיקה',
@@ -1005,7 +1014,7 @@ export function extractPaymentNotice(text: string): PaymentNoticeExtraction {
   const reviewReasons: string[] = [];
   const citations: Record<string, string> = {};
 
-  const reportedPaidAmount = extractAmountForLabel(
+  let reportedPaidAmount = extractAmountForLabel(
     clean,
     [
       'סכום ששולם',
@@ -1017,9 +1026,30 @@ export function extractPaymentNotice(text: string): PaymentNoticeExtraction {
       'סה״כ שולם',
       'סכום לפקודת',
       'סך תשלום',
+      'לתשלום סה"כ',
+      'סה"כ לתשלום',
+      'סה״כ לתשלום',
+      'סך לתשלום',
+      'פיצוי',
+      'תגמולי ביטוח',
     ],
     { preferLast: true }
   );
+
+  // תמיכה בטבלאות שוברי סילוק ופיצוי של חברות ביטוח (למשל ווישור ס"כה: דרישה, פיצוי, הפרש)
+  if (reportedPaidAmount.amount === 0) {
+    const tableTotalMatch = clean.match(/(?:ס[״"׳\']?כ(?:ה)?|סה[״"׳\']?כ)\s+([0-9,.]+)\s+([0-9,.]+)\s+([0-9,.]+)/i);
+    if (tableTotalMatch) {
+      const compVal = parseNumberString(tableTotalMatch[2]);
+      if (compVal > 0) {
+        reportedPaidAmount = {
+          amount: compVal,
+          sourceSnippet: tableTotalMatch[0],
+          confidence: 'high',
+        };
+      }
+    }
+  }
   if (reportedPaidAmount.amount > 0) citations['סכום ששולם'] = reportedPaidAmount.sourceSnippet;
 
   const approvedTotal = extractAmountForLabel(clean, [
