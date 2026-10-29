@@ -181,4 +181,24 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.overallQuality).toBe('needs_review');
     expect(ev.overallQualityLabel).toContain('אי-התאמת מספר רכב');
   });
+
+  it('דינמי — חילוץ מתוך טבלת השוואת שורות של דוח חדש (OCR rows)', () => {
+    const mockRowsComparison = {
+      totalDemanded: 13338,
+      rows: [
+        { category: 'חלפים', demanded: 5400, sourceSnippet: 'סה"כ חלקי חילוף 5,400.00 ₪' },
+        { category: 'פחחות / עבודה', demanded: 6000, sourceSnippet: 'סה"כ עבודות ושכר עבודה 6,000.00 ₪' },
+        { category: 'מע"מ (17%)', demanded: 1938, sourceSnippet: 'מע"מ (17%) 1,938.00 ₪' },
+        { category: 'סה"כ שומה לתשלום', demanded: 13338, sourceSnippet: 'סה"כ שומה סופי 13,338.00 ₪' },
+      ],
+    };
+
+    const ev = getClaimFinancialEvidence('DAL-QA-RESTORE-20261028', '88-999-77', 'ישראל ישראלי - בדיקת QA', mockRowsComparison, [{ original_name: 'new-qa-surveyor-report.png' }]);
+    expect(ev.overallQuality).toBe('verified');
+    expect(ev.items.find(i => i.id === 'parts')?.docAmount).toBe(5400);
+    expect(ev.items.find(i => i.id === 'labor')?.docAmount).toBe(6000);
+    expect(ev.items.find(i => i.id === 'vat')?.docAmount).toBe(1938);
+    expect(ev.items.find(i => i.id === 'total')?.docAmount).toBe(13338);
+    expect(ev.accounting.isMathematicallySound).toBe(true);
+  });
 });

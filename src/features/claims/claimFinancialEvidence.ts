@@ -1488,24 +1488,39 @@ export function getClaimFinancialEvidence(
   }
 
   // הפקה דינמית על בסיס נתוני ה-OCR שחולצו
+  const findRow = (cat: string) => (extractedComparison?.rows || []).find((r: any) => (r.category || '').includes(cat));
+  const partsRow = findRow('חלפים') || findRow('חלקים');
+  const laborRow = findRow('פחחות') || findRow('עבודה');
+  const paintRow = findRow('צבע');
+  const vatRow = findRow('מע"מ');
+  const diminutionRow = findRow('ירידת ערך');
+  const totalRow = findRow('סה"כ שומה לתשלום') || findRow('סה"כ לתשלום');
+
   const demand = extractedComparison?.ourDemand || {};
-  const parts = demand.parts?.amount || 0;
-  const labor = demand.labor?.amount || 0;
-  const paint = demand.paint?.amount || 0;
+  const parts = demand.parts?.amount || (partsRow ? Number(partsRow.demanded || 0) : 0);
+  const labor = demand.labor?.amount || (laborRow ? Number(laborRow.demanded || 0) : 0);
+  const paint = demand.paint?.amount || (paintRow ? Number(paintRow.demanded || 0) : 0);
   const paintMaterials = demand.paintMaterials?.amount || 0;
   const misc = demand.additionalWorks?.amount || 0;
-  const diminution = demand.diminutionOfValue?.amount || 0;
-  const vatRate = demand.vatRatePercent || 17;
+  const diminution = demand.diminutionOfValue?.amount || (diminutionRow ? Number(diminutionRow.demanded || 0) : 0);
+  const vatRate = demand.vatRatePercent || (vatRow?.category?.includes('18%') ? 18 : 17);
 
   const laborTotal = labor + paint + paintMaterials + misc;
   const subtotalCalc = parts + laborTotal;
-  const vatCalc = Math.round(subtotalCalc * (vatRate / 100) * 100) / 100;
+  const vatCalc = vatRow ? Number(vatRow.demanded || 0) : Math.round(subtotalCalc * (vatRate / 100) * 100) / 100;
   const directDamageCalc = subtotalCalc + vatCalc;
   const totalCalc = directDamageCalc + diminution;
 
-  const docTotal = demand.totalDemand?.amount || totalCalc;
+  const docTotal = demand.totalDemand?.amount || (totalRow ? Number(totalRow.demanded || 0) : totalCalc);
   const totalDiff = Math.abs(docTotal - totalCalc);
   const isSound = totalDiff < 1.0;
+
+  const partsSnippet = demand.parts?.sourceSnippet || partsRow?.sourceSnippet || 'חולץ מתוך דוח השמאי';
+  const laborSnippet = demand.labor?.sourceSnippet || laborRow?.sourceSnippet || 'חולץ מתוך דוח השמאי';
+  const paintSnippet = demand.paint?.sourceSnippet || paintRow?.sourceSnippet || 'חולץ מתוך דוח השמאי';
+  const vatSnippet = demand.vat?.sourceSnippet || vatRow?.sourceSnippet || `מע"מ ${vatRate}%`;
+  const diminutionSnippet = demand.diminutionOfValue?.sourceSnippet || diminutionRow?.sourceSnippet || 'ירידת ערך';
+  const totalSnippet = demand.totalDemand?.sourceSnippet || totalRow?.sourceSnippet || 'סה"כ שומה סופי';
 
   // בדיקת התאמה מחמירה: מספר רכב ושם לקוח בין כרטיס התביעה למסמך השמאי (כללים 1 ו-5)
   const normPlate = (p: string) => (p || '').replace(/\D/g, '');
@@ -1521,11 +1536,13 @@ export function getClaimFinancialEvidence(
   const hasMismatch = plateMismatch || clientMismatch;
   const isTrulyVerified = isSound && !hasMismatch;
 
+  const primaryDocName = filesList?.[0]?.original_name || 'דוח שמאי בתיק';
+
   const items: EvidenceItem[] = [
     {
       id: 'parts',
       clauseName: 'חלקי חילוף',
-      sourceDoc: demand.parts?.sourceSnippet ? 'דוח שמאי בתיק' : 'לא צוין',
+      sourceDoc: primaryDocName,
       page: demand.parts?.page || 1,
       docAmount: parts,
       docAmountFormatted: `${parts.toLocaleString()} ₪`,
@@ -1536,12 +1553,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: parts > 0 ? 'verified' : 'needs_review',
       statusLabel: parts > 0 ? '🟢 תואם' : '🟠 דורש בדיקה',
-      originalSnippet: demand.parts?.sourceSnippet || 'חולץ מתוך דוח השמאי',
+      originalSnippet: partsSnippet,
     },
     {
       id: 'labor',
       clauseName: 'עבודות פחחות ושכר עבודה',
-      sourceDoc: demand.labor?.sourceSnippet ? 'דוח שמאי בתיק' : 'לא צוין',
+      sourceDoc: primaryDocName,
       page: demand.labor?.page || 1,
       docAmount: labor,
       docAmountFormatted: `${labor.toLocaleString()} ₪`,
@@ -1552,12 +1569,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: labor > 0 ? 'verified' : 'needs_review',
       statusLabel: labor > 0 ? '🟢 תואם' : '🟠 דורש בדיקה',
-      originalSnippet: demand.labor?.sourceSnippet || 'חולץ מתוך דוח השמאי',
+      originalSnippet: laborSnippet,
     },
     {
       id: 'paint',
       clauseName: 'עבודות צבע',
-      sourceDoc: demand.paint?.sourceSnippet ? 'דוח שמאי בתיק' : 'לא צוין',
+      sourceDoc: primaryDocName,
       page: demand.paint?.page || 1,
       docAmount: paint,
       docAmountFormatted: `${paint.toLocaleString()} ₪`,
@@ -1568,12 +1585,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: 'verified',
       statusLabel: '🟢 תואם',
-      originalSnippet: demand.paint?.sourceSnippet || 'חולץ מתוך דוח השמאי',
+      originalSnippet: paintSnippet,
     },
     {
       id: 'subtotal',
       clauseName: 'סה"כ לפני מע"מ',
-      sourceDoc: 'דוח שמאי בתיק',
+      sourceDoc: primaryDocName,
       page: 1,
       docAmount: subtotalCalc,
       docAmountFormatted: `${subtotalCalc.toLocaleString()} ₪`,
@@ -1584,12 +1601,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: 'verified',
       statusLabel: '🟢 תואם',
-      originalSnippet: demand.subtotal?.sourceSnippet || 'חישוב ביניים',
+      originalSnippet: demand.subtotal?.sourceSnippet || `חלפים + עבודה = ${subtotalCalc.toLocaleString()} ₪`,
     },
     {
       id: 'vat',
       clauseName: `מע"מ (${vatRate}%)`,
-      sourceDoc: 'דוח שמאי בתיק',
+      sourceDoc: primaryDocName,
       page: 1,
       docAmount: vatCalc,
       docAmountFormatted: `${vatCalc.toLocaleString()} ₪`,
@@ -1600,12 +1617,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: 'verified',
       statusLabel: '🟢 תואם',
-      originalSnippet: demand.vat?.sourceSnippet || `מע"מ ${vatRate}%`,
+      originalSnippet: vatSnippet,
     },
     {
       id: 'diminution',
       clauseName: 'ירידת ערך',
-      sourceDoc: 'דוח שמאי בתיק',
+      sourceDoc: primaryDocName,
       page: 2,
       docAmount: diminution,
       docAmountFormatted: `${diminution.toLocaleString()} ₪`,
@@ -1616,12 +1633,12 @@ export function getClaimFinancialEvidence(
       diff: 0,
       status: 'verified',
       statusLabel: '🟢 תואם',
-      originalSnippet: demand.diminutionOfValue?.sourceSnippet || 'ירידת ערך',
+      originalSnippet: diminutionSnippet,
     },
     {
       id: 'total',
       clauseName: 'סה"כ שומה סופי',
-      sourceDoc: 'דוח שמאי בתיק',
+      sourceDoc: primaryDocName,
       page: 2,
       docAmount: docTotal,
       docAmountFormatted: `${docTotal.toLocaleString()} ₪`,
@@ -1632,7 +1649,7 @@ export function getClaimFinancialEvidence(
       diff: Math.round(totalDiff * 100) / 100,
       status: isSound ? 'verified' : 'needs_review',
       statusLabel: isSound ? '🟢 תואם חשבונאית' : '🟠 דורש בדיקה',
-      originalSnippet: demand.totalDemand?.sourceSnippet || 'סה"כ שומה סופי',
+      originalSnippet: totalSnippet,
     },
   ];
 
