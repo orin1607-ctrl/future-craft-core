@@ -3133,7 +3133,6 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
               )}
             </div>
           )}
-          )}
         </div>
 
         {/* מודל חיתוך מוגדל של מסמך מקור (Task 1 Lightbox) */}
