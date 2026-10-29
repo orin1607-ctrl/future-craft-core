@@ -1,6 +1,6 @@
 {
-  "at": "2026-10-28T21:00:06.880Z",
-  "base": "http://localhost:8080",
+  "at": "2026-10-29T06:39:16.050Z",
+  "base": "https://orin1607-ctrl.github.io/future-craft-core",
   "target": "usfeoerkpcafxxlyuldl",
   "checks": [
     {
@@ -39,9 +39,9 @@
       "name": "המסמכים נשמרו בתיק",
       "ok": true,
       "titles": [
-        "צד ג׳ — רישיון רכב",
         "צד ג׳ — מסמך ביטוח",
-        "צד ג׳ — רישיון נהיגה"
+        "צד ג׳ — רישיון נהיגה",
+        "צד ג׳ — רישיון רכב"
       ]
     }
   ]
