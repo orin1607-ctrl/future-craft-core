@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, fileDocBucket, fileInLibCategory, generalLibFiles, isGarageLibFile, libTypeLabel } from './claimDocLibrary';
+import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, fileDocBucket, fileInLibCategory, generalLibFiles, isGarageLibFile, isTrashedLibFile, libTypeLabel } from './claimDocLibrary';
 
 describe('claimDocLibrary', () => {
   it('uses doc_kind before source', () => {
@@ -42,6 +42,7 @@ describe('claimDocLibrary', () => {
     expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
       'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות נזק / תאונה', 'מסמכי לקוח',
       'מסמכי רכב / נהג', 'מסמכי חברת ביטוח', 'חשבוניות / מוסך', 'טפסים / תצהירים', 'אחר',
+      '🗑️ סל מחזור',
     ]);
     expect(DOC_LIB_GROUPS.map((g) => g.label)).toEqual(['תמונות', 'דוחות', 'מסמכים']);
     expect(DOC_LIB_CATEGORIES.some((c) => c.key === 'garage_photos')).toBe(false);
@@ -56,5 +57,19 @@ describe('claimDocLibrary', () => {
     expect(fileInLibCategory(garage, 'damage')).toBe(false);
     expect(fileInLibCategory(damage, 'all')).toBe(true);
     expect(generalLibFiles([garage, damage]).map((f) => f.id)).toEqual(['d']);
+  });
+
+  it('filters trashed files into trash category and out of normal views', () => {
+    const normal = { id: 'n', doc_kind: 'surveyor_report' };
+    const trashed = { id: 't', doc_kind: 'surveyor_report', doc_meta: { trashed_at: '2026-10-29T08:00:00Z', trashed_by: 'qa' } };
+    expect(isTrashedLibFile(normal)).toBe(false);
+    expect(isTrashedLibFile(trashed)).toBe(true);
+    expect(fileDocBucket(trashed)).toBe('trash');
+    expect(fileInLibCategory(normal, 'all')).toBe(true);
+    expect(fileInLibCategory(trashed, 'all')).toBe(false);
+    expect(fileInLibCategory(normal, 'surveyor_reports')).toBe(true);
+    expect(fileInLibCategory(trashed, 'surveyor_reports')).toBe(false);
+    expect(fileInLibCategory(normal, 'trash')).toBe(false);
+    expect(fileInLibCategory(trashed, 'trash')).toBe(true);
   });
 });

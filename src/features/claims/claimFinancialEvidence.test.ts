@@ -88,6 +88,35 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.accounting.vatAmount).toBe(6966.01);
   });
 
+  it('DAL-2026-0004 — מאמת את תומר כהן: סכום שומה סופי 54,982 ₪ (איחוד מוקד 1 ו-2) ושכ"ט 3,744 ₪', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0004', '18391803', 'תומר כהן');
+    expect(ev.overallQuality).toBe('verified');
+    expect(ev.plateNumber).toBe('18391-803');
+    expect(ev.accounting.isMathematicallySound).toBe(true);
+    expect(ev.accounting.directDamageTotal).toBe(47444.67);
+    expect(ev.accounting.diminutionOfValue).toBe(7537.5);
+    expect(ev.accounting.finalReportTotal).toBe(54982.17);
+    expect(ev.accounting.surveyorFee).toBe(3744.0);
+    expect(ev.accounting.grandTotalWithFee).toBe(58726.17);
+    expect(ev.certificate?.isCertified).toBe(true);
+    expect(ev.certificate?.certificateText).toContain('בדקתי את מספר הרכב בדוח השמאי');
+  });
+
+  it('DAL-2026-0012 — מאמת את אילנה אטיאס: הפרדת תביעה ישנה, שומה עדכנית 38,174 ₪ ושכ"ט 4,329 ₪', () => {
+    const ev = getClaimFinancialEvidence('DAL-2026-0012', '6594185', 'אילנה אטיאס');
+    expect(ev.overallQuality).toBe('verified');
+    expect(ev.plateNumber).toBe('65-941-85');
+    expect(ev.versions.length).toBe(2);
+    expect(ev.versions.find((v) => v.versionId === 'V1')?.docType).toContain('תביעה קודמת ישנה');
+    expect(ev.accounting.isMathematicallySound).toBe(true);
+    expect(ev.accounting.directDamageTotal).toBe(34389.34);
+    expect(ev.accounting.diminutionOfValue).toBe(3784.86);
+    expect(ev.accounting.finalReportTotal).toBe(38174.2);
+    expect(ev.accounting.surveyorFee).toBe(4329.0);
+    expect(ev.accounting.grandTotalWithFee).toBe(42503.2);
+    expect(ev.certificate?.isCertified).toBe(true);
+  });
+
   it('DAL-2026-0003 — מסומן "דורש בדיקה" עקב טעות הקלדת השמאי בלוחית (73779-002 מול 73479002)', () => {
     const ev = getClaimFinancialEvidence('DAL-2026-0003', '73479002', 'שרון / רוני אטיאס');
     expect(ev.overallQuality).toBe('needs_review');

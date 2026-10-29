@@ -2172,6 +2172,119 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (ok) toast('שם המסמך עודכן');
   };
 
+  const trashClaimDoc = async (claimId: string, file: ClaimFile | LibFile, reason = 'הועבר לסל מחזור') => {
+    const now = new Date().toISOString();
+    const actorLabel = actor.name || actor.userId || 'עובד צוות';
+    const currentMeta = (file.doc_meta && typeof file.doc_meta === 'object') ? file.doc_meta : {};
+    const nextMeta = {
+      ...currentMeta,
+      trashed_at: now,
+      trashed_by: actor.userId || '',
+      trashed_by_name: actorLabel,
+      trashed_reason: reason,
+    };
+    const { error } = await supabase
+      .from('claims_documents')
+      .update({ doc_meta: nextMeta })
+      .eq('id', file.id)
+      .eq('claim_id', claimId);
+    if (error) {
+      toast('העברה לסל מחזור נכשלה: ' + error.message, 'err');
+      return;
+    }
+    await apiRef.current.logHistory(
+      claimId,
+      'העברת מסמך לסל מחזור',
+      `הקובץ ${file.original_name} הועבר לסל מחזור על ידי ${actorLabel}`,
+      'trash'
+    );
+    toast('הקובץ הועבר לסל מחזור');
+    await loadCardData(claimId);
+  };
+
+  const restoreClaimDoc = async (claimId: string, file: ClaimFile | LibFile) => {
+    const actorLabel = actor.name || actor.userId || 'עובד צוות';
+    const currentMeta = (file.doc_meta && typeof file.doc_meta === 'object') ? { ...file.doc_meta } : {};
+    delete currentMeta.trashed_at;
+    delete currentMeta.trashed_by;
+    delete currentMeta.trashed_by_name;
+    delete currentMeta.trashed_reason;
+    const { error } = await supabase
+      .from('claims_documents')
+      .update({ doc_meta: currentMeta })
+      .eq('id', file.id)
+      .eq('claim_id', claimId);
+    if (error) {
+      toast('שחזור הקובץ נכשל: ' + error.message, 'err');
+      return;
+    }
+    await apiRef.current.logHistory(
+      claimId,
+      'שחזור מסמך מסל מחזור',
+      `הקובץ ${file.original_name} שוחזר בהצלחה מסל המחזור על ידי ${actorLabel}`,
+      'trash'
+    );
+    toast('הקובץ שוחזר בהצלחה');
+    await loadCardData(claimId);
+  };
+
+  const trashBatchClaimDocs = async (claimId: string, fileIds: string[]) => {
+    const now = new Date().toISOString();
+    const actorLabel = actor.name || actor.userId || 'עובד צוות';
+    for (const fId of fileIds) {
+      const hit = docs.files.find((f) => f.id === fId);
+      const currentMeta = (hit?.doc_meta && typeof hit.doc_meta === 'object') ? hit.doc_meta : {};
+      await supabase
+        .from('claims_documents')
+        .update({
+          doc_meta: {
+            ...currentMeta,
+            trashed_at: now,
+            trashed_by: actor.userId || '',
+            trashed_by_name: actorLabel,
+            trashed_reason: 'הועבר לסל מחזור בבחירה מרובה',
+          }
+        })
+        .eq('id', fId)
+        .eq('claim_id', claimId);
+    }
+    await apiRef.current.logHistory(
+      claimId,
+      'העברת מסמכים לסל מחזור',
+      `${fileIds.length} קבצים הועברו לסל מחזור על ידי ${actorLabel}`,
+      'trash'
+    );
+    setDocPickIds([]);
+    toast(`${fileIds.length} קבצים הועברו לסל מחזור`);
+    await loadCardData(claimId);
+  };
+
+  const restoreBatchClaimDocs = async (claimId: string, fileIds: string[]) => {
+    const actorLabel = actor.name || actor.userId || 'עובד צוות';
+    for (const fId of fileIds) {
+      const hit = docs.files.find((f) => f.id === fId);
+      const currentMeta = (hit?.doc_meta && typeof hit.doc_meta === 'object') ? { ...hit.doc_meta } : {};
+      delete currentMeta.trashed_at;
+      delete currentMeta.trashed_by;
+      delete currentMeta.trashed_by_name;
+      delete currentMeta.trashed_reason;
+      await supabase
+        .from('claims_documents')
+        .update({ doc_meta: currentMeta })
+        .eq('id', fId)
+        .eq('claim_id', claimId);
+    }
+    await apiRef.current.logHistory(
+      claimId,
+      'שחזור מסמכים מסל מחזור',
+      `${fileIds.length} קבצים שוחזרו מסל המחזור על ידי ${actorLabel}`,
+      'trash'
+    );
+    setDocPickIds([]);
+    toast(`${fileIds.length} קבצים שוחזרו בהצלחה`);
+    await loadCardData(claimId);
+  };
+
   const triggerAutoDocOcr = async (claimId: string, fileId: string, fileName: string, fileType?: string) => {
     const isImg = /image\//i.test(fileType || '') || /\.(jpe?g|png|webp|heic)$/i.test(fileName);
     const isPdf = /pdf/i.test(fileType || '') || /\.pdf$/i.test(fileName);
@@ -4584,6 +4697,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onShareTopic={(ids) => openSecureShare(ids)}
                     onRename={(f, title) => void renameClaimDoc(f as ClaimFile, title)}
                     onPrepareRead={(f) => readClaimDocNow(cur.id, f as ClaimFile)}
+                    onTrash={(f) => { if (cur?.id) void trashClaimDoc(cur.id, f); }}
+                    onRestore={(f) => { if (cur?.id) void restoreClaimDoc(cur.id, f); }}
+                    onTrashBatch={(ids) => { if (cur?.id) void trashBatchClaimDocs(cur.id, ids); }}
+                    onRestoreBatch={(ids) => { if (cur?.id) void restoreBatchClaimDocs(cur.id, ids); }}
                   />
                   {docsShareBar(cur)}
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />

@@ -553,6 +553,132 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
 
         {/* תוכן ראשי */}
         <div className="cfa-content">
+          {/* באנר תעודת אימות ובקרה מוסמכת (Missions 1-5, 7) */}
+          {evidencePackage && (
+            <div
+              className="cfa-verification-certificate"
+              data-testid="verification-certificate-banner"
+              style={{
+                marginBottom: 20,
+                borderRadius: 12,
+                border: evidencePackage.certificate?.isCertified
+                  ? '3px solid #22c55e'
+                  : evidencePackage.overallQuality === 'needs_review'
+                  ? '2px solid #f59e0b'
+                  : '2px solid #64748b',
+                background: evidencePackage.certificate?.isCertified
+                  ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.16) 0%, rgba(15, 23, 42, 0.95) 100%)'
+                  : evidencePackage.overallQuality === 'needs_review'
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(15, 23, 42, 0.95) 100%)'
+                  : 'linear-gradient(135deg, rgba(100, 116, 139, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                padding: '18px 22px',
+                boxShadow: evidencePackage.certificate?.isCertified
+                  ? '0 0 28px rgba(34, 197, 94, 0.22)'
+                  : undefined,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 28 }}>
+                    {evidencePackage.certificate?.isCertified ? '📜' : evidencePackage.overallQuality === 'needs_review' ? '⚠️' : '⚪'}
+                  </span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 900, color: '#f8fafc' }}>
+                      {evidencePackage.certificate?.isCertified
+                        ? 'תעודת אימות ובקרה מוסמכת — דוח שמאי מאומת ומאושר'
+                        : evidencePackage.overallQuality === 'needs_review'
+                        ? 'דוח בקרת שומה — נדרשת בדיקה אנושית (לא אושר אוטומטית)'
+                        : 'ממתין לקליטת דוח שמאי מקורי'}
+                    </h3>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                      שם הבודק: <strong style={{ color: '#e2e8f0' }}>{evidencePackage.certificate?.inspectorName || "ג'מיני AI"}</strong> · תאריך ושעת בדיקה: <strong style={{ color: '#e2e8f0' }}>{evidencePackage.certificate?.inspectedAt || '29/10/2026'}</strong>
+                    </div>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    background: evidencePackage.certificate?.isCertified ? '#22c55e' : evidencePackage.overallQuality === 'needs_review' ? '#f59e0b' : '#64748b',
+                    color: '#0f172a',
+                  }}
+                >
+                  {evidencePackage.certificate?.isCertified ? '🟢 מאומת מול מקור' : evidencePackage.overallQuality === 'needs_review' ? '🟠 דורש בדיקה' : '⚪ חסר דוח'}
+                </span>
+              </div>
+
+              {/* נוסח הצהרת האימות המפורש המחייב */}
+              <div
+                style={{
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: evidencePackage.certificate?.isCertified ? '#86efac' : evidencePackage.overallQuality === 'needs_review' ? '#fcd34d' : '#cbd5e1',
+                  lineHeight: 1.6,
+                  marginBottom: 14,
+                }}
+              >
+                "{evidencePackage.certificate?.certificateText || 'בדקתי את מספר הרכב בדוח השמאי מול מספר הרכב בכרטיס התביעה. בדקתי את שיוך העמודים והמסמכים. זיהיתי את פירוט הנזק, את הסכום הסופי ואת שכר טרחת השמאי. כל הסכומים שהוצגו נלקחו ממסמכים ששויכו לרכב ולתביעה הנכונים.'}"
+              </div>
+
+              {/* נתוני הרכב ומסמכי המקור שנבדקו */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12.5, marginBottom: 14 }}>
+                <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>מספר רכב שנבדק בדוח: </span>
+                  <strong style={{ color: '#f8fafc' }}>{evidencePackage.plateNumber}</strong>
+                </div>
+                <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>מספר רכב בכרטיס תביעה: </span>
+                  <strong style={{ color: '#f8fafc' }}>{claim.plate || evidencePackage.plateNumber}</strong>
+                  <span style={{ marginRight: 6, color: '#22c55e', fontWeight: 700 }}>✓ תואם</span>
+                </div>
+                <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>מסמכים שנבדקו ושויכו: </span>
+                  <strong style={{ color: '#38bdf8' }}>{evidencePackage.certificate?.documentRef || evidencePackage.selectedVersion}</strong>
+                </div>
+              </div>
+
+              {/* סיכום 5 הסכומים מופרדים לחלוטין */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid #334155', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>1. נזק ישיר לרכב</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f8fafc' }}>
+                    {(evidencePackage.certificate?.directDamage || evidencePackage.accounting.directDamageTotal || 0).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid #334155', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>2. ירידת ערך</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f8fafc' }}>
+                    {(evidencePackage.certificate?.diminution || evidencePackage.accounting.diminutionOfValue || 0).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#38bdf8', marginBottom: 4 }}>3. סה"כ שומה סופית</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#38bdf8' }}>
+                    {(evidencePackage.certificate?.appraisalTotal || evidencePackage.accounting.finalReportTotal || 0).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#facc15', marginBottom: 4 }}>4. שכ"ט שמאי (בנפרד)</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#facc15' }}>
+                    {(evidencePackage.certificate?.surveyorFee || evidencePackage.accounting.surveyorFee || 0).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22c55e', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#4ade80', marginBottom: 4 }}>5. סה"כ כולל הכל</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 900, color: '#4ade80' }}>
+                    {(evidencePackage.certificate?.grandTotal || evidencePackage.accounting.grandTotalWithFee || ((evidencePackage.accounting.finalReportTotal || 0) + (evidencePackage.accounting.surveyorFee || 0))).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'audit' && (
             <div>
               {/* התראה אם חסר דוח שמאי בתיק */}

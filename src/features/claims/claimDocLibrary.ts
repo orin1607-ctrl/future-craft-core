@@ -11,6 +11,7 @@ export const DOC_LIB_CATEGORIES = [
   { key: 'invoice', label: 'חשבוניות / מוסך' },
   { key: 'forms', label: 'טפסים / תצהירים' },
   { key: 'other', label: 'אחר' },
+  { key: 'trash', label: '🗑️ סל מחזור' },
 ] as const;
 
 export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
@@ -32,6 +33,7 @@ export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string
   { key: 'invoice', label: 'חשבוניות / מוסך', match: ['invoice'] },
   { key: 'forms', label: 'טפסים / תצהירים', match: ['forms'] },
   { key: 'other', label: 'אחר', match: ['other'] },
+  { key: 'trash', label: 'סל מחזור (קבצים שנמחקו)', match: ['trash'] },
 ];
 
 type LibFile = {
@@ -41,6 +43,11 @@ type LibFile = {
   doc_meta?: Record<string, string> | null;
 };
 
+export function isTrashedLibFile(f: LibFile): boolean {
+  const meta = f.doc_meta && typeof f.doc_meta === 'object' ? f.doc_meta : {};
+  return Boolean(meta.trashed_at);
+}
+
 function staffTypeOf(f: LibFile) {
   const meta = f.doc_meta && typeof f.doc_meta === 'object' ? f.doc_meta : {};
   return String(meta.staff_type || '');
@@ -48,6 +55,7 @@ function staffTypeOf(f: LibFile) {
 
 /** One safe bucket. Never infer from the file name. Does not change stored classification. */
 export function fileDocBucket(f: LibFile): string {
+  if (isTrashedLibFile(f)) return 'trash';
   const kind = String(f.doc_kind || '');
   const st = staffTypeOf(f);
   if (kind === 'surveyor_report' || kind === 'surveyor_attachment' || st === 'surveyor_report') return 'surveyor_reports';
@@ -88,6 +96,13 @@ export function garageLibFiles<T extends LibFile>(files: T[]) {
 
 export function fileInLibCategory(f: LibFile, cat: string) {
   if (isGarageLibFile(f)) return false;
+  const trashed = isTrashedLibFile(f);
+  if (cat === 'trash') {
+    return trashed;
+  }
+  if (trashed) {
+    return false;
+  }
   if (!cat || cat === 'all') return true;
   const bucket = fileDocBucket(f);
   const sec = DOC_LIB_SECTIONS.find((s) => s.key === cat);
