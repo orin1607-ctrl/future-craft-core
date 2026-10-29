@@ -53,6 +53,11 @@ export interface ExtractedAmountWithSource {
   sourceSnippet: string;
   confidence: 'high' | 'medium' | 'low';
   page?: number;
+  reportNumber?: string;
+  reportDate?: string;
+  invoiceNumber?: string;
+  sourceFileName?: string;
+  isVerifiedSource?: boolean;
 }
 
 /**
@@ -64,6 +69,9 @@ export interface OurSurveyorReportExtraction {
   claimNumber?: string;
   surveyorName?: string;
   reportDate?: string;
+  reportNumber?: string;
+  invoiceNumber?: string;
+  sourceFileName?: string;
   isAmended?: boolean;
 
   // סעיפי נזק עיקריים
@@ -146,6 +154,12 @@ export interface ComparisonTableRow {
   explanation: string;
   sourceSnippet: string;
   status: 'match' | 'reduction' | 'missing' | 'unexplained';
+  reportNumber?: string;
+  reportDate?: string;
+  sourceFileName?: string;
+  page?: number;
+  invoiceNumber?: string;
+  isVerifiedSource?: boolean;
 }
 
 /**
@@ -704,6 +718,21 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
   const dateMatch = clean.match(/(?:תאריך|יום)[\s:\-–—]*([0-9]{1,2}[./\-][0-9]{1,2}[./\-][0-9]{2,4})/i);
   const reportDate = dateMatch ? dateMatch[1].trim() : undefined;
 
+  // זיהוי מספר דוח שמאי / מספר שומה
+  let reportNumber: string | undefined;
+  const reportNumMatch = clean.match(/(?:מספר\s*(?:ה)?דוח|מספר\s*(?:ה)?שומה|דוח\s*מס[\'׳.]?|שומה\s*מס[\'׳.]?|חוות\s*דעת\s*מס[\'׳.]?|תיק\s*שמאי\s*מס[\'׳.]?|מס[\'׳.]?\s*דוח)[\s:\-–—]*([A-Z0-9\-\/]+)/i)
+    || clean.match(/\b([0-9]{3,5}-[0-9]-[0-9]+)\b/);
+  if (reportNumMatch) {
+    reportNumber = reportNumMatch[1].trim();
+  }
+
+  // זיהוי מספר חשבונית שכ"ט שמאי
+  let invoiceNumber: string | undefined;
+  const invoiceNumMatch = clean.match(/(?:חשבונית\s*(?:מס|מספר)?|קבלה\s*(?:מס|מספר)?|חשבון\s*(?:עיסקה|עסקה)\s*(?:מס|מספר)?)[\s:\-–—]*([0-9]{3,6})/i);
+  if (invoiceNumMatch) {
+    invoiceNumber = invoiceNumMatch[1].trim();
+  }
+
   const needsManualReview =
     reviewReasons.length > 0 ||
     totalDemand.confidence !== 'high' ||
@@ -756,6 +785,8 @@ export function extractOurSurveyorReport(text: string): OurSurveyorReportExtract
     claimNumber,
     surveyorName,
     reportDate,
+    reportNumber,
+    invoiceNumber,
     isAmended,
     parts,
     labor,
@@ -1345,10 +1376,22 @@ export function compareFinancialAudit(params: {
     (ourDemand?.needsManualReview ?? false) ||
     (counterReport?.needsManualReview ?? false);
 
+  const enrichedRows = rows.map((r) => {
+    const isFee = r.category.includes('שמאי') || r.category.includes('שכ"ט');
+    return {
+      ...r,
+      reportNumber: r.reportNumber || ourDemand?.reportNumber,
+      reportDate: r.reportDate || ourDemand?.reportDate,
+      sourceFileName: r.sourceFileName || ourDemand?.sourceFileName,
+      invoiceNumber: isFee ? (r.invoiceNumber || ourDemand?.invoiceNumber) : undefined,
+      isVerifiedSource: r.isVerifiedSource !== undefined ? r.isVerifiedSource : Boolean(ourDemand?.reportNumber),
+    };
+  });
+
   return {
     claimId,
     plateNumber,
-    rows,
+    rows: enrichedRows,
     totalDemanded,
     roundedTotalDemanded: ourDemand?.roundedTotalDemand?.amount,
     surveyorFeeDemanded: ourDemand?.surveyorFee?.amount,

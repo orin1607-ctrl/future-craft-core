@@ -211,9 +211,13 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
     expect(ev.overallQualityLabel).toContain('אי-התאמת מספר רכב');
   });
 
-  it('דינמי — חילוץ מתוך טבלת השוואת שורות של דוח חדש (OCR rows)', () => {
+  it('דינמי — חילוץ מתוך טבלת השוואת שורות של דוח חדש עם מספר דוח מאומת (OCR rows)', () => {
     const mockRowsComparison = {
       totalDemanded: 13338,
+      ourDemand: {
+        reportNumber: 'QA-2026-001',
+        reportDate: '2026-10-28',
+      },
       rows: [
         { category: 'חלפים', demanded: 5400, sourceSnippet: 'סה"כ חלקי חילוף 5,400.00 ₪' },
         { category: 'פחחות / עבודה', demanded: 6000, sourceSnippet: 'סה"כ עבודות ושכר עבודה 6,000.00 ₪' },
@@ -222,12 +226,79 @@ describe('אימות והוכחות חזותיות לדוחות שמאי (Claim 
       ],
     };
 
-    const ev = getClaimFinancialEvidence('DAL-QA-RESTORE-20261028', '88-999-77', 'ישראל ישראלי - בדיקת QA', mockRowsComparison, [{ original_name: 'new-qa-surveyor-report.png' }]);
+    const ev = getClaimFinancialEvidence(
+      'DAL-QA-RESTORE-20261028',
+      '88-999-77',
+      'ישראל ישראלי - בדיקת QA',
+      mockRowsComparison,
+      [{ original_name: 'new-qa-surveyor-report.png', doc_meta: { reportNumber: 'QA-2026-001' } }]
+    );
     expect(ev.overallQuality).toBe('verified');
+    expect(ev.reportNumber).toBe('QA-2026-001');
     expect(ev.items.find(i => i.id === 'parts')?.docAmount).toBe(5400);
+    expect(ev.items.find(i => i.id === 'parts')?.reportNumber).toBe('QA-2026-001');
     expect(ev.items.find(i => i.id === 'labor')?.docAmount).toBe(6000);
     expect(ev.items.find(i => i.id === 'vat')?.docAmount).toBe(1938);
     expect(ev.items.find(i => i.id === 'total')?.docAmount).toBe(13338);
     expect(ev.accounting.isMathematicallySound).toBe(true);
+  });
+
+  it('דרישת מקור מידע — ללא מספר דוח שמאי מאומת מוצג "מקור לא מאומת" ונחסם אישור 100%', () => {
+    const mockUnverifiedComparison = {
+      totalDemanded: 10000,
+      rows: [
+        { category: 'חלפים', demanded: 10000, sourceSnippet: 'חלפים 10000' },
+      ],
+    };
+
+    const ev = getClaimFinancialEvidence(
+      'DAL-2026-UNVERIFIED',
+      '11-222-33',
+      'לקוח בדיקה ללא מקור',
+      mockUnverifiedComparison,
+      [{ original_name: 'unknown_document.png' }]
+    );
+    expect(ev.overallQuality).toBe('needs_review');
+    expect(ev.overallQualityLabel).toContain('מקור לא מאומת');
+    expect(ev.certificate?.isCertified).toBe(false);
+    expect(ev.items[0].isVerifiedSource).toBe(false);
+    expect(ev.items[0].sourceStatusLabel).toBe('מקור לא מאומת');
+  });
+
+  it('דרישת מקור מידע מלא — בדיקת 5 הפרמטרים בתיקים DAL-2026-0012, 0004, 0017, 0020, 0007', () => {
+    // 0012 אילנה אטיאס
+    const ev12 = getClaimFinancialEvidence('DAL-2026-0012', '65-941-85', 'אילנה אטיאס');
+    expect(ev12.reportNumber).toBe('2270-0-1');
+    expect(ev12.reportDate).toBe('2026-07-12');
+    expect(ev12.feeInvoiceNumber).toBe('1345');
+    const feeItem12 = ev12.items.find(i => i.id === 'surveyor_fee');
+    expect(feeItem12?.invoiceNumber).toBe('1345');
+    expect(feeItem12?.page).toBe(5);
+    expect(feeItem12?.sourceDoc).toBe('RCV0005.JPG');
+
+    // 0004 תומר כהן
+    const ev4 = getClaimFinancialEvidence('DAL-2026-0004', '18391-803', 'תומר כהן');
+    expect(ev4.reportNumber).toBe('2153-0-1');
+    expect(ev4.feeInvoiceNumber).toBe('1191');
+    const feeItem4 = ev4.items.find(i => i.id === 'surveyor_fee');
+    expect(feeItem4?.invoiceNumber).toBe('1191');
+    expect(feeItem4?.page).toBe(6);
+
+    // 0017 אושרי יעקב
+    const ev17 = getClaimFinancialEvidence('DAL-2026-0017', '49325-004', 'אושרי יעקב');
+    expect(ev17.reportNumber).toBe('2263-0-1');
+    expect(ev17.feeInvoiceNumber).toBe('1305');
+    const feeItem17 = ev17.items.find(i => i.id === 'surveyor_fee');
+    expect(feeItem17?.invoiceNumber).toBe('1305');
+
+    // 0020 אליהו אטיאס
+    const ev20 = getClaimFinancialEvidence('DAL-2026-0020', '63292-003', 'אליהו אטיאס');
+    expect(ev20.reportNumber).toBe('2185-0-1');
+    expect(ev20.feeInvoiceNumber).toBe('1224');
+
+    // 0007 אילן בן עזרי
+    const ev7 = getClaimFinancialEvidence('DAL-2026-0007', '60294-401', 'אילן בן עזרי');
+    expect(ev7.reportNumber).toBe('2217-0-1');
+    expect(ev7.feeInvoiceNumber).toBe('1249');
   });
 });

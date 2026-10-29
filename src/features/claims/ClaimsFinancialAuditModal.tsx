@@ -627,7 +627,7 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
               </div>
 
               {/* נתוני הרכב ומסמכי המקור שנבדקו */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12.5, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12.5, marginBottom: 10 }}>
                 <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
                   <span style={{ color: '#94a3b8' }}>מספר רכב שנבדק בדוח: </span>
                   <strong style={{ color: '#f8fafc' }}>{evidencePackage.plateNumber}</strong>
@@ -640,6 +640,40 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                 <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
                   <span style={{ color: '#94a3b8' }}>מסמכים שנבדקו ושויכו: </span>
                   <strong style={{ color: '#38bdf8' }}>{evidencePackage.certificate?.documentRef || evidencePackage.selectedVersion}</strong>
+                </div>
+              </div>
+
+              {/* מקור המידע המדויק ומספר דוח השמאי לכל נתון */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, fontSize: 12, marginBottom: 14 }}>
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>1. מספר דוח שמאי: </span>
+                  <strong style={{ color: evidencePackage.reportNumber || evidencePackage.certificate?.reportNumber ? '#38bdf8' : '#f59e0b' }}>
+                    {evidencePackage.reportNumber || evidencePackage.certificate?.reportNumber ? `דוח מס' ${evidencePackage.reportNumber || evidencePackage.certificate?.reportNumber}` : '⚠️ מקור לא מאומת'}
+                  </strong>
+                </div>
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>2. תאריך דוח השמאי: </span>
+                  <strong style={{ color: '#f8fafc' }}>
+                    {evidencePackage.reportDate || evidencePackage.certificate?.reportDate || 'לפי מסמך'}
+                  </strong>
+                </div>
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>3. קובץ מקור מרכזי: </span>
+                  <strong style={{ color: '#38bdf8' }}>
+                    {evidencePackage.versions[0]?.fileName || evidencePackage.certificate?.documentRef || 'דוח שמאי'}
+                  </strong>
+                </div>
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>4. חשבונית שכ"ט שמאי: </span>
+                  <strong style={{ color: '#facc15' }}>
+                    {evidencePackage.feeInvoiceNumber || evidencePackage.certificate?.invoiceNumber ? `חשבונית מס' ${evidencePackage.feeInvoiceNumber || evidencePackage.certificate?.invoiceNumber}` : (evidencePackage.accounting.surveyorFee ? 'חשבון נפרד' : 'לא צוינה')}
+                  </strong>
+                </div>
+                <div style={{ background: 'rgba(15, 23, 42, 0.8)', padding: '8px 12px', borderRadius: 6, border: '1px solid #334155' }}>
+                  <span style={{ color: '#94a3b8' }}>5. סטטוס אימות מקור: </span>
+                  <strong style={{ color: evidencePackage.isSourceVerified !== false && (evidencePackage.reportNumber || evidencePackage.certificate?.reportNumber) ? '#4ade80' : '#f59e0b' }}>
+                    {evidencePackage.isSourceVerified !== false && (evidencePackage.reportNumber || evidencePackage.certificate?.reportNumber) ? '🟢 מקור מאומת 100%' : '🟠 מקור לא מאומת'}
+                  </strong>
                 </div>
               </div>
 
@@ -775,34 +809,97 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                         <th>אישור מבטחת</th>
                         <th>שולם</th>
                         <th>הפרש</th>
-                        <th>הסבר וציטוט מהמסמך</th>
+                        <th>מקור המידע, דוח שמאי ואסמכתא</th>
                         <th>סטטוס</th>
                       </tr>
                     </thead>
                     <tbody>
                       {comparison.rows.length > 0 ? (
-                        comparison.rows.map((row, idx) => (
-                          <tr key={idx}>
-                            <td style={{ fontWeight: 700 }}>{row.category}</td>
-                            <td>{row.demanded !== null ? `${row.demanded.toLocaleString()} ₪` : '—'}</td>
-                            <td>{row.approved !== null ? `${row.approved.toLocaleString()} ₪` : '—'}</td>
-                            <td>{row.paid !== null ? `${row.paid.toLocaleString()} ₪` : '—'}</td>
-                            <td style={{ fontWeight: 700, color: (row.diff || 0) > 0 ? '#f87171' : 'inherit' }}>
-                              {row.diff !== null && row.diff > 0 ? `${row.diff.toLocaleString()} ₪` : (row.diff === 0 ? '0 ₪' : '—')}
-                            </td>
-                            <td>
-                              <div>{row.explanation}</div>
-                              {row.sourceSnippet && (
-                                <div className="cfa-citation-box">מקור: "{row.sourceSnippet}"</div>
-                              )}
-                            </td>
-                            <td>
-                              <span className={`cfa-badge cfa-badge-${row.status}`}>
-                                {row.status === 'match' ? 'תואם' : row.status === 'reduction' ? 'הפחתה' : row.status === 'unexplained' ? 'לא מוסבר' : 'חסר'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
+                        comparison.rows.map((row, idx) => {
+                          const matchedItem = evidencePackage.items.find((it) =>
+                            it.clauseName.includes(row.category) ||
+                            row.category.includes(it.clauseName) ||
+                            (row.category.includes('חלפים') && it.id === 'parts') ||
+                            (row.category.includes('פחחות') && (it.id === 'labor' || it.id === 'body_labor')) ||
+                            (row.category.includes('צבע') && (it.id.includes('paint') || it.clauseName.includes('צבע'))) ||
+                            (row.category.includes('מע"מ') && it.id === 'vat') ||
+                            (row.category.includes('ירידת ערך') && it.id === 'diminution') ||
+                            (row.category.includes('שמאי') && it.id === 'surveyor_fee') ||
+                            (row.category.includes('כולל') && (it.id === 'total' || it.id === 'grand_total' || it.id === 'total_appraisal'))
+                          );
+
+                          const repNum = matchedItem?.reportNumber || row.reportNumber || evidencePackage.reportNumber;
+                          const repDate = matchedItem?.reportDate || row.reportDate || evidencePackage.reportDate;
+                          const srcDoc = matchedItem?.sourceDoc || row.sourceFileName || evidencePackage.versions[0]?.fileName || 'דוח שמאי';
+                          const pg = matchedItem?.page || row.page || 1;
+                          const isFee = row.category.includes('שמאי') || row.category.includes('שכ"ט');
+                          const invNum = matchedItem?.invoiceNumber || row.invoiceNumber || (isFee ? evidencePackage.feeInvoiceNumber : undefined);
+                          const isVerified = (matchedItem?.isVerifiedSource ?? row.isVerifiedSource ?? evidencePackage.isSourceVerified) && Boolean(repNum);
+
+                          return (
+                            <tr key={idx}>
+                              <td style={{ fontWeight: 700 }}>{row.category}</td>
+                              <td>{row.demanded !== null ? `${row.demanded.toLocaleString()} ₪` : '—'}</td>
+                              <td>{row.approved !== null ? `${row.approved.toLocaleString()} ₪` : '—'}</td>
+                              <td>{row.paid !== null ? `${row.paid.toLocaleString()} ₪` : '—'}</td>
+                              <td style={{ fontWeight: 700, color: (row.diff || 0) > 0 ? '#f87171' : 'inherit' }}>
+                                {row.diff !== null && row.diff > 0 ? `${row.diff.toLocaleString()} ₪` : (row.diff === 0 ? '0 ₪' : '—')}
+                              </td>
+                              <td style={{ minWidth: 260 }}>
+                                <div>{row.explanation}</div>
+                                <div className="cfa-source-detail-box">
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
+                                    {repNum ? (
+                                      <span className="cfa-source-pill-report">📄 דוח מס' {repNum}</span>
+                                    ) : (
+                                      <span className="cfa-source-pill-unverified">⚠️ מקור לא מאומת</span>
+                                    )}
+                                    {repDate && <span style={{ fontSize: 11, color: '#94a3b8' }}>📅 {repDate}</span>}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                    <span>📁 <strong>{srcDoc}</strong> (עמ' {pg})</span>
+                                    {invNum && <span style={{ color: '#facc15', fontWeight: 700 }}>🧾 חשבונית שכ"ט מס' {invNum}</span>}
+                                  </div>
+                                  {row.sourceSnippet && (
+                                    <div className="cfa-citation-box" style={{ marginTop: 4 }}>מקור: "{row.sourceSnippet}"</div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="cfa-open-source-link"
+                                    onClick={() => setSelectedCropItem(matchedItem || {
+                                      id: `row-${idx}`,
+                                      clauseName: row.category,
+                                      sourceDoc: srcDoc,
+                                      page: pg,
+                                      reportNumber: repNum,
+                                      reportDate: repDate,
+                                      invoiceNumber: invNum,
+                                      isVerifiedSource: isVerified,
+                                      docAmount: row.demanded,
+                                      docAmountFormatted: `${row.demanded?.toLocaleString()} ₪`,
+                                      extractedAmount: row.demanded,
+                                      extractedAmountFormatted: `${row.demanded?.toLocaleString()} ₪`,
+                                      calculatedAmount: row.demanded,
+                                      calculatedAmountFormatted: `${row.demanded?.toLocaleString()} ₪`,
+                                      diff: row.diff || 0,
+                                      status: row.status === 'match' ? 'verified' : 'needs_review',
+                                      statusLabel: row.status === 'match' ? '🟢 תואם' : '🟠 דורש בדיקה',
+                                      originalSnippet: row.sourceSnippet,
+                                    })}
+                                    title={`פתח את ${srcDoc} בעמוד ${pg}`}
+                                  >
+                                    🔍 פתח מסמך בעמוד {pg}
+                                  </button>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`cfa-badge cfa-badge-${row.status}`}>
+                                  {row.status === 'match' ? 'תואם' : row.status === 'reduction' ? 'הפחתה' : row.status === 'unexplained' ? 'לא מוסבר' : 'חסר'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
                           <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}>
@@ -1058,7 +1155,7 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                     <thead>
                       <tr>
                         <th>סעיף שומה</th>
-                        <th>מסמך מקור ועמוד</th>
+                        <th>מקור המידע ומספר דוח השמאי</th>
                         <th>סכום במסמך</th>
                         <th>סכום שחולץ (AI)</th>
                         <th>סכום בחישוב</th>
@@ -1083,9 +1180,31 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                               </div>
                             )}
                           </td>
-                          <td style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                            <div>{item.sourceDoc}</div>
-                            {item.page > 0 && <div>עמוד {item.page}</div>}
+                          <td style={{ fontSize: 12, minWidth: 230 }}>
+                            <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {item.reportNumber ? (
+                                <span className="cfa-source-pill-report">📄 דוח מס' {item.reportNumber}</span>
+                              ) : (
+                                <span className="cfa-source-pill-unverified">⚠️ מקור לא מאומת</span>
+                              )}
+                              {item.reportDate && <span style={{ color: '#94a3b8', fontSize: 11 }}>📅 {item.reportDate}</span>}
+                            </div>
+                            <div style={{ color: '#cbd5e1', fontSize: 11.5, marginTop: 2 }}>
+                              📁 <strong>{item.sourceDoc}</strong> {item.page > 0 && `(עמוד ${item.page})`}
+                            </div>
+                            {item.invoiceNumber && (
+                              <div style={{ color: '#facc15', fontSize: 11.5, fontWeight: 700, marginTop: 2 }}>
+                                🧾 חשבונית שכ"ט מס' {item.invoiceNumber}
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              className="cfa-open-source-link"
+                              onClick={() => setSelectedCropItem(item)}
+                              title={`פתח את ${item.sourceDoc} בעמוד ${item.page || 1}`}
+                            >
+                              🔍 פתח מסמך בעמוד {item.page || 1}
+                            </button>
                           </td>
                           <td style={{ fontWeight: 700, color: '#e2e8f0', whiteSpace: 'nowrap' }}>
                             {item.docAmountFormatted}
@@ -1391,8 +1510,31 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
-                    מסמך: {selectedCropItem?.sourceDoc || selectedCropVersion?.fileName} · עמוד: {selectedCropItem?.page || 1}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12 }}>
+                    <div style={{ background: '#0f172a', padding: '3px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                      <span style={{ color: '#94a3b8' }}>מספר דוח שמאי: </span>
+                      <strong style={{ color: selectedCropItem?.reportNumber ? '#38bdf8' : '#f59e0b' }}>
+                        {selectedCropItem?.reportNumber ? `דוח מס' ${selectedCropItem.reportNumber}` : '⚠️ מקור לא מאומת'}
+                      </strong>
+                    </div>
+                    {selectedCropItem?.reportDate && (
+                      <div style={{ background: '#0f172a', padding: '3px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                        <span style={{ color: '#94a3b8' }}>תאריך: </span>
+                        <strong style={{ color: '#f8fafc' }}>{selectedCropItem.reportDate}</strong>
+                      </div>
+                    )}
+                    <div style={{ background: '#0f172a', padding: '3px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                      <span style={{ color: '#94a3b8' }}>קובץ ועמוד: </span>
+                      <strong style={{ color: '#f8fafc' }}>
+                        {selectedCropItem?.sourceDoc || selectedCropVersion?.fileName} (עמ' {selectedCropItem?.page || 1})
+                      </strong>
+                    </div>
+                    {selectedCropItem?.invoiceNumber && (
+                      <div style={{ background: '#0f172a', padding: '3px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                        <span style={{ color: '#94a3b8' }}>חשבונית שכ"ט: </span>
+                        <strong style={{ color: '#facc15' }}>מס' {selectedCropItem.invoiceNumber}</strong>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
@@ -1420,18 +1562,54 @@ ${comparison.rows.filter((r) => r.status === 'reduction' || r.status === 'unexpl
                   justifyContent: 'center',
                 }}
               >
-                <img
-                  src={resolveCropUrl(selectedCropItem?.cropUrl || selectedCropVersion?.cropUrl)}
-                  alt="Visual Evidence Crop"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '65vh',
-                    borderRadius: 8,
-                    border: '2px solid #38bdf8',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-                    objectFit: 'contain',
-                  }}
-                />
+                {(selectedCropItem?.cropUrl || selectedCropVersion?.cropUrl) ? (
+                  <img
+                    src={resolveCropUrl(selectedCropItem?.cropUrl || selectedCropVersion?.cropUrl)}
+                    alt="Visual Evidence Crop"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '65vh',
+                      borderRadius: 8,
+                      border: '2px solid #38bdf8',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+                      objectFit: 'contain',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      padding: 24,
+                      textAlign: 'center',
+                      background: '#1e293b',
+                      borderRadius: 10,
+                      border: '1px solid #334155',
+                      maxWidth: 640,
+                      width: '100%',
+                    }}
+                  >
+                    <span style={{ fontSize: 44 }}>📄</span>
+                    <h3 style={{ margin: '10px 0 6px', color: '#f8fafc', fontSize: 16 }}>
+                      {selectedCropItem?.clauseName || 'מסמך מקור'}
+                    </h3>
+                    <div style={{ color: '#38bdf8', fontSize: 13, marginBottom: 12 }}>
+                      קובץ: <strong>{selectedCropItem?.sourceDoc}</strong> · עמוד: <strong>{selectedCropItem?.page || 1}</strong>
+                    </div>
+                    {selectedCropItem?.reportNumber ? (
+                      <div style={{ color: '#86efac', fontSize: 13, marginBottom: 6 }}>
+                        דוח שמאי מס': <strong>{selectedCropItem.reportNumber}</strong> (תאריך: {selectedCropItem.reportDate || 'לפי מסמך'})
+                      </div>
+                    ) : (
+                      <div style={{ color: '#f59e0b', fontSize: 13, marginBottom: 6 }}>
+                        ⚠️ מקור לא מאומת — לא זוהה מספר דוח שמאי בוודאות
+                      </div>
+                    )}
+                    {selectedCropItem?.invoiceNumber && (
+                      <div style={{ color: '#facc15', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                        חשבונית שכ"ט מס': {selectedCropItem.invoiceNumber}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {selectedCropItem?.originalSnippet && (
                   <div
                     style={{

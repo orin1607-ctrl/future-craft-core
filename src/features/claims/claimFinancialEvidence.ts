@@ -11,6 +11,11 @@ export interface EvidenceItem {
   clauseName: string;
   sourceDoc: string;
   page: number;
+  reportNumber?: string;
+  reportDate?: string;
+  invoiceNumber?: string;
+  isVerifiedSource?: boolean;
+  sourceStatusLabel?: string;
   docAmount: number | null;
   docAmountFormatted: string;
   extractedAmount: number | null;
@@ -70,6 +75,10 @@ export interface VerificationCertificateData {
   plateMatch: boolean;
   documentRef: string;
   documentsChecked: string[];
+  reportNumber?: string;
+  reportDate?: string;
+  invoiceNumber?: string;
+  isSourceVerified?: boolean;
   directDamage: number;
   diminution: number;
   appraisalTotal: number;
@@ -82,6 +91,10 @@ export interface ClaimFinancialEvidencePackage {
   plateNumber: string;
   clientName: string;
   surveyorName: string;
+  reportNumber?: string;
+  reportDate?: string;
+  feeInvoiceNumber?: string;
+  isSourceVerified?: boolean;
   overallQuality: 'verified' | 'needs_review' | 'missing_report' | 'error';
   overallQualityLabel: string;
   selectedVersion: string;
@@ -101,6 +114,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '60294-401',
     clientName: 'אילן עובד רינות (בנעזרי אילן)',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2217-0-1',
+    reportDate: '2026-03-22',
+    feeInvoiceNumber: '1249',
+    isSourceVerified: true,
     overallQuality: 'verified',
     overallQualityLabel: '🟢 מאומת 100% מול מסמך המקור (רכב 60294-401)',
     selectedVersion: 'חוות דעת שמאי סופית (rcv0001.JPG + rcv0002.JPG + rcv0003.JPG)',
@@ -327,6 +344,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
       plateMatch: true,
       documentRef: 'דוח שמאי 2217-0-1 + חשבונית שכ"ט 1249',
       documentsChecked: ['rcv0001.JPG', 'rcv0002.JPG', 'rcv0003.JPG'],
+      reportNumber: '2217-0-1',
+      reportDate: '2026-03-22',
+      invoiceNumber: '1249',
+      isSourceVerified: true,
       directDamage: 25934.22,
       diminution: 5696.01,
       appraisalTotal: 31630.23,
@@ -340,6 +361,9 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '73479002 (בדוח: 73779-002)',
     clientName: 'שרון / רוני אטיאס',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '1942-0-1',
+    reportDate: '2026-04-20',
+    isSourceVerified: false,
     overallQuality: 'needs_review',
     overallQualityLabel: '🟠 דורש בדיקה — טעות הקלדת לוחית ע"י השמאי (73779 מול 73479)',
     selectedVersion: 'חוות דעת שמאי סופית — 44,025.- ₪ (rcv0003.JPG)',
@@ -457,6 +481,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '18391-803',
     clientName: 'תומר כהן',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2153-0-1',
+    reportDate: '2025-10-12',
+    feeInvoiceNumber: '1191',
+    isSourceVerified: true,
     overallQuality: 'verified',
     overallQualityLabel: '🟢 מאומת 100% מול מסמך המקור (רכב 18391-803, שומה 54,982 ₪)',
     selectedVersion: 'חוות דעת שמאי סופית 2153-0-1 (מוקד 1 + מוקד 2 = 54,982.17 ₪)',
@@ -633,6 +661,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
       plateMatch: true,
       documentRef: 'דוח שמאי 2153-0-1 (עמודים 1-4) + חשבונית שכ"ט 1191 (עמוד 6)',
       documentsChecked: ['rcv0001.JPG', 'rcv0002.JPG', 'rcv0003.JPG', 'rcv0004.JPG', 'RCV0006.JPG'],
+      reportNumber: '2153-0-1',
+      reportDate: '2025-10-12',
+      invoiceNumber: '1191',
+      isSourceVerified: true,
       directDamage: 47444.67,
       diminution: 7537.5,
       appraisalTotal: 54982.17,
@@ -646,6 +678,9 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '11874-503',
     clientName: 'אלימלך דוד / פלורה כהן',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2201-0-1',
+    reportDate: '2026-02-03',
+    isSourceVerified: false,
     overallQuality: 'needs_review',
     overallQualityLabel: '🟠 דורש בדיקה — הצעת תיקון (14,274 ₪) וחשבונית מוסך (30,242 ₪), חסרה שומה סופית',
     selectedVersion: 'הצעת תיקון ראשונית — 14,274.00 ₪ (rcv0001.JPG)',
@@ -724,6 +759,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '65-941-85',
     clientName: 'אילנה אטיאס',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2270-0-1',
+    reportDate: '2026-07-12',
+    feeInvoiceNumber: '1345',
+    isSourceVerified: true,
     overallQuality: 'verified',
     overallQualityLabel: '🟢 מאומת 100% מול מסמך המקור (דוח 2270-0-1 מיום 12/07/2026)',
     selectedVersion: 'חוות דעת שמאי סופית 2270-0-1 (נזק 34,389.34 ₪ + ירידת ערך 3,784.86 ₪ = 38,174.20 ₪)',
@@ -987,6 +1026,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
       plateMatch: true,
       documentRef: 'דוח שמאי 2270-0-1 (עמודים 1-4) + חשבונית שכ"ט 1345 (עמוד 5)',
       documentsChecked: ['rcv0001.JPG', 'rcv0002.JPG', 'rcv0003.JPG', 'rcv0004.JPG', 'RCV0005.JPG'],
+      reportNumber: '2270-0-1',
+      reportDate: '2026-07-12',
+      invoiceNumber: '1345',
+      isSourceVerified: true,
       directDamage: 34389.34,
       diminution: 3784.86,
       appraisalTotal: 38174.2,
@@ -1000,6 +1043,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '64375-201',
     clientName: 'מור שטיינמן',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2105-0-1',
+    reportDate: '2026-05-29',
+    feeInvoiceNumber: '1297',
+    isSourceVerified: true,
     overallQuality: 'needs_review',
     overallQualityLabel: '🟠 דורש בדיקה — עודכן לסכום מקור 23,308 ₪ (במקום 21,500 ₪)',
     selectedVersion: 'חוות דעת שמאי סופית — 23,308.- ₪ (rcv0003.JPG)',
@@ -1094,6 +1141,9 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '65-635-13',
     clientName: 'Ipraktikum / שירה בורידא',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2134-0-1',
+    reportDate: '2026-07-28',
+    isSourceVerified: true,
     overallQuality: 'needs_review',
     overallQualityLabel: '🟠 דורש בדיקה — עודכן לסכום מקור 8,706.08 ₪ (במקום 38,900 ₪)',
     selectedVersion: 'חוות דעת שמאי סופית — 8,706.08 ₪ (rcv0002.JPG)',
@@ -1218,6 +1268,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '49325-004',
     clientName: 'אושרי יעקוב - אייפרקטיקום (בדוח: כהן אודי יהודה יעקב)',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2263-0-1',
+    reportDate: '2026-06-23',
+    feeInvoiceNumber: '1305',
+    isSourceVerified: true,
     overallQuality: 'needs_review',
     overallQualityLabel: '🟠 דורש בדיקה — פער בין שם הלקוח (אושרי יעקוב) לשם בדוח (כהן אודי)',
     selectedVersion: 'חוות דעת שמאי סופית — 50,682.74 ₪ (rcv0003.JPG)',
@@ -1417,6 +1471,44 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
         cropUrl: 'evidence-crops/0017-final-survey-crop.png',
         notes: 'הסבר לפער: בדוח קודם יוחס בטעות השם אסתי גורביץ. המסמך שייך לליפמוטור 49325-004 אך מציין מבוטח "כהן אודי יהודה יעקב" בעוד ברשומה רשום "אושרי יעקוב - אייפרקטיקום". מסומן כדורש בדיקה.',
       },
+      {
+        id: 'surveyor_fee',
+        clauseName: 'שכר טרחת שמאי (חשבונית 1305 בנפרד)',
+        sourceDoc: 'RCV0005.JPG',
+        page: 5,
+        invoiceNumber: '1305',
+        reportNumber: '2263-0-1',
+        reportDate: '2026-06-23',
+        docAmount: 1813.0,
+        docAmountFormatted: '1,813.00 ₪',
+        extractedAmount: 1813.0,
+        extractedAmountFormatted: '1,813.00 ₪',
+        calculatedAmount: 1813.0,
+        calculatedAmountFormatted: '1,813.00 ₪',
+        diff: 0,
+        status: 'needs_review',
+        statusLabel: '🟠 דורש בדיקה',
+        originalSnippet: 'חשבונית מס/קבלה 1305: שכ"ט שמאי 1,813.00 ש"ח',
+      },
+      {
+        id: 'grand_total',
+        clauseName: 'סה"כ כולל הכל (שומה + שכ"ט שמאי)',
+        sourceDoc: 'rcv0003.JPG / RCV0005.JPG',
+        page: 5,
+        invoiceNumber: '1305',
+        reportNumber: '2263-0-1',
+        reportDate: '2026-06-23',
+        docAmount: 52495.74,
+        docAmountFormatted: '52,495.74 ₪',
+        extractedAmount: 52495.74,
+        extractedAmountFormatted: '52,495.74 ₪',
+        calculatedAmount: 52495.74,
+        calculatedAmountFormatted: '52,495.74 ₪',
+        diff: 0,
+        status: 'needs_review',
+        statusLabel: '🟠 דורש בדיקה',
+        originalSnippet: 'סה"כ תביעה כוללת: 50,682.74 + 1,813.00 = 52,495.74 ש"ח',
+      },
     ],
     accounting: {
       partsSubtotal: 23284.0,
@@ -1480,6 +1572,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
       plateMatch: true,
       documentRef: 'דוח שמאי 2263-0-1 + חשבונית מוסך 2514 + שכ"ט 1305',
       documentsChecked: ['rcv0001.JPG', 'rcv0002.JPG', 'rcv0003.JPG', '0010002514.pdf', 'RCV0005.JPG'],
+      reportNumber: '2263-0-1',
+      reportDate: '2026-06-23',
+      invoiceNumber: '1305',
+      isSourceVerified: true,
       directDamage: 41702.01,
       diminution: 8980.73,
       appraisalTotal: 50682.74,
@@ -1493,6 +1589,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '63292-003',
     clientName: 'אליהו אטיאס',
     surveyorName: 'ליונל ווינהוס (גליל גולן שמאות)',
+    reportNumber: '2185-0-1',
+    reportDate: '2024-03-24',
+    feeInvoiceNumber: '1224',
+    isSourceVerified: true,
     overallQuality: 'verified',
     overallQualityLabel: '🟢 מאומת 100% מול מסמך המקור (רכב 63292-003)',
     selectedVersion: 'חוות דעת שמאי סופית — 55,839.58 ₪ (rcv0001-0003.JPG)',
@@ -1645,6 +1745,44 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
         originalSnippet: '55,840.- ש"ח (סכום מעוגל)',
         cropUrl: 'evidence-crops/0020-diminution-total-crop.png',
       },
+      {
+        id: 'surveyor_fee',
+        clauseName: 'שכר טרחת שמאי (חשבונית 1224 בנפרד)',
+        sourceDoc: 'RCV0005.JPG',
+        page: 5,
+        invoiceNumber: '1224',
+        reportNumber: '2185-0-1',
+        reportDate: '2024-03-24',
+        docAmount: 2164.0,
+        docAmountFormatted: '2,164.00 ₪',
+        extractedAmount: 2164.0,
+        extractedAmountFormatted: '2,164.00 ₪',
+        calculatedAmount: 2164.0,
+        calculatedAmountFormatted: '2,164.00 ₪',
+        diff: 0,
+        status: 'verified',
+        statusLabel: '🟢 תואם',
+        originalSnippet: 'חשבונית מס/קבלה 1224: שכ"ט שמאי 2,164.00 ש"ח',
+      },
+      {
+        id: 'grand_total',
+        clauseName: 'סה"כ כולל הכל (שומה + שכ"ט שמאי)',
+        sourceDoc: 'rcv0003.JPG / RCV0005.JPG',
+        page: 5,
+        invoiceNumber: '1224',
+        reportNumber: '2185-0-1',
+        reportDate: '2024-03-24',
+        docAmount: 58003.58,
+        docAmountFormatted: '58,003.58 ₪',
+        extractedAmount: 58003.58,
+        extractedAmountFormatted: '58,003.58 ₪',
+        calculatedAmount: 58003.58,
+        calculatedAmountFormatted: '58,003.58 ₪',
+        diff: 0,
+        status: 'verified',
+        statusLabel: '🟢 תואם',
+        originalSnippet: 'סה"כ תביעה כוללת: 55,839.58 + 2,164.00 = 58,003.58 ש"ח',
+      },
     ],
     accounting: {
       partsSubtotal: 21262.0,
@@ -1708,6 +1846,10 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
       plateMatch: true,
       documentRef: 'חוות דעת שמאי סופית 2185-0-1 (עמודים 1-3) + חשבונית שכ"ט 1224 (עמוד 5)',
       documentsChecked: ['rcv0001.JPG', 'rcv0002.JPG', 'rcv0003.JPG', 'RCV0005.JPG'],
+      reportNumber: '2185-0-1',
+      reportDate: '2024-03-24',
+      invoiceNumber: '1224',
+      isSourceVerified: true,
       directDamage: 47942.53,
       diminution: 7897.05,
       appraisalTotal: 55839.58,
@@ -1721,6 +1863,9 @@ export const VERIFIED_EVIDENCE_REGISTRY: Record<string, ClaimFinancialEvidencePa
     plateNumber: '711-67-102',
     clientName: 'טויוטה קורולה',
     surveyorName: 'גולדשטיין שמאי רכב',
+    reportNumber: '1788-0-1',
+    reportDate: '2024-01-15',
+    isSourceVerified: true,
     overallQuality: 'verified',
     overallQualityLabel: '🟢 מאומת (PDF סרוק בן 36 עמודים נקרא בהצלחה)',
     selectedVersion: 'חוות דעת שמאי סופית (0005-survey-report.pdf)',
@@ -1984,7 +2129,39 @@ export function getClaimFinancialEvidence(
 ): ClaimFinancialEvidencePackage {
   // אם קיים מאגר הוכחות ידוע ומאומת ברמת הפיקסל
   if (VERIFIED_EVIDENCE_REGISTRY[claimId]) {
-    return VERIFIED_EVIDENCE_REGISTRY[claimId];
+    const pkg = VERIFIED_EVIDENCE_REGISTRY[claimId];
+    const isSourceVerified = pkg.isSourceVerified ?? (pkg.overallQuality === 'verified');
+    const enrichedItems = pkg.items.map((it) => {
+      const isFee = it.id.includes('fee') || it.clauseName.includes('שכ"ט') || it.clauseName.includes('טרחת');
+      const invoiceNum = it.invoiceNumber || (isFee ? pkg.feeInvoiceNumber || pkg.certificate?.invoiceNumber : undefined);
+      const repNum = it.reportNumber || pkg.reportNumber || pkg.certificate?.reportNumber;
+      const repDate = it.reportDate || pkg.reportDate || pkg.certificate?.reportDate;
+      const verified = it.isVerifiedSource !== undefined ? it.isVerifiedSource : isSourceVerified;
+      return {
+        ...it,
+        reportNumber: repNum,
+        reportDate: repDate,
+        invoiceNumber: invoiceNum,
+        isVerifiedSource: verified,
+        sourceStatusLabel: it.sourceStatusLabel || (repNum ? `דוח ${repNum}` : 'מקור לא מאומת'),
+      };
+    });
+
+    return {
+      ...pkg,
+      items: enrichedItems,
+      reportNumber: pkg.reportNumber || pkg.certificate?.reportNumber,
+      reportDate: pkg.reportDate || pkg.certificate?.reportDate,
+      feeInvoiceNumber: pkg.feeInvoiceNumber || pkg.certificate?.invoiceNumber,
+      isSourceVerified,
+      certificate: pkg.certificate ? {
+        ...pkg.certificate,
+        reportNumber: pkg.certificate.reportNumber || pkg.reportNumber,
+        reportDate: pkg.certificate.reportDate || pkg.reportDate,
+        invoiceNumber: pkg.certificate.invoiceNumber || pkg.feeInvoiceNumber,
+        isSourceVerified: pkg.certificate.isSourceVerified ?? isSourceVerified,
+      } : undefined,
+    };
   }
 
   // בדיקה אם התיק חסר דוח שמאי
@@ -1998,6 +2175,10 @@ export function getClaimFinancialEvidence(
       plateNumber,
       clientName,
       surveyorName: 'לא צוין שמאי',
+      reportNumber: undefined,
+      reportDate: undefined,
+      feeInvoiceNumber: undefined,
+      isSourceVerified: false,
       overallQuality: 'missing_report',
       overallQualityLabel: '⚪ חסר דוח שמאי — ממתין לקליטת דוח מקורי',
       selectedVersion: 'לא קיים דוח שמאי בתיק',
@@ -2008,6 +2189,10 @@ export function getClaimFinancialEvidence(
           clauseName: 'דוח שמאי מקורי',
           sourceDoc: 'טרם הועלה קובץ שומה',
           page: 0,
+          reportNumber: undefined,
+          reportDate: undefined,
+          isVerifiedSource: false,
+          sourceStatusLabel: 'מקור לא מאומת',
           docAmount: null,
           docAmountFormatted: 'חסר דוח שמאי',
           extractedAmount: null,
@@ -2035,6 +2220,25 @@ export function getClaimFinancialEvidence(
         explanation: 'טרם הועלה דוח שמאי בתיק זה. לא ניתן לבצע אימות חשבונאי.',
       },
       summaryNotes: 'חסר דוח שמאי: סכום השומה אינו אפס אלא ממתין להעלאת המסמך המקורי.',
+      certificate: {
+        isCertified: false,
+        certificateText: 'ממתין לקליטת דוח שמאי מקורי — לא זוהה מסמך שומה לביצוע אימות.',
+        inspectedAt: new Date().toLocaleDateString('he-IL'),
+        inspectorName: "ג'מיני AI (STAGING)",
+        plateNumberChecked: plateNumber,
+        registeredPlate: plateNumber,
+        plateMatch: false,
+        documentRef: 'אין מסמכים בתיק',
+        documentsChecked: [],
+        reportNumber: undefined,
+        reportDate: undefined,
+        isSourceVerified: false,
+        directDamage: 0,
+        diminution: 0,
+        appraisalTotal: 0,
+        surveyorFee: 0,
+        grandTotal: 0,
+      },
     };
   }
 
@@ -2084,8 +2288,28 @@ export function getClaimFinancialEvidence(
   const claimClient = normName(clientName);
   const clientMismatch = Boolean(docClient && claimClient && !claimClient.includes(docClient) && !docClient.includes(claimClient));
 
+  // חילוץ מקור המידע: מספר דוח שמאי, תאריך דוח, מספר חשבונית שכ"ט
+  const allTextsCombined = [
+    demand.allCitations ? Object.values(demand.allCitations).join(' ') : '',
+    ...(filesList || []).map((f: any) => `${f.original_name || ''} ${f.doc_meta?.read_text || ''}`),
+  ].join(' ');
+
+  const docReportNum = demand.reportNumber
+    || filesList?.find((f: any) => f.doc_meta?.reportNumber)?.doc_meta?.reportNumber
+    || allTextsCombined.match(/(?:מספר\s*(?:ה)?דוח|מספר\s*(?:ה)?שומה|דוח\s*מס[\'׳.]?|שומה\s*מס[\'׳.]?|תיק\s*שמאי\s*מס[\'׳.]?)[\s:\-–—]*([A-Z0-9\-\/]+)/i)?.[1]
+    || allTextsCombined.match(/\b([0-9]{3,5}-[0-9]-[0-9]+)\b/)?.[1];
+
+  const docReportDate = demand.reportDate
+    || filesList?.find((f: any) => f.doc_meta?.reportDate)?.doc_meta?.reportDate
+    || allTextsCombined.match(/(?:תאריך)[\s:\-–—]*([0-9]{1,2}[./\-][0-9]{1,2}[./\-][0-9]{2,4})/i)?.[1];
+
+  const docInvoiceNum = demand.invoiceNumber
+    || filesList?.find((f: any) => f.doc_meta?.invoiceNumber)?.doc_meta?.invoiceNumber
+    || allTextsCombined.match(/(?:חשבונית\s*(?:מס|מספר)?|קבלה\s*(?:מס|מספר)?|חשבון\s*(?:עיסקה|עסקה)\s*(?:מס|מספר)?)[\s:\-–—]*([0-9]{3,6})/i)?.[1];
+
+  const isSourceIdentified = Boolean(docReportNum);
   const hasMismatch = plateMismatch || clientMismatch;
-  const isTrulyVerified = isSound && !hasMismatch;
+  const isTrulyVerified = isSound && !hasMismatch && isSourceIdentified;
 
   const primaryDocName = filesList?.[0]?.original_name || 'דוח שמאי בתיק';
 
@@ -2095,6 +2319,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'חלקי חילוף',
       sourceDoc: primaryDocName,
       page: demand.parts?.page || 1,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: parts,
       docAmountFormatted: `${parts.toLocaleString()} ₪`,
       extractedAmount: parts,
@@ -2102,8 +2330,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: parts,
       calculatedAmountFormatted: `${parts.toLocaleString()} ₪`,
       diff: 0,
-      status: parts > 0 ? 'verified' : 'needs_review',
-      statusLabel: parts > 0 ? '🟢 תואם' : '🟠 דורש בדיקה',
+      status: parts > 0 && isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: parts > 0 && isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: partsSnippet,
     },
     {
@@ -2111,6 +2339,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'עבודות פחחות ושכר עבודה',
       sourceDoc: primaryDocName,
       page: demand.labor?.page || 1,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: labor,
       docAmountFormatted: `${labor.toLocaleString()} ₪`,
       extractedAmount: labor,
@@ -2118,8 +2350,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: labor,
       calculatedAmountFormatted: `${labor.toLocaleString()} ₪`,
       diff: 0,
-      status: labor > 0 ? 'verified' : 'needs_review',
-      statusLabel: labor > 0 ? '🟢 תואם' : '🟠 דורש בדיקה',
+      status: labor > 0 && isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: labor > 0 && isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: laborSnippet,
     },
     {
@@ -2127,6 +2359,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'עבודות צבע',
       sourceDoc: primaryDocName,
       page: demand.paint?.page || 1,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: paint,
       docAmountFormatted: `${paint.toLocaleString()} ₪`,
       extractedAmount: paint,
@@ -2134,8 +2370,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: paint,
       calculatedAmountFormatted: `${paint.toLocaleString()} ₪`,
       diff: 0,
-      status: 'verified',
-      statusLabel: '🟢 תואם',
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: paintSnippet,
     },
     {
@@ -2143,6 +2379,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'סה"כ לפני מע"מ',
       sourceDoc: primaryDocName,
       page: 1,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: subtotalCalc,
       docAmountFormatted: `${subtotalCalc.toLocaleString()} ₪`,
       extractedAmount: subtotalCalc,
@@ -2150,8 +2390,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: subtotalCalc,
       calculatedAmountFormatted: `${subtotalCalc.toLocaleString()} ₪`,
       diff: 0,
-      status: 'verified',
-      statusLabel: '🟢 תואם',
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: demand.subtotal?.sourceSnippet || `חלפים + עבודה = ${subtotalCalc.toLocaleString()} ₪`,
     },
     {
@@ -2159,6 +2399,10 @@ export function getClaimFinancialEvidence(
       clauseName: `מע"מ (${vatRate}%)`,
       sourceDoc: primaryDocName,
       page: 1,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: vatCalc,
       docAmountFormatted: `${vatCalc.toLocaleString()} ₪`,
       extractedAmount: vatCalc,
@@ -2166,8 +2410,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: vatCalc,
       calculatedAmountFormatted: `${vatCalc.toLocaleString()} ₪`,
       diff: 0,
-      status: 'verified',
-      statusLabel: '🟢 תואם',
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: vatSnippet,
     },
     {
@@ -2175,6 +2419,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'ירידת ערך',
       sourceDoc: primaryDocName,
       page: 2,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: diminution,
       docAmountFormatted: `${diminution.toLocaleString()} ₪`,
       extractedAmount: diminution,
@@ -2182,8 +2430,8 @@ export function getClaimFinancialEvidence(
       calculatedAmount: diminution,
       calculatedAmountFormatted: `${diminution.toLocaleString()} ₪`,
       diff: 0,
-      status: 'verified',
-      statusLabel: '🟢 תואם',
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
       originalSnippet: diminutionSnippet,
     },
     {
@@ -2191,6 +2439,10 @@ export function getClaimFinancialEvidence(
       clauseName: 'סה"כ שומה סופי',
       sourceDoc: primaryDocName,
       page: 2,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      isVerifiedSource: isSourceIdentified && !plateMismatch,
+      sourceStatusLabel: docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת',
       docAmount: docTotal,
       docAmountFormatted: `${docTotal.toLocaleString()} ₪`,
       extractedAmount: docTotal,
@@ -2198,17 +2450,43 @@ export function getClaimFinancialEvidence(
       calculatedAmount: totalCalc,
       calculatedAmountFormatted: `${totalCalc.toLocaleString()} ₪`,
       diff: Math.round(totalDiff * 100) / 100,
-      status: isSound ? 'verified' : 'needs_review',
-      statusLabel: isSound ? '🟢 תואם חשבונאית' : '🟠 דורש בדיקה',
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם חשבונאית' : '🟠 דורש בדיקה',
       originalSnippet: totalSnippet,
     },
   ];
+
+  if (demand.surveyorFee?.amount && demand.surveyorFee.amount > 0) {
+    items.push({
+      id: 'surveyor_fee',
+      clauseName: 'שכר טרחת שמאי (חשבון נפרד)',
+      sourceDoc: primaryDocName,
+      page: 2,
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      invoiceNumber: docInvoiceNum,
+      isVerifiedSource: Boolean(docInvoiceNum || docReportNum),
+      sourceStatusLabel: docInvoiceNum ? `חשבונית ${docInvoiceNum}` : (docReportNum ? `דוח ${docReportNum}` : 'מקור לא מאומת'),
+      docAmount: demand.surveyorFee.amount,
+      docAmountFormatted: `${demand.surveyorFee.amount.toLocaleString()} ₪`,
+      extractedAmount: demand.surveyorFee.amount,
+      extractedAmountFormatted: `${demand.surveyorFee.amount.toLocaleString()} ₪`,
+      calculatedAmount: demand.surveyorFee.amount,
+      calculatedAmountFormatted: `${demand.surveyorFee.amount.toLocaleString()} ₪`,
+      diff: 0,
+      status: isTrulyVerified ? 'verified' : 'needs_review',
+      statusLabel: isTrulyVerified ? '🟢 תואם' : '🟠 דורש בדיקה',
+      originalSnippet: demand.surveyorFee.sourceSnippet || 'שכר טרחת שמאי',
+    });
+  }
 
   let qualityLabel = '🟢 מאומת';
   if (plateMismatch) {
     qualityLabel = '🟠 דורש בדיקה — אי-התאמת מספר רכב בין הכרטיס למסמך';
   } else if (clientMismatch) {
     qualityLabel = '🟠 דורש בדיקה — אי-התאמת שם לקוח/מבוטח בין הכרטיס למסמך';
+  } else if (!isSourceIdentified) {
+    qualityLabel = '🟠 דורש בדיקה — מקור לא מאומת (לא זוהה מספר דוח שמאי בוודאות)';
   } else if (!isSound) {
     qualityLabel = '🟠 דורש בדיקה — פער חשבונאי בסיכום הסעיפים';
   }
@@ -2218,6 +2496,10 @@ export function getClaimFinancialEvidence(
     plateNumber,
     clientName,
     surveyorName: demand.surveyorName || 'שמאי מוסמך',
+    reportNumber: docReportNum,
+    reportDate: docReportDate,
+    feeInvoiceNumber: docInvoiceNum,
+    isSourceVerified: isTrulyVerified,
     overallQuality: isTrulyVerified ? 'verified' : 'needs_review',
     overallQualityLabel: qualityLabel,
     selectedVersion: 'חוות דעת שמאי מתוך מסמכי התיק',
@@ -2270,8 +2552,10 @@ export function getClaimFinancialEvidence(
         },
       ],
     },
-    summaryNotes: isSound
-      ? 'כל הנתונים חולצו ואומתו חשבונאית בהצלחה.'
+    summaryNotes: isSound && isSourceIdentified
+      ? 'כל הנתונים חולצו ואומתו חשבונאית מול דוח השמאי בהצלחה.'
+      : !isSourceIdentified
+      ? 'מקור לא מאומת: לא זוהה מספר דוח שמאי בוודאות במסמכים שנסרקו.'
       : 'נדרשת בדיקת שמאי עקב פערים חשבונאיים.',
     certificate: {
       isCertified: isTrulyVerified,
@@ -2283,8 +2567,12 @@ export function getClaimFinancialEvidence(
       plateNumberChecked: docPlate || plateNumber,
       registeredPlate: plateNumber,
       plateMatch: !plateMismatch,
-      documentRef: primaryDocName,
+      documentRef: docReportNum ? `דוח שמאי מס' ${docReportNum}` : primaryDocName,
       documentsChecked: (filesList || []).map((f: any) => f.original_name || f.id),
+      reportNumber: docReportNum,
+      reportDate: docReportDate,
+      invoiceNumber: docInvoiceNum,
+      isSourceVerified: isTrulyVerified,
       directDamage: directDamageCalc,
       diminution: diminution,
       appraisalTotal: totalCalc,
