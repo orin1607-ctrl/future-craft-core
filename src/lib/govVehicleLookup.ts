@@ -1,5 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
-/** נתוני רכב גולמיים ממאגר משרד התחבורה (data.gov.il) — דרך edge function `vehicle-lookup` */
+/** נתוני רכב גולמיים ממאגר משרד התחבורה (data.gov.il) — דרך edge function `vehicle-lookup` ומאגרי מידע פתוחים */
 export interface GovVehicleData {
   mispar_rechev: number;
   tozeret_nm: string;
@@ -20,6 +19,11 @@ export interface GovVehicleData {
   /** שדות נוספים שעשויים להופיע ב-raw */
   sug_rechev?: string | number;
   sug_rechev_nm?: string;
+  /** נסועה וקילומטראז' ממאגר היסטוריית כלי רכב פרטיים (1) — 56063a99-8a3e-4ff4-912e-5966c0279bad */
+  kilometer_test_aharon?: number | string;
+  test_mileage?: number | string;
+  test_date?: string;
+  test_source?: string;
   [key: string]: unknown;
 }
 
@@ -43,6 +47,10 @@ export const GOV_TO_NEW_FORM_FIELD_MAP: Record<string, string> = {
   mivchan_acharon_dt: 'last_test',
   tokef_dt: 'next_test',
   sug_rechev_nm: 'vehicle_type',
+  kilometer_test_aharon: 'test_mileage',
+  test_mileage: 'test_mileage',
+  test_date: 'test_date',
+  test_source: 'test_source',
 };
 
 export class GovVehicleLookupError extends Error {
@@ -55,12 +63,19 @@ export class GovVehicleLookupError extends Error {
   }
 }
 
-/** אותו חיבור שב-Vehicles.tsx / VehicleLookup — Supabase function `vehicle-lookup` */
-async function fetchDirectFromDataGov(cleanPlate: string): Promise<GovVehicleData | null> {
+/**
+ * שליפת היסטוריית נסועה וקילומטראז' בטסט האחרון ממאגר משרד התחבורה:
+ * "היסטוריית כלי רכב פרטיים (1) — מידע מפורט על הרכב" (resource: 56063a99-8a3e-4ff4-912e-5966c0279bad)
+ */
+export async function fetchMileageHistoryFromGov(cleanPlate: string): Promise<{
+  kilometer_test_aharon?: number | string;
+  test_mileage?: number | string;
+  test_source?: string;
+} | null> {
   try {
     const plateNum = parseInt(cleanPlate, 10);
     const filterBody = {
-      resource_id: '053cea08-09bc-40ec-8f7a-156f0677aff3',
+      resource_id: '56063a99-8a3e-4ff4-912e-5966c0279bad',
       filters: { mispar_rechev: isNaN(plateNum) ? cleanPlate : plateNum },
       limit: 1,
     };
@@ -71,10 +86,71 @@ async function fetchDirectFromDataGov(cleanPlate: string): Promise<GovVehicleDat
     });
     const json = (await res.json().catch(() => ({}))) as {
       success?: boolean;
-      result?: { records?: GovVehicleData[] };
+      result?: { records?: Array<{ kilometer_test_aharon?: number | string }> };
     };
     if (json.success && json.result?.records && json.result.records.length > 0) {
-      return json.result.records[0];
+      const rec = json.result.records[0];
+      if (rec.kilometer_test_aharon != null && rec.kilometer_test_aharon !== '') {
+        return {
+          kilometer_test_aharon: rec.kilometer_test_aharon,
+          test_mileage: rec.kilometer_test_aharon,
+          test_source: 'משרד התחבורה — היסטוריית כלי רכב פרטיים (1)',
+        };
+      }
+    }
+  } catch {
+    // mileage query error
+  }
+  return null;
+}
+
+/** שאילתה ישירה למאגרי data.gov.il (מפרט רכב + היסטוריית נסועה במקביל) */
+async function fetchDirectFromDataGov(cleanPlate: string): Promise<GovVehicleData | null> {
+  try {
+    const plateNum = parseInt(cleanPlate, 10);
+    const filterPlate = isNaN(plateNum) ? cleanPlate : plateNum;
+
+    // 1. מאגר ראשי — מפרט רכב פעיל
+    const pMain = fetch('https://data.gov.il/api/3/action/datastore_search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resource_id: '053cea08-09bc-40ec-8f7a-156f0677aff3',
+        filters: { mispar_rechev: filterPlate },
+        limit: 1,
+      }),
+    }).then((r) => r.json().catch(() => ({})));
+
+    // 2. מאגר היסטוריית כלי רכב פרטיים (1) — נסועה וקילומטראז' בטסט האחרון
+    const pMileage = fetch('https://data.gov.il/api/3/action/datastore_search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resource_id: '56063a99-8a3e-4ff4-912e-5966c0279bad',
+        filters: { mispar_rechev: filterPlate },
+        limit: 1,
+      }),
+    }).then((r) => r.json().catch(() => ({})));
+
+    const [mainJson, mileageJson] = await Promise.all([pMain, pMileage]);
+
+    if (mainJson?.success && mainJson?.result?.records && mainJson.result.records.length > 0) {
+      const record = mainJson.result.records[0] as GovVehicleData;
+
+      if (mileageJson?.success && mileageJson?.result?.records && mileageJson.result.records.length > 0) {
+        const mRec = mileageJson.result.records[0];
+        if (mRec.kilometer_test_aharon != null && mRec.kilometer_test_aharon !== '') {
+          record.kilometer_test_aharon = mRec.kilometer_test_aharon;
+          record.test_mileage = mRec.kilometer_test_aharon;
+          record.test_source = 'משרד התחבורה — היסטוריית כלי רכב פרטיים (1)';
+        }
+      }
+
+      if (record.mivchan_acharon_dt) {
+        record.test_date = formatGovDateForInput(record.mivchan_acharon_dt);
+      }
+
+      return record;
     }
   } catch {
     // direct fallback failed
@@ -82,62 +158,74 @@ async function fetchDirectFromDataGov(cleanPlate: string): Promise<GovVehicleDat
   return null;
 }
 
-/** אותו חיבור שב-Vehicles.tsx / VehicleLookup — Supabase function `vehicle-lookup` עם fallback ישיר למאגר הממשלתי */
+/** שליפת פרטי רכב והיסטוריית נסועה ממשרד התחבורה — עם תמיכה מלאה ב-Edge Function וב-data.gov.il ישיר */
 export async function fetchVehicleFromGov(licensePlate: string): Promise<GovVehicleData | null> {
   const cleanPlate = licensePlate.replace(/[-\s]/g, '');
   if (!cleanPlate || cleanPlate.length < 5) {
     throw new GovVehicleLookupError('יש להזין מספר רכב תקין (לפחות 5 ספרות)', 400);
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || '';
+  const anonKey = import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
   let token = anonKey;
-  try {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session?.access_token) {
-      token = data.session.access_token;
+  if (typeof window !== 'undefined' && anonKey) {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.access_token) {
+        token = data.session.access_token;
+      }
+    } catch {
+      // use anonKey
     }
-  } catch {
-    // use anonKey
   }
 
   try {
-    const res = await fetch(
-      `${supabaseUrl}/functions/v1/vehicle-lookup?plate=${encodeURIComponent(cleanPlate)}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: anonKey,
+    if (supabaseUrl && anonKey) {
+      const res = await fetch(
+        `${supabaseUrl}/functions/v1/vehicle-lookup?plate=${encodeURIComponent(cleanPlate)}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey,
+          },
         },
-      },
-    );
+      );
 
-    const json = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      raw?: GovVehicleData;
-      data?: Record<string, unknown>;
-    };
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        raw?: GovVehicleData;
+        data?: Record<string, unknown>;
+      };
 
-    if (res.ok && json.raw) {
-      return json.raw;
+      if (res.ok && json.raw) {
+        const enriched = { ...json.raw };
+        // אם ה-edge function לא מכיל נתוני קילומטראז', נשלוף ממאגר היסטוריית הרכב (1)
+        if (enriched.kilometer_test_aharon == null) {
+          const m = await fetchMileageHistoryFromGov(cleanPlate);
+          if (m?.kilometer_test_aharon != null) {
+            enriched.kilometer_test_aharon = m.kilometer_test_aharon;
+            enriched.test_mileage = m.kilometer_test_aharon;
+            enriched.test_source = m.test_source;
+          }
+        }
+        if (enriched.mivchan_acharon_dt && !enriched.test_date) {
+          enriched.test_date = formatGovDateForInput(enriched.mivchan_acharon_dt);
+        }
+        return enriched;
+      }
     }
 
-    // If edge function returned 401/403 or no raw, try direct data.gov.il fallback
+    // fallback ישיר ל-data.gov.il
     const directRecord = await fetchDirectFromDataGov(cleanPlate);
     if (directRecord) {
       return directRecord;
     }
 
-    if (!res.ok) {
-      throw new GovVehicleLookupError(
-        json.error || 'הרכב לא נמצא במאגר משרד התחבורה',
-        res.status,
-      );
-    }
+    throw new GovVehicleLookupError('הרכב לא נמצא במאגר משרד התחבורה', 404);
   } catch (err) {
-    // If edge function network error, try direct data.gov.il before throwing
     const directRecord = await fetchDirectFromDataGov(cleanPlate);
     if (directRecord) {
       return directRecord;
@@ -145,8 +233,6 @@ export async function fetchVehicleFromGov(licensePlate: string): Promise<GovVehi
     if (err instanceof GovVehicleLookupError) throw err;
     throw new GovVehicleLookupError('שגיאה בחיבור למשרד התחבורה');
   }
-
-  return null;
 }
 
 /** תאריך לשדה `<input type="date">` */
@@ -191,6 +277,9 @@ export function mapGovDataToNewFormFields(
     last_test: formatGovDateForInput(data.mivchan_acharon_dt),
     next_test: formatGovDateForInput(data.tokef_dt),
     inspection_date: formatGovDateForInput(data.mivchan_acharon_dt),
+    test_mileage: data.kilometer_test_aharon != null ? String(data.kilometer_test_aharon).trim() : '',
+    test_date: formatGovDateForInput(data.mivchan_acharon_dt || data.test_date),
+    test_source: (data.test_source as string) || (data.kilometer_test_aharon ? 'משרד התחבורה — היסטוריית כלי רכב פרטיים (1)' : ''),
   };
 
   return Object.fromEntries(Object.entries(mapped).filter(([, v]) => v !== ''));

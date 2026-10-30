@@ -109,6 +109,15 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
       if (!value.vin?.trim() && vin) patchData.vin = vin;
       if (!value.engineNumber?.trim() && engine) patchData.engineNumber = engine;
 
+      // Extract last test mileage if available in gov vehicle history
+      const testKm = raw.kilometer_test_aharon != null && raw.kilometer_test_aharon !== '' ? String(raw.kilometer_test_aharon).trim() : '';
+      const testDt = formatGovDateForInput(raw.mivchan_acharon_dt || raw.test_date);
+      const testSrc = (raw.test_source as string) || (testKm ? 'משרד התחבורה — היסטוריית כלי רכב פרטיים (1)' : '');
+
+      if (testKm) patchData.testMileage = testKm;
+      if (testDt) patchData.testDate = testDt;
+      if (testSrc) patchData.testSource = testSrc;
+
       // Adapt carType if not manually picked or is standard default
       if (vehicleType) {
         if (vehicleType.includes('משא') || vehicleType.includes('כבד')) {
@@ -121,7 +130,12 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
       }
 
       patch(patchData);
-      setGovStatus({ type: 'ok', message: '✓ פרטי הרכב נמשכו בהצלחה ממשרד התחבורה' });
+      setGovStatus({
+        type: 'ok',
+        message: testKm
+          ? `✓ פרטי הרכב נמשכו בהצלחה ממשרד התחבורה (קילומטראז׳ בטסט: ${Number(testKm).toLocaleString()} ק״מ${testDt ? ` ב-${testDt}` : ''})`
+          : '✓ פרטי הרכב נמשכו בהצלחה ממשרד התחבורה',
+      });
     } catch (err) {
       const msg = err instanceof GovVehicleLookupError ? err.message : 'שגיאה בחיבור למשרד התחבורה';
       setGovStatus({ type: 'err', message: msg });
@@ -296,6 +310,59 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           <Field id="in_road_date" label="עלייה לכביש"><input className="fi" id="in_road_date" type="date" value={value.roadDate || ''} onChange={(e) => set('roadDate', e.target.value)} /></Field>
           <Field id="in_baalut" label="סוג בעלות (רישוי)"><input className="fi" id="in_baalut" value={value.ownershipType || ''} onChange={(e) => set('ownershipType', e.target.value)} placeholder="פרטי / ליסינג / חברה" /></Field>
           <Field id="in_owner" label="שם בעל הרכב"><input className="fi" id="in_owner" data-testid="intake-vehicle-owner" value={value.vehicleOwnerName} onChange={(e) => set('vehicleOwnerName', e.target.value)} placeholder="אם שונה מהמבוטח" /></Field>
+          {/* קילומטראז' בטסט האחרון (שליפה ממאגר משרד התחבורה) */}
+          <div className="fg" data-testid="field-test-mileage-group">
+            <div className="fl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span>קילומטראז׳ בטסט האחרון</span>
+              {value.testMileage && !value.mileage && (
+                <button
+                  type="button"
+                  className="btn btn-g btn-sm"
+                  style={{ fontSize: '0.72rem', padding: '1px 8px', height: 22, cursor: 'pointer', fontWeight: 600 }}
+                  onClick={() => set('mileage', value.testMileage)}
+                  title="העתק קילומטראז' מהטסט לקילומטראז' נוכחי"
+                  data-testid="btn-copy-test-mileage"
+                >
+                  📋 העתק לנוכחי
+                </button>
+              )}
+            </div>
+            <div
+              className="fi"
+              style={{
+                backgroundColor: 'var(--bg2, #f8fafc)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                minHeight: 40,
+                padding: '6px 10px',
+                border: '1px solid var(--bdr, #cbd5e1)',
+                borderRadius: 6,
+              }}
+              data-testid="intake-test-mileage-display"
+            >
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: value.testMileage ? 'var(--t1, #0f172a)' : 'var(--t3, #64748b)' }}>
+                {value.testMileage ? `${Number(value.testMileage).toLocaleString()} ק״מ` : 'לא מדווח במאגר'}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--t3, #64748b)', marginTop: 2 }}>
+                {value.testMileage
+                  ? `מקור: ${value.testSource || 'משרד התחבורה (היסטוריית כלי רכב 1)'}${value.testDate ? ` · מועד הטסט: ${value.testDate}` : ''}`
+                  : 'אין קריאת נסועה היסטורית במאגר עבור רכב זה'}
+              </div>
+            </div>
+          </div>
+          {/* קילומטראז' נוכחי (הזנה / תיקון ידני עבור התביעה) */}
+          <Field id="in_mileage" label="קילומטראז׳ נוכחי (במועד האירוע)">
+            <input
+              className="fi"
+              id="in_mileage"
+              data-testid="intake-current-mileage"
+              inputMode="numeric"
+              value={value.mileage || ''}
+              onChange={(e) => set('mileage', e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder={value.testMileage ? `נמדד בטסט: ${Number(value.testMileage).toLocaleString()}` : 'הזן קילומטראז׳ נוכחי ידנית'}
+            />
+          </Field>
           <label className="pick-row"><input type="checkbox" checked={value.driverDifferent === 'true'} onChange={(e) => set('driverDifferent', e.target.checked ? 'true' : 'false')} /><span>הנהג בזמן התאונה שונה מהלקוח</span></label>
         </div>
       )}

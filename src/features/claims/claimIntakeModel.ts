@@ -55,7 +55,10 @@ export const ACCIDENT_NOTICE_FIELDS: Array<{
   { key: 'carColor', formLabel: 'צבע רכב', section: 'א. רכב', reuse: true, autofill: 'carColor' },
   { key: 'vin', formLabel: 'מספר שלדה (VIN)', section: 'א. רכב', reuse: true, autofill: 'vin' },
   { key: 'engineNumber', formLabel: 'דגם מנוע', section: 'א. רכב', reuse: true, autofill: 'engineNumber' },
-  { key: 'mileage', formLabel: 'קילומטראז׳', section: 'א. רכב', reuse: true, autofill: 'mileage' },
+  { key: 'mileage', formLabel: 'קילומטראז׳ נוכחי', section: 'א. רכב', reuse: true, autofill: 'mileage' },
+  { key: 'testMileage', formLabel: "קילומטראז' בטסט האחרון", section: 'א. רכב', reuse: true, autofill: 'testMileage' },
+  { key: 'testDate', formLabel: 'מועד הטסט האחרון', section: 'א. רכב', reuse: true, autofill: 'testDate' },
+  { key: 'testSource', formLabel: 'מקור נתוני טסט ונסועה', section: 'א. רכב', reuse: true, autofill: 'testSource' },
   { key: 'prevOwners', formLabel: 'מספר בעלויות קודמות (יד)', section: 'א. רכב', reuse: true, autofill: 'prevOwners' },
   { key: 'basicPrice', formLabel: 'מחיר מחירון בסיסי', section: 'א. רכב', reuse: true, autofill: 'basicPrice' },
   { key: 'weightedPrice', formLabel: 'שווי רכב משוקלל', section: 'א. רכב', reuse: true, autofill: 'weightedPrice' },
@@ -132,7 +135,7 @@ export const EMPTY_INTAKE: IntakeDraft = {
   clientName: '', clientPhone: '', clientEmail: '', clientId: '', clientAddress: '', clientZip: '',
   plate: '', carMake: '', carModel: '', carYear: '', carType: 'פרטי',
   ramatGimur: '', roadDate: '', ownershipType: '', fuelType: '', carColor: '', vin: '', engineNumber: '',
-  mileage: '', prevOwners: '', basicPrice: '', weightedPrice: '', valuationDate: '', valuationSource: '',
+  mileage: '', testMileage: '', testDate: '', testSource: '', prevOwners: '', basicPrice: '', weightedPrice: '', valuationDate: '', valuationSource: '',
   insCompany: '', insType: '', policyNum: '', claimNum: '', claimKind: CLAIM_KINDS[0],
   driverDifferent: 'false', driverName: '', driverId: '', driverPhone: '', driverLicense: '',
   driverLicenseType: '', driverLicenseValid: '', driverLicenseYear: '', driverBirthDate: '',
@@ -196,6 +199,9 @@ export function intakeFromClaim(c: Record<string, string>): IntakeDraft {
   next.vin = firstFilled(c.vin, c.misgeret, next.vin);
   next.engineNumber = firstFilled(c.engineNumber, c.degem_manoa, next.engineNumber);
   next.mileage = firstFilled(c.mileage, c.current_km, next.mileage);
+  next.testMileage = firstFilled(c.testMileage, c.test_mileage, c.kilometer_test_aharon, next.testMileage);
+  next.testDate = firstFilled(c.testDate, c.test_date, c.mivchan_acharon_dt, next.testDate);
+  next.testSource = firstFilled(c.testSource, c.test_source, next.testSource);
   next.prevOwners = firstFilled(c.prevOwners, c.prev_owners, next.prevOwners);
   next.basicPrice = firstFilled(c.basicPrice, c.basic_price, next.basicPrice);
   next.weightedPrice = firstFilled(c.weightedPrice, c.weighted_price, next.weightedPrice);
