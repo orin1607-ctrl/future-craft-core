@@ -810,6 +810,8 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const conn = await loadConnection(sb);
     const { count: selfTestCount } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("kind", "self_test");
     const sendEnabled = await isSendEnabled(sb);
+    const { data: pausedRow } = await sb.from("claims_config").select("value").eq("key", "GMAIL_SYNC_PAUSED").maybeSingle();
+    const syncPaused = pausedRow?.value === "true";
     const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
     const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
     const lastScanAt = lastMs && Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null;
@@ -863,7 +865,41 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         lastScanAt,
         nextDueAt: lastScanAt ? new Date(lastMs + MAILBOX_SCAN_EVERY_MS).toISOString() : new Date().toISOString(),
         dueNow: !lastScanAt || Date.now() - lastMs >= MAILBOX_SCAN_EVERY_MS,
+        paused: syncPaused,
       },
+    });
+  }
+
+  if (action === "pause_sync") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only", realEmailSend: false }, 403);
+    await sb.from("claims_config").upsert({ key: "GMAIL_SYNC_PAUSED", value: "true", updated_at: new Date().toISOString() });
+    return jsonResponse({
+      success: true,
+      paused: true,
+      reason: "sync_paused_by_admin",
+      message: "Gmail inbox background sync is explicitly paused on STAGING.",
+      realEmailSend: false,
+      mailboxMutated: false,
+    });
+  }
+
+  if (action === "resume_sync") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only", realEmailSend: false }, 403);
+    if (body.confirm_resume !== true || body.confirmation_token !== "AUTHORIZE_RESUME_GMAIL_SYNC") {
+      return jsonResponse({
+        success: false,
+        error: "explicit_authorization_required",
+        message: "ביטול השהיית הסנכרון דורש אישור מפורש של מנהל מורשה עם confirmation_token='AUTHORIZE_RESUME_GMAIL_SYNC'.",
+        realEmailSend: false,
+      }, 400);
+    }
+    await sb.from("claims_config").upsert({ key: "GMAIL_SYNC_PAUSED", value: "false", updated_at: new Date().toISOString() });
+    return jsonResponse({
+      success: true,
+      paused: false,
+      message: "Gmail inbox background sync is resumed on STAGING.",
+      realEmailSend: false,
+      mailboxMutated: false,
     });
   }
 
@@ -1185,6 +1221,26 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       mailboxMutated: false,
       realEmailSend: false,
     });
+  }
+
+  if (action === "scan_inbox") {
+    const { data: pausedConfig } = await sb.from("claims_config").select("value").eq("key", "GMAIL_SYNC_PAUSED").maybeSingle();
+    if (pausedConfig?.value === "true") {
+      const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        paused: true,
+        blocked: true,
+        reason: "sync_paused_by_admin",
+        error: "sync_strictly_paused",
+        note: "חסימת סנכרון מוחלטת פעילה (GMAIL_SYNC_PAUSED=true). לא ניתן לעקוף חסימה זו (כולל force=true) עד לביטול מפורש ע״י מנהל מורשה בלבד.",
+        lastScanAt: stamp?.value ? String(stamp.value) : null,
+        scheduler: Boolean(systemScheduler),
+        mailboxMutated: false,
+        realEmailSend: false,
+      });
+    }
   }
 
   if (action === "scan_inbox" && systemScheduler && body.force !== true) {

@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-10-30T10:53:13.196Z",
+  "projectRef": "usfeoerkpcafxxlyuldl",
+  "environment": "STAGING ONLY (usfeoerkpcafxxlyuldl)",
+  "notProduction": true,
+  "claims_config": [
+    {
+      "key": "VERSION",
+      "value": "4.0-oren-car",
+      "updated_at": "2026-08-31T09:46:35.482609+00:00"
+    },
+    {
+      "key": "INITIALIZED",
+      "value": "true",
+      "updated_at": "2026-08-31T09:46:35.482609+00:00"
+    },
+    {
+      "key": "GMAIL_PENDING",
+      "value": "true",
+      "updated_at": "2026-08-31T09:46:35.482609+00:00"
+    },
+    {
+      "key": "GMAIL_ALLOWED_ACCOUNT",
+      "value": "yoni122222@gmail.com",
+      "updated_at": "2026-08-31T13:01:20.255362+00:00"
+    },
+    {
+      "key": "CUSTOMER_REQUEST_TEMPLATES",
+      "value": "[{\"id\":\"tpl-affidavit-insurer\",\"name\":\"תצהיר לחברת ביטוח\",\"kind\":\"affidavit\",\"letterTo\":\"{{insCompany}}\",\"letterSubject\":\"תצהיר — תביעה {{claimNum}} / רכב {{plate}}\",\"letterBody\":\"אני הח״מ {{clientName}}, בעל/ת הרכב שמספרו {{plate}}, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום {{eventDate}} נכונים ומדויקים.\\n\\nהנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף פעולה לצורך בירור התביעה.\\n\\nולראיה באתי על החתום.\",\"needsSignature\":true,\"builtin\":true},{\"id\":\"tpl-demand-insurer\",\"name\":\"דרישה לחברת ביטוח\",\"kind\":\"free\",\"letterTo\":\"{{insCompany}}\",\"letterSubject\":\"דרישה — תביעה {{claimNum}} / {{clientName}} / {{plate}}\",\"letterBody\":\"הנדון: דרישה להמשך טיפול / תשלום בגין תביעה {{claimNum}}.\\n\\nמבוטח: {{clientName}}\\nרכב: {{plate}}\\nאירוע: {{eventDate}}\\n\\nנודה לקבלת עדכון מנומק ולהשלמת הטיפול בהקדם.\",\"needsSignature\":false,\"builtin\":true},{\"id\":\"tpl-client-declaration\",\"name\":\"אישור / הצהרת לקוח\",\"kind\":\"sign_doc\",\"letterTo\":\"{{clientName}}\",\"letterSubject\":\"הצהרת לקוח — תביעה {{claimNum}}\",\"letterBody\":\"שלום {{clientName}},\\n\\nנא לקרוא את ההצהרה שלהלן, לחתום במקום המיועד ולהחזיר בקישור.\\n\\nאני מאשר/ת כי הפרטים שנמסרו בקשר לתביעה {{claimNum}} (רכב {{plate}}) נכונים, וכי ידוע לי שהמסמך ישמר בתיק התביעה.\",\"needsSignature\":true,\"builtin\":true},{\"id\":\"tpl-missing-doc\",\"name\":\"בקשת מסמך חסר\",\"kind\":\"send_doc\",\"letterTo\":\"{{clientName}}\",\"letterSubject\":\"תביעה {{claimNum}} — מסמך חסר\",\"letterBody\":\"שלום {{clientName}},\\n\\nבהמשך לתביעה {{claimNum}} עבור רכב {{plate}}, נבקש להעלות בקישור את המסמך החסר.\\n\\nתודה על שיתוף הפעולה.\",\"needsSignature\":false,\"builtin\":true},{\"id\":\"tpl-1788954822160\",\"name\":\"QA תצהיר 1788954756189\",\"kind\":\"affidavit\",\"letterTo\":\"מגדל\",\"letterSubject\":\"תצהיר — תביעה  / רכב 12-345-67\",\"letterBody\":\"אני הח״מ QA Three Affidavit, בעל/ת הרכב שמספרו 12-345-67, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום  נכונים ומדויקים.\\n\\nהנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף פעולה לצורך בירור התביעה.\\n\\nולראיה באתי על החתום.\",\"needsSignature\":true,\"builtin\":false},{\"id\":\"tpl-1788955014436\",\"name\":\"QA תצהיר 1788954941821\",\"kind\":\"affidavit\",\"letterTo\":\"מגדל\",\"letterSubject\":\"תצהיר — תביעה  / רכב 12-345-67\",\"letterBody\":\"אני הח״מ QA Three Affidavit, בעל/ת הרכב שמספרו 12-345-67, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום  נכונים ומדויקים.\\n\\nהנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף פעולה לצורך בירור התביעה.\\n\\nולראיה באתי על החתום.\",\"needsSignature\":true,\"builtin\":false},{\"id\":\"tpl-1788955172747\",\"name\":\"QA תצהיר 1788955102856\",\"kind\":\"affidavit\",\"letterTo\":\"מגדל\",\"letterSubject\":\"תצהיר — תביעה  / רכב 12-345-67\",\"letterBody\":\"אני הח״מ QA Three Affidavit, בעל/ת הרכב שמספרו 12-345-67, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום  נכונים ומדויקים.\\n\\nהנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף פעולה לצורך בירור התביעה.\\n\\nולראיה באתי על החתום.\",\"needsSignature\":true,\"builtin\":false},{\"id\":\"tpl-1788955406271\",\"name\":\"QA תצהיר 1788955315894\",\"kind\":\"affidavit\",\"letterTo\":\"מגדל\",\"letterSubject\":\"תצהיר — תביעה  / רכב 12-345-67\",\"letterBody\":\"אני הח״מ QA Three Affidavit, בעל/ת הרכב שמספרו 12-345-67, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום  נכונים ומדויקים.\\n\\nהנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף פעולה לצורך בירור התביעה.\\n\\nולראיה באתי על החתום.\",\"needsSignature\":true,\"builtin\":false},{\"id\":\"tpl-1788959186126\",\"name\":\"שם\",\"kind\":\"send_doc\",\"letterTo\":\"אליהו אטיאס\",\"letterSubject\":\"תביעה 1260010522488 — בקשה\",\"letterBody\":\"שלום אליהו אטיאס,\\n\\nבהמשך לתביעה 1260010522488 עבור רכב 63292003, נבקש להשלים את המבוקש בקישור.\\n\\nבברכה,\\nדליה ניהול תביעות\",\"needsSignature\":false}]",
+      "updated_at": "2026-09-09T13:06:29.511+00:00"
+    },
+    {
+      "key": "GMAIL_SEND_ENABLED",
+      "value": "true",
+      "updated_at": "2026-09-01T05:06:06.249108+00:00"
+    },
+    {
+      "key": "MAIL_DISPATCH_MODE",
+      "value": "dry_run",
+      "updated_at": "2026-09-01T05:06:06.249108+00:00"
+    },
+    {
+      "key": "GMAIL_INBOX_LAST_SCAN_AT",
+      "value": "2026-10-25T05:20:06.881Z",
+      "updated_at": "2026-10-25T05:20:06.881+00:00"
+    },
+    {
+      "key": "CLAIM_COUNTER",
+      "value": "275",
+      "updated_at": "2026-10-26T08:53:03.800475+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_FROM",
+      "value": "2026-10-14 18:40:20.897499+00",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_BACKLOG",
+      "value": "false",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_MAX_PER_RUN",
+      "value": "3",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_ONLY_CLAIMS",
+      "value": "DAL-QA-AI-001",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_OCR",
+      "value": "true",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    },
+    {
+      "key": "CLAIMS_DOC_READ_ENABLED",
+      "value": "true",
+      "updated_at": "2026-10-14T18:40:20.897499+00:00"
+    }
+  ],
+  "claims_gmail_connection": [
+    {
+      "id": "staging",
+      "connected_email": "yoni122222@gmail.com",
+      "scopes": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.compose https://www.googleapis.com/auth/gmail.readonly openid",
+      "last_ok_at": "2026-10-25T06:24:44.896+00:00",
+      "revoked_at": null,
+      "connected_at": "2026-10-18T06:47:32.306+00:00"
+    }
+  ],
+  "counts": {
+    "claims_gmail_imports": 460,
+    "claims_gmail_pending": 284
+  }
+}
