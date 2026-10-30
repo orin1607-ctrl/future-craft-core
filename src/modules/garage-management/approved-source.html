@@ -1074,7 +1074,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <!-- חזרה למסך הניהול -->
 <!-- ================= SCREEN: CASE HUB ================= -->
 <section class="screen" id="s-case">
-  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1 id="case-topbar-title">תיק עבודה</h1><div class="sub" id="case-topbar-sub" data-live="case-sub">תיק חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
+  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1 id="case-topbar-title">תיק עבודה</h1><div class="sub" id="case-topbar-sub" data-live="case-sub">תיק חדש</div></div><button type="button" class="dash-home-btn" id="topbar-parts-catalog-btn" data-testid="garage-topbar-parts-catalog-btn" onclick="window.open('https://otocar.co.il/main.aspx', '_blank', 'noopener,noreferrer')" style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-color:#d97706; color:#ffffff; font-weight:700; margin-inline-start:auto; margin-inline-end:8px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="מאגר החלפים – מחירון חלקים (פתיחה בלשונית חדשה)"><span>🔩 מחירון חלקים</span></button><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content case-content" id="case-content">
   <div class="case-desk">
   <aside class="case-desk-side">
@@ -1087,6 +1087,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <span class="metapill" id="case-worker-pill">עובד</span>
       <span class="metapill" id="case-opened-pill">נפתח</span>
       <span class="metapill" id="case-order-pill">הזמנה: —</span>
+    </div>
+    <div class="case-head-actions" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+      <button type="button" class="btn btn-ghost" id="case-parts-catalog-btn" data-testid="garage-parts-catalog-btn" onclick="window.open('https://otocar.co.il/main.aspx', '_blank', 'noopener,noreferrer')" style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#fff; font-weight:700; border:none; width:100%; justify-content:center; padding:12px 14px; border-radius:12px; font-size:14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;" title="מאגר החלפים – מחירון חלקים (פתיחה בלשונית חדשה)">
+        <span>🔩 מאגר החלפים – מחירון חלקים</span>
+      </button>
     </div>
     <button type="button" class="dash-home-btn" id="case-back-btn" data-testid="case-back-btn" onclick="returnToGarageDashboard()" style="margin: 10px 0 0; width: 100%; justify-content: center;">← חזרה לדשבורד</button>
     <div class="pending-banner" id="book-pending-banner-case">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
@@ -1136,6 +1141,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="act-tile locked" id="tile-intake" onclick="tryIntake()"><div class="ic">🚗</div><div class="lb">קבלת רכב</div><div class="sub" id="tile-intake-sub">נעול עד אישור</div></div>
     <div class="act-tile" onclick="go('s-finish')"><div class="ic">✅</div><div class="lb">סיום עבודה / סגירת רכב</div><div class="sub" id="tile-finish-sub">4 תמונות + מחיר מאושר</div></div>
     <div class="act-tile" onclick="go('s-timeline')"><div class="ic">🕓</div><div class="lb">היסטוריה</div><div class="sub" id="tile-hist-sub">0 אירועים</div></div>
+    <div class="act-tile" data-testid="garage-tile-parts-catalog" onclick="window.open('https://otocar.co.il/main.aspx', '_blank', 'noopener,noreferrer')" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.4);">
+      <div class="ic">🔩</div>
+      <div class="lb">מאגר החלפים – מחירון חלקים</div>
+      <div class="sub">פתיחה בלשונית חדשה</div>
+    </div>
   </div>
   <div class="section-label">מסמכים לרכב בתיק זה</div>
   <div class="vehicle-docs-card" id="vehicle-docs-card">

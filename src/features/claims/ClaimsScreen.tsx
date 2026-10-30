@@ -4160,6 +4160,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   type="button"
                   className="ab-btn ab-pri"
                   style={{
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  data-testid="claims-parts-catalog-btn"
+                  onClick={() => {
+                    setCardMore(false);
+                    window.open('https://otocar.co.il/main.aspx', '_blank', 'noopener,noreferrer');
+                  }}
+                  title="מאגר החלפים – מחירון חלקים (פתיחה בלשונית חדשה)"
+                >
+                  <span>🔩 מאגר החלפים – מחירון חלקים</span>
+                </button>
+                <button
+                  type="button"
+                  className="ab-btn ab-pri"
+                  style={{
                     background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
                     color: '#fff',
                     display: 'inline-flex',
