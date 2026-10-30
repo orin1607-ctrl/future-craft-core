@@ -12,7 +12,7 @@
 .claims-root .claims-ai-workspace {
   position: fixed;
   inset: 0;
-  z-index: 6000;
+  z-index: 10000 !important;
   background: var(--bg);
   color: var(--t);
   display: grid;
@@ -384,7 +384,7 @@
     flex-direction: column !important;
     overflow: hidden !important;
     overscroll-behavior: none !important;
-    z-index: 6000 !important;
+    z-index: 10000 !important;
   }
   .claims-root .claims-ai-side { display: none; }
   .claims-root .claims-ai-workspace.show-list .claims-ai-side { display: flex; position: absolute; inset: 0; z-index: 7000; }
