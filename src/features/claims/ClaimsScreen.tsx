@@ -4415,6 +4415,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>מקור המידע</div>
                       <div style={{ fontSize: 12, fontWeight: 600 }}>{cur.valuationSource || '—'}</div>
                     </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>צילום מחירון מאומת</div>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>
+                        {cur.leviYitzhakImageUrl ? (
+                          <button
+                            type="button"
+                            className="btn btn-g btn-sm"
+                            style={{ fontSize: 11, padding: '2px 8px', marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => setLeviYitzhakOpen(true)}
+                            data-testid="claims-view-levi-photo-btn"
+                          >
+                            <span>📎</span>
+                            <span>צפה בצילום שמור</span>
+                          </button>
+                        ) : 'טרם צורף'}
+                      </div>
+                    </div>
 
                     {(cur.repairCalcPolicyAmount || cur.repairCalcThirdAmount) && (
                       <>
@@ -7502,7 +7519,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           api={apiRef.current}
           onClose={() => setLeviYitzhakOpen(false)}
           onSaved={async (updated) => {
-            setCur(updated);
+            setClaims((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
             await loadAll();
             await loadCardData(updated.id);
           }}

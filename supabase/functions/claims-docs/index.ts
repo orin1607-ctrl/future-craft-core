@@ -242,12 +242,14 @@ const STAFF_TYPES = new Set([
   "signed_form",
   "declaration_form",
   "insurance_package",
+  "levi_itzhak",
 ]);
 
 const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
   notice_a: "notice_a",
   notice_ayin: "notice_ayin",
   no_claim_form: "no_claim_form",
+  levi_itzhak: "levi_itzhak",
   insurance_history: "insurance_history",
   consent_form: "consent_form",
   check_photo: "check_photo",
@@ -1640,6 +1642,148 @@ Deno.serve(async (req) => {
         file_id: fileId,
         text: ocrResult.text,
         kind: ocrResult.kind,
+        doc_meta: nextMeta,
+      });
+    }
+
+    if (action === "extract_levi_itzhak") {
+      const claimId = String(body.claim_id || "").trim();
+      const fileId = String(body.file_id || "").trim();
+      if (!claimId || !fileId) return jsonResponse({ success: false, error: "claim_id_and_file_id_required" }, 400);
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+
+      const geminiKey = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+      if (!geminiKey) return jsonResponse({ success: false, error: "gemini_key_missing" }, 500);
+
+      const { data: file } = await sb.from("claims_documents")
+        .select("id, claim_id, original_name, storage_path, mime_type, byte_size, doc_meta")
+        .eq("id", fileId)
+        .eq("claim_id", claimId)
+        .maybeSingle();
+
+      if (!file || !file.storage_path) return jsonResponse({ success: false, error: "file_not_found" }, 404);
+
+      const { data: fileBlob, error: dlErr } = await sb.storage.from(BUCKET).download(file.storage_path);
+      if (dlErr || !fileBlob) {
+        return jsonResponse({ success: false, error: dlErr?.message || "download_failed" }, 500);
+      }
+
+      const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
+      const mime = String(file.mime_type || "").toLowerCase();
+      const isImg = /^image\//.test(mime) || /\.(jpe?g|png|webp|heic)$/i.test(file.original_name);
+      const ocrMime = isImg ? (mime && mime.startsWith("image/") ? mime : "image/jpeg") : "application/pdf";
+
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < fileBytes.length; i += chunk) {
+        binary += String.fromCharCode(...fileBytes.subarray(i, i + chunk));
+      }
+      const b64 = btoa(binary);
+
+      const prompt = [
+        "You are an expert AI parser for Israeli vehicle price list reports (מחירון לוי יצחק) and app screenshots in Hebrew.",
+        "Analyze the provided image and extract all vehicle specifications, valuation numbers, mileage, ownership history, and price adjustments.",
+        "Return ONLY a valid JSON object with the following fields (leave empty string if not explicitly visible):",
+        "- plate: license plate number (e.g. '74-111-401' or '74111401')",
+        "- carMake: vehicle manufacturer in Hebrew (e.g. 'אאודי', 'טויוטה', 'קיה')",
+        "- carModel: vehicle model and submodel (e.g. 'Q7 E-TRON', 'קורולה')",
+        "- carYear: 4-digit manufacture year (e.g. '2019')",
+        "- ramatGimur: trim or finish level (e.g. 'PREMIUM', 'GLI')",
+        "- roadDate: month/date of registration / עלייה לכביש (e.g. '03/2019' or '2019-03-31')",
+        "- ownershipType: ownership type in Hebrew (e.g. 'פרטי', 'ליסינג', 'חברה', 'השכרה')",
+        "- mileage: mileage in km as plain numeric string without commas (e.g. '196953')",
+        "- prevOwners: number of previous owners / יד as numeric string (e.g. '0' for יד ראשונה, '1' for יד 2)",
+        "- basicPrice: base catalog price in NIS as plain numeric string without currency symbols or commas (e.g. '145000')",
+        "- additionsDeductions: summary of adjustments, additions, and deductions (e.g. 'קילומטראז 3%-, בעלות פרטית')",
+        "- weightedPrice: final weighted price in NIS / שווי משוקלל as plain numeric string without currency symbols or commas (e.g. '141000')",
+        "- valuationDate: date of valuation / calculation (e.g. '30/10/2026')",
+        "- valuationSource: 'מחירון לוי יצחק'",
+        "- rawText: full transcribed text of the document",
+      ].join("\n");
+
+      const geminiBody = {
+        contents: [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: ocrMime, data: b64 } },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
+        },
+      };
+
+      const candidateModels = [
+        Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL"),
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-flash",
+        "gemini-3.8-flash",
+      ].filter(Boolean) as string[];
+
+      let extractedData: Record<string, string> = {};
+      let fullRawText = "";
+
+      for (const m of candidateModels) {
+        try {
+          const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+            body: JSON.stringify(geminiBody),
+          });
+          const gJson = await gRes.json().catch(() => ({}));
+          if (!gRes.ok || gJson.error) continue;
+          const textCandidate = gJson?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("").trim();
+          if (textCandidate) {
+            try {
+              extractedData = JSON.parse(textCandidate);
+            } catch {
+              const jsonStart = textCandidate.indexOf("{");
+              const jsonEnd = textCandidate.lastIndexOf("}");
+              if (jsonStart !== -1 && jsonEnd !== -1) {
+                extractedData = JSON.parse(textCandidate.slice(jsonStart, jsonEnd + 1));
+              }
+            }
+            fullRawText = extractedData.rawText || textCandidate;
+            break;
+          }
+        } catch {
+          // try next model
+        }
+      }
+
+      if (!extractedData || Object.keys(extractedData).length === 0) {
+        const model = Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || OCR_DEFAULT_MODEL || "gemini-2.0-flash";
+        const ocrEngine = geminiOcr(geminiKey, model);
+        const ocrRes = await ocrEngine(fileBytes, ocrMime).catch(() => ({ text: "", kind: "document" as const }));
+        fullRawText = ocrRes.text;
+      }
+
+      const prevMeta = (file.doc_meta && typeof file.doc_meta === "object") ? (file.doc_meta as Record<string, unknown>) : {};
+      const nextMeta = {
+        ...prevMeta,
+        read_text: fullRawText,
+        read_status: "ready",
+        read_source: "gemini_levi_itzhak_ai",
+        read_at: new Date().toISOString(),
+        levi_itzhak_data: extractedData,
+      };
+
+      await sb.from("claims_documents")
+        .update({ doc_meta: nextMeta })
+        .eq("id", fileId)
+        .eq("claim_id", claimId);
+
+      await history(sb, claimId, "פענוח AI למחירון לוי יצחק", `שווי משוקלל: ₪${extractedData.weightedPrice || "טרם חושב"} · בסיס: ₪${extractedData.basicPrice || "—"}`, actorName);
+
+      return jsonResponse({
+        success: true,
+        file_id: fileId,
+        data: extractedData,
+        rawText: fullRawText,
         doc_meta: nextMeta,
       });
     }

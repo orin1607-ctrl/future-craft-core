@@ -1,6 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { ClaimRecord, ClaimsApi } from './claimsService';
-import { extractClaimDocumentText } from './claimDocumentRead';
 import {
   calculateRepairAmount,
   checkPlateMatch,
@@ -31,10 +30,17 @@ export default function LeviYitzhakModal({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>(claim.leviYitzhakImageUrl || '');
+  const [uploadedFileId, setUploadedFileId] = useState<string>(claim.leviYitzhakImageUrl || '');
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [plateWarning, setPlateWarning] = useState<string>('');
+  const [ocrError, setOcrError] = useState<string>('');
+  const [ocrSuccess, setOcrSuccess] = useState<string>('');
+
+  // Existing claim documents for Option 3 (Pick from claim files)
+  const [claimDocs, setClaimDocs] = useState<Array<{ id: string; original_name: string; mime_type: string }>>([]);
+  const [showDocPicker, setShowDocPicker] = useState(false);
 
   // Editable vehicle & valuation fields
   const [plate, setPlate] = useState(claim.plate || '');
@@ -83,21 +89,36 @@ export default function LeviYitzhakModal({
       setThirdPct(claim.repairCalcThirdPct || '');
       setShowInQuote(claim.showRepairInQuote === 'true');
       setQuoteRoute((claim.quoteRepairRoute as 'policy' | 'third_party') || 'policy');
+      setSelectedFile(null);
+      setPlateWarning('');
+      setOcrError('');
+      setOcrSuccess('');
+      setShowDocPicker(false);
+
       const initialImage = claim.leviYitzhakImageUrl || claim.leviYitzhakDocId || '';
+      setUploadedFileId(initialImage);
+
       if (initialImage.startsWith('http') || initialImage.startsWith('blob:') || initialImage.startsWith('data:')) {
         setPreviewUrl(initialImage);
       } else if (initialImage) {
         setPreviewUrl('');
         api.invokeDocs('signed_url', { claim_id: claim.id, file_id: initialImage })
           .then((res: any) => {
-            if (res?.url) setPreviewUrl(res.url);
+            if (res?.signed_url || res?.url) setPreviewUrl(res.signed_url || res.url);
           })
           .catch(() => {});
       } else {
         setPreviewUrl('');
       }
-      setSelectedFile(null);
-      setPlateWarning('');
+
+      // Load existing claim documents for Option 3 (Pick from gallery)
+      api.invokeDocs('list_docs', { claim_id: claim.id })
+        .then((res: any) => {
+          if (res?.files && Array.isArray(res.files)) {
+            setClaimDocs(res.files);
+          }
+        })
+        .catch(() => {});
     }
   }, [open, claim]);
 
@@ -106,8 +127,6 @@ export default function LeviYitzhakModal({
   const thirdAmount = calculateRepairAmount(weightedPrice, thirdPct);
 
   // Open Levi Itzhak Android App directly to the search-by-plate screen
-  // Uses official verified BROWSABLE scheme: leviios://search-by-plate (package: com.levinew.app)
-  // Auto-copies clean vehicle plate to clipboard for 1-tap pasting
   const handleOpenApp = () => {
     const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
     const cleanPlate = (claim.plate || '').replace(/[^0-9]/g, '');
@@ -119,9 +138,6 @@ export default function LeviYitzhakModal({
     }
 
     if (isAndroid) {
-      // Android Chrome Intent with verified BROWSABLE scheme 'leviios' targeting 'search-by-plate' screen
-      // If app is installed: launches directly into search-by-plate screen without Play Store step
-      // If app is not installed: falls back to Google Play Store
       const intentUri =
         'intent://search-by-plate#Intent;scheme=leviios;package=com.levinew.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.levinew.app;end';
       window.location.href = intentUri;
@@ -130,58 +146,150 @@ export default function LeviYitzhakModal({
     }
   };
 
-  // Handle uploaded or dropped file
+  // Run AI extraction on a file stored in Supabase Storage
+  const runExtraction = async (fileId: string) => {
+    setIsProcessing(true);
+    setOcrError('');
+    setOcrSuccess('');
+    setPlateWarning('');
+
+    try {
+      // 1. Try server-side AI extraction (Gemini Vision with Levi Itzhak prompt)
+      const res = await api.invokeDocs('extract_levi_itzhak', {
+        claim_id: claim.id,
+        file_id: fileId,
+      });
+
+      let extracted: LeviYitzhakExtractedData = {};
+
+      if (res?.success && res.data && Object.keys(res.data).length > 0) {
+        extracted = res.data;
+      }
+
+      // 2. If any fields are still missing, try secondary regex parsing on rawText
+      if (res?.rawText) {
+        const regexParsed = parseLeviYitzhakText(res.rawText);
+        extracted = {
+          plate: extracted.plate || regexParsed.plate,
+          carMake: extracted.carMake || regexParsed.carMake,
+          carModel: extracted.carModel || regexParsed.carModel,
+          carYear: extracted.carYear || regexParsed.carYear,
+          ramatGimur: extracted.ramatGimur || regexParsed.ramatGimur,
+          roadDate: extracted.roadDate || regexParsed.roadDate,
+          ownershipType: extracted.ownershipType || regexParsed.ownershipType,
+          mileage: extracted.mileage || regexParsed.mileage,
+          prevOwners: extracted.prevOwners || regexParsed.prevOwners,
+          basicPrice: extracted.basicPrice || regexParsed.basicPrice,
+          additionsDeductions: extracted.additionsDeductions || regexParsed.additionsDeductions,
+          weightedPrice: extracted.weightedPrice || regexParsed.weightedPrice,
+          valuationDate: extracted.valuationDate || regexParsed.valuationDate,
+          valuationSource: extracted.valuationSource || regexParsed.valuationSource || 'מחירון לוי יצחק',
+        };
+      }
+
+      const hasValues = Boolean(
+        extracted.basicPrice ||
+        extracted.weightedPrice ||
+        extracted.plate ||
+        extracted.carModel ||
+        extracted.mileage
+      );
+
+      if (hasValues) {
+        if (extracted.plate) {
+          setPlate(extracted.plate);
+          const check = checkPlateMatch(extracted.plate, claim.plate);
+          if (!check.match && check.warning) {
+            setPlateWarning(check.warning);
+          }
+        }
+        if (extracted.carMake) setCarMake(extracted.carMake);
+        if (extracted.carModel) setCarModel(extracted.carModel);
+        if (extracted.carYear) setCarYear(extracted.carYear);
+        if (extracted.ramatGimur) setRamatGimur(extracted.ramatGimur);
+        if (extracted.roadDate) setRoadDate(extracted.roadDate);
+        if (extracted.ownershipType) setOwnershipType(extracted.ownershipType);
+        if (extracted.mileage) setMileage(extracted.mileage);
+        if (extracted.prevOwners) setPrevOwners(extracted.prevOwners);
+        if (extracted.basicPrice) setBasicPrice(extracted.basicPrice);
+        if (extracted.weightedPrice) setWeightedPrice(extracted.weightedPrice);
+        if (extracted.valuationDate) setValuationDate(extracted.valuationDate);
+        if (extracted.valuationSource) setValuationSource(extracted.valuationSource);
+        if (extracted.additionsDeductions) setAdditionsDeductions(extracted.additionsDeductions);
+
+        setOcrSuccess('נתוני המחירון והרכב חולצו בהצלחה באמצעות AI! אנא בדוק, תקן במידת הצורך, ואשר לשמירה.');
+        toast?.('נתוני המחירון חולצו בהצלחה באמצעות AI', 'ok');
+      } else {
+        setOcrError('הקובץ נשמר בהצלחה בתיק התביעה, אך לא זוהו בו נתוני מחירון ברורים. ניתן להזין את הנתונים ידנית או לנסות חילוץ חוזר.');
+        toast?.('הקובץ נשמר. ניתן להזין את הנתונים ידנית.', 'info');
+      }
+    } catch (err: any) {
+      console.warn('[LeviYitzhak] AI extraction error:', err);
+      const msg = err?.message || 'שגיאת תקשורת עם מנוע ה-AI';
+      setOcrError(`חילוץ ה-AI נתקל בשגיאה (${msg}). התמונה נשמרה בתיק — ניתן להזין את הנתונים ידנית או ללחוץ על "נסה שוב".`);
+      toast?.('הקובץ נשמר בתיק. ניתן להזין את הנתונים ידנית.', 'info');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle newly selected or dropped local file
   const handleProcessFile = async (file: File) => {
     setSelectedFile(file);
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl(localUrl);
     setIsProcessing(true);
     setPlateWarning('');
+    setOcrError('');
+    setOcrSuccess('');
 
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const extracted = await extractClaimDocumentText({
-        bytes,
-        mimeType: file.type,
-        fileName: file.name,
+      // 1. Immediately upload file securely to Supabase Storage with staff_type = 'levi_itzhak'
+      const uploadRes = await api.staffUpload(claim.id, '', file, {
+        staff_type: 'levi_itzhak',
+        staff_title: 'מחירון לוי יצחק',
       });
 
-      if (extracted.text) {
-        const parsed: LeviYitzhakExtractedData = parseLeviYitzhakText(extracted.text);
-
-        // Check plate mismatch
-        if (parsed.plate) {
-          const check = checkPlateMatch(parsed.plate, claim.plate);
-          if (!check.match && check.warning) {
-            setPlateWarning(check.warning);
-          }
-        }
-
-        // Autofill fields without destroying existing user inputs if unparsed
-        if (parsed.plate && !plate) setPlate(parsed.plate);
-        if (parsed.carMake && !carMake) setCarMake(parsed.carMake);
-        if (parsed.carModel && !carModel) setCarModel(parsed.carModel);
-        if (parsed.carYear && !carYear) setCarYear(parsed.carYear);
-        if (parsed.ramatGimur && !ramatGimur) setRamatGimur(parsed.ramatGimur);
-        if (parsed.roadDate && !roadDate) setRoadDate(parsed.roadDate);
-        if (parsed.ownershipType) setOwnershipType(parsed.ownershipType);
-        if (parsed.mileage && !mileage) setMileage(parsed.mileage);
-        if (parsed.prevOwners && !prevOwners) setPrevOwners(parsed.prevOwners);
-        if (parsed.basicPrice) setBasicPrice(parsed.basicPrice);
-        if (parsed.weightedPrice) setWeightedPrice(parsed.weightedPrice);
-        if (parsed.valuationDate) setValuationDate(parsed.valuationDate);
-        if (parsed.valuationSource) setValuationSource(parsed.valuationSource);
-        if (parsed.additionsDeductions) setAdditionsDeductions(parsed.additionsDeductions);
-
-        toast?.('נתוני המחירון נקראו בהצלחה מהקובץ', 'ok');
-      } else {
-        toast?.('הקובץ נטען. לא זוהה טקסט אוטומטי — ניתן להזין את הנתונים ידנית.', 'info');
+      if (!uploadRes.success || !uploadRes.file_id) {
+        throw new Error(uploadRes.error || 'העלאת הקובץ לאחסון נכשלה');
       }
+
+      const fileId = uploadRes.file_id;
+      setUploadedFileId(fileId);
+
+      toast?.('הצילום נשמר באחסון המאובטח של התיק. מפענח באמצעות AI...', 'info');
+
+      // 2. Trigger AI extraction on the stored file
+      await runExtraction(fileId);
     } catch (err: any) {
-      console.warn('[LeviYitzhak] Document read failed, fallback to manual:', err);
-      toast?.('הקובץ נטען. ניתן להמשיך בהזנה ידנית.', 'info');
-    } finally {
+      console.error('[LeviYitzhak] Upload/Process error:', err);
       setIsProcessing(false);
+      setOcrError(`שגיאה בשמירת הקובץ באחסון: ${err?.message || err}. ניתן להזין את הנתונים ידנית.`);
+      toast?.('שגיאה בשמירת התמונה באחסון', 'err');
+    }
+  };
+
+  // Handle picking an existing file already in the claim gallery
+  const handlePickExistingDoc = async (docId: string) => {
+    setShowDocPicker(false);
+    setIsProcessing(true);
+    setUploadedFileId(docId);
+    setSelectedFile(null);
+    setPlateWarning('');
+    setOcrError('');
+    setOcrSuccess('');
+
+    try {
+      const suRes = await api.invokeDocs('signed_url', { claim_id: claim.id, file_id: docId });
+      if (suRes?.signed_url || suRes?.url) {
+        setPreviewUrl(suRes.signed_url || suRes.url);
+      }
+
+      toast?.('המסמך שויך למחירון לוי יצחק. מפענח באמצעות AI...', 'info');
+      await runExtraction(docId);
+    } catch (err: any) {
+      setIsProcessing(false);
+      setOcrError(`שגיאה בטעינת המסמך: ${err?.message || err}`);
     }
   };
 
@@ -197,20 +305,9 @@ export default function LeviYitzhakModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      let finalImageUrl = claim.leviYitzhakImageUrl || '';
+      const finalFileId = uploadedFileId || claim.leviYitzhakImageUrl || '';
 
-      // Upload file to claims storage if newly selected
-      if (selectedFile) {
-        const uploadRes = await api.staffUpload(claim.id, '', selectedFile, {
-          staff_type: 'levi_itzhak',
-          staff_title: 'מחירון לוי יצחק',
-        });
-        if (uploadRes.success && uploadRes.file_id) {
-          finalImageUrl = uploadRes.file_id;
-        }
-      }
-
-      // Build updated claim record
+      // Build updated claim record with all valuation & repair calculator fields
       const updatedData: Record<string, string> = {
         ...claim,
         plate: plate || claim.plate || '',
@@ -227,7 +324,7 @@ export default function LeviYitzhakModal({
         valuationDate: valuationDate || '',
         valuationSource: valuationSource || 'מחירון לוי יצחק',
         leviYitzhakAdditionsDeductions: additionsDeductions || '',
-        leviYitzhakImageUrl: finalImageUrl,
+        leviYitzhakImageUrl: finalFileId,
         repairCalcPolicyPct: policyPct || '',
         repairCalcPolicyAmount: policyAmount ? String(policyAmount) : '',
         repairCalcThirdPct: thirdPct || '',
@@ -248,7 +345,7 @@ export default function LeviYitzhakModal({
         'update'
       );
 
-      toast?.('נתוני מחירון לוי יצחק ושווי משוקלל נשמרו בהצלחה', 'ok');
+      toast?.('נתוני מחירון לוי יצחק והשווי המשוקלל נשמרו בהצלחה בתיק', 'ok');
       onSaved?.(updatedData as unknown as ClaimRecord);
       onClose();
     } catch (err: any) {
@@ -414,7 +511,7 @@ export default function LeviYitzhakModal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, color: '#166534' }}>
                 <span style={{ fontSize: 18 }}>📱</span>
-                <span>פתיחה באפליקציית לוי יצחק (אנדרואיד)</span>
+                <span>פתיחה ישירה באפליקציית לוי יצחק (אנדרואיד)</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <button
@@ -425,7 +522,7 @@ export default function LeviYitzhakModal({
                   data-testid="btn-open-levi-app"
                 >
                   <span>📱</span>
-                  <span>פתח באפליקציית לוי יצחק</span>
+                  <span>פתח באפליקציה</span>
                 </button>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.levinew.app"
@@ -440,9 +537,10 @@ export default function LeviYitzhakModal({
               </div>
             </div>
             <div style={{ fontSize: 11.5, color: '#15803d', lineHeight: 1.5 }}>
-              💡 <strong>איך זה עובד בטלפון:</strong> לחץ על ״פתח באפליקציית לוי יצחק״ ← האפליקציה נפתחת ישירות במסך ״הקלד מספר רישוי״ ומספר הרכב <strong>{claim.plate || 'התביעה'}</strong> מועתק אוטומטית ללוח להדבקה מהירה ← בצע צילום מסך של המחירון בחינם ← העלה או שתף אותו כאן לדליה לחילוץ אוטומטי של המחירון והשקלול!
+              💡 <strong>איך זה עובד:</strong> לחיצה על ״פתח באפליקציה״ תפתח ישירות את אפליקציית לוי יצחק המותקנת בטלפון ומספר הרכב <strong>{claim.plate || 'התביעה'}</strong> מועתק אוטומטית ללוח להדבקה קלה ← בצע צילום מסך של המחירון ← העלה אותו כאן לחילוץ נתונים אוטומטי ב-AI ושמירה מאובטחת!
             </div>
           </div>
+
           {/* Plate Mismatch Alert */}
           {plateWarning && (
             <div
@@ -465,6 +563,66 @@ export default function LeviYitzhakModal({
             </div>
           )}
 
+          {/* AI Success Banner */}
+          {ocrSuccess && (
+            <div
+              style={{
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #86efac',
+                color: '#166534',
+                padding: '10px 14px',
+                borderRadius: 8,
+                fontSize: 12.5,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+              data-testid="levi-ocr-success-banner"
+            >
+              <span>✓</span>
+              <span>{ocrSuccess}</span>
+            </div>
+          )}
+
+          {/* AI Error / Notice Banner */}
+          {ocrError && (
+            <div
+              style={{
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
+                padding: '10px 14px',
+                borderRadius: 8,
+                fontSize: 12.5,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+              data-testid="levi-ocr-error-banner"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>ℹ️</span>
+                <span>{ocrError}</span>
+              </div>
+              {uploadedFileId && (
+                <button
+                  type="button"
+                  className="btn btn-p btn-sm"
+                  onClick={() => void runExtraction(uploadedFileId)}
+                  disabled={isProcessing}
+                  style={{ fontSize: 11.5, padding: '2px 8px' }}
+                  data-testid="btn-retry-levi-ocr"
+                >
+                  🔄 נסה חילוץ מחדש
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Section 1: Upload / Image Input Area (3 Options) */}
           <div
             style={{
@@ -474,35 +632,14 @@ export default function LeviYitzhakModal({
               padding: 16,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ fontWeight: 700, fontSize: 13.5 }}>צילום / מסמך מחירון לוי יצחק</div>
               <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>
-                3 דרכים: שיתוף לדליה · גרירה ישירה · בחירת קובץ
+                3 דרכים: גרירה ישירה · בחירת קובץ/מצלמה · שיוך ממסמכי התיק
               </div>
             </div>
 
-            {/* Option A info callout */}
-            <div
-              style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: 6,
-                padding: '6px 10px',
-                fontSize: 11.5,
-                color: '#1e40af',
-                marginBottom: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span>📲</span>
-              <span>
-                <strong>אפשרות א׳ (שיתוף לדליה):</strong> ניתן לשלוח צילום מ-WhatsApp/גלריה דרך ״שתף לדליה״ ולבחור יעד ״מחירון לוי יצחק״.
-              </span>
-            </div>
-
-            {/* Dropzone (Option B & C) */}
+            {/* Dropzone */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -522,26 +659,27 @@ export default function LeviYitzhakModal({
               data-testid="levi-dropzone"
             >
               {previewUrl ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, textAlign: 'right' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, textAlign: 'right', flexWrap: 'wrap' }}>
                   <a
                     href={previewUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="לחץ לצפייה במסמך המלא בלשונית חדשה"
                     style={{ textDecoration: 'none', cursor: 'pointer', display: 'flex' }}
+                    data-testid="levi-preview-link"
                   >
                     {/\.pdf$/i.test(selectedFile?.name || previewUrl) ? (
                       <div
                         style={{
-                          width: 56,
-                          height: 56,
+                          width: 60,
+                          height: 60,
                           borderRadius: 6,
                           background: '#fee2e2',
                           color: '#dc2626',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: 900,
                         }}
                       >
@@ -552,34 +690,48 @@ export default function LeviYitzhakModal({
                         src={previewUrl}
                         alt="מחירון לוי יצחק"
                         style={{
-                          width: 64,
-                          height: 64,
+                          width: 68,
+                          height: 68,
                           objectFit: 'cover',
                           borderRadius: 6,
                           border: '1px solid var(--bdr, #e2e8f0)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                         }}
+                        data-testid="levi-preview-img"
                       />
                     )}
                   </a>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, truncate: true }}>
-                      {selectedFile ? selectedFile.name : 'צילום מחירון משויך לתיק'}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }} data-testid="levi-file-name-display">
+                      {selectedFile ? selectedFile.name : (uploadedFileId ? `צילום שמור בתיק (${uploadedFileId})` : 'צילום מחירון משויך')}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--t3, #64748b)', marginTop: 2 }}>
-                      {selectedFile ? `${(selectedFile.size / 1024).toFixed(0)} KB · קובץ חדש` : 'שמור במסמכי התביעה'}
+                      {uploadedFileId ? '✓ מאובטח ב-Storage של דליה' : 'נטען באופן מקומי'}
                     </div>
                     {isProcessing && (
                       <div style={{ fontSize: 11, color: 'var(--p1, #2563eb)', fontWeight: 600, marginTop: 4 }}>
-                        ⏳ מפענח נתונים מהמחירון באמצעות AI...
+                        ⏳ מפענח נתונים מהמחירון באמצעות מנוע AI...
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {uploadedFileId && !isProcessing && (
+                      <button
+                        type="button"
+                        className="btn btn-g btn-sm"
+                        onClick={() => void runExtraction(uploadedFileId)}
+                        data-testid="btn-reextract-levi"
+                        title="הפעל מחדש את חילוץ הנתונים מהתמונה השמורה"
+                      >
+                        🔄 חלץ שוב
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-g btn-sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isProcessing || isSaving}
+                      data-testid="btn-replace-levi-file"
                     >
                       החלף קובץ
                     </button>
@@ -589,11 +741,13 @@ export default function LeviYitzhakModal({
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                   <div style={{ fontSize: 28 }}>📂</div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>
-                    גרור ושחרר תמונה או מסמך PDF לכאן
+                    גרור ושחרר צילום מחירון או מסמך לכאן
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--t3, #64748b)' }}>או בחר קובץ מהמכשיר</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--t3, #64748b)' }}>
+                    או בחר באחת האפשרויות הבאות:
+                  </div>
 
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
                       type="button"
                       className="btn btn-p btn-sm"
@@ -601,7 +755,7 @@ export default function LeviYitzhakModal({
                       disabled={isProcessing || isSaving}
                       data-testid="btn-pick-levi-file"
                     >
-                      📁 בחר תמונה או קובץ
+                      📁 בחר תמונה / קובץ
                     </button>
 
                     <label
@@ -612,6 +766,54 @@ export default function LeviYitzhakModal({
                       <span>📷</span>
                       <span>צלם במצלמה</span>
                     </label>
+
+                    {claimDocs.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-g btn-sm"
+                        onClick={() => setShowDocPicker((v) => !v)}
+                        disabled={isProcessing || isSaving}
+                        data-testid="btn-pick-from-claim-docs"
+                      >
+                        📂 בחר ממסמכי התיק ({claimDocs.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Document Picker Dropdown / Panel for Option 3 */}
+              {showDocPicker && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 10,
+                    background: 'var(--bg2, #f8fafc)',
+                    border: '1px solid var(--bdr, #cbd5e1)',
+                    borderRadius: 8,
+                    textAlign: 'right',
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                  }}
+                  data-testid="levi-existing-docs-list"
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                    בחר מסמך או תמונה קיימת מכרטיס התביעה:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {claimDocs.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => void handlePickExistingDoc(doc.id)}
+                        className="btn btn-g btn-sm"
+                        style={{ justifyContent: 'space-between', display: 'flex', width: '100%', fontSize: 11.5 }}
+                        data-testid={`claim-doc-item-${doc.id}`}
+                      >
+                        <span style={{ fontWeight: 600 }}>{doc.original_name}</span>
+                        <span style={{ color: 'var(--t3)' }}>שייך למחירון</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
@@ -620,6 +822,7 @@ export default function LeviYitzhakModal({
               <input
                 ref={fileInputRef}
                 id={fileInputId}
+                data-testid="levi-file-input"
                 type="file"
                 accept="image/*,application/pdf"
                 style={{ display: 'none' }}
@@ -647,7 +850,7 @@ export default function LeviYitzhakModal({
           {/* Section 2: Decoded Vehicle & Valuation Details (Editable) */}
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>
-              נתוני הרכב ושקלול המחירון
+              נתוני הרכב ושקלול המחירון (ניתן לבדוק ולתקן לפי הצורך)
             </div>
             <div
               style={{
@@ -832,7 +1035,7 @@ export default function LeviYitzhakModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--t3, #64748b)', marginBottom: 4 }}>
-                  תאריך הפקה
+                  תאריך בדיקה / הפקה
                 </label>
                 <input
                   type="text"
