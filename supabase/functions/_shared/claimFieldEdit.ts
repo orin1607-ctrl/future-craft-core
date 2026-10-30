@@ -7,13 +7,15 @@
  * (tasks and reminders), free-text notes (would overwrite text), id and system fields.
  */
 
-export type FieldKind = 'text' | 'date' | 'email' | 'phone' | 'plate' | 'money' | 'kind';
+export type FieldKind = 'text' | 'date' | 'email' | 'phone' | 'plate' | 'money' | 'kind' | 'idnum' | 'license';
 
 export type ClaimEditField = {
   label: string;
   kind: FieldKind;
   /** Column kept in sync with row_data by saveClaim. */
   column?: 'plate' | 'client_name' | 'company_name';
+  /** Second row_data key holding the same value (the accident notice form reads it), kept equal on save. */
+  mirror?: string;
   /** Why a change needs extra care (shown before approval). */
   risk?: string;
 };
@@ -37,10 +39,21 @@ export const CLAIM_EDIT_FIELDS: Record<string, ClaimEditField> = {
   clientName: { label: 'שם לקוח', kind: 'text', column: 'client_name', risk: 'השם מקשר את התיק לכרטיס הלקוח.' },
   clientPhone: { label: 'טלפון לקוח', kind: 'phone' },
   clientEmail: { label: 'אימייל לקוח', kind: 'email' },
-  thirdParty: { label: 'צד ג׳ – שם', kind: 'text' },
-  thirdPlate: { label: 'צד ג׳ – מספר רכב', kind: 'plate' },
+  // Third party — the same row_data keys as the accident notice form (ACCIDENT_NOTICE_FIELDS, section ד).
+  // Driver, vehicle owner and insured are separate people and separate fields.
+  thirdParty: { label: 'צד ג׳ – שם הנהג', kind: 'text', mirror: 'thirdDriver' },
+  thirdId: { label: 'צד ג׳ – ת.ז. הנהג', kind: 'idnum' },
+  thirdLicense: { label: 'צד ג׳ – מספר רישיון נהיגה', kind: 'license' },
   thirdPhone: { label: 'צד ג׳ – טלפון', kind: 'phone' },
   thirdEmail: { label: 'צד ג׳ – אימייל', kind: 'email' },
+  thirdAddress: { label: 'צד ג׳ – כתובת', kind: 'text' },
+  thirdPlate: { label: 'צד ג׳ – מספר רכב', kind: 'plate' },
+  thirdMakeModel: { label: 'צד ג׳ – יצרן ודגם', kind: 'text' },
+  thirdOwner: { label: 'צד ג׳ – שם בעל הרכב', kind: 'text' },
+  thirdInsured: { label: 'צד ג׳ – שם המבוטח', kind: 'text' },
+  thirdInsCompany: { label: 'צד ג׳ – חברת ביטוח', kind: 'text' },
+  thirdPolicy: { label: 'צד ג׳ – מספר פוליסה', kind: 'text' },
+  thirdClaimNum: { label: 'צד ג׳ – מספר תביעה', kind: 'text' },
   surveyor: { label: 'שם שמאי', kind: 'text' },
   survPhone: { label: 'טלפון שמאי', kind: 'phone' },
   survEmail: { label: 'אימייל שמאי', kind: 'email' },
@@ -71,12 +84,29 @@ Object.assign(FIELD_ALIASES, {
   'פוליסה': 'policyNum',
   'שמאי': 'surveyor',
   'צד ג': 'thirdParty',
+  'צד ג׳': 'thirdParty',
+  thirddriver: 'thirdParty',
+  'נהג צד ג׳': 'thirdParty',
+  'הנהג הפוגע': 'thirdParty',
+  'רכב צד ג׳': 'thirdPlate',
+  'חברת הביטוח של צד ג׳': 'thirdInsCompany',
+  'פוליסת צד ג׳': 'thirdPolicy',
+  'בעל הרכב צד ג׳': 'thirdOwner',
+  'מבוטח צד ג׳': 'thirdInsured',
 });
 
 export function resolveField(name: string): string | null {
   const raw = String(name || '').trim();
   if (CLAIM_EDIT_FIELDS[raw]) return raw;
-  return FIELD_ALIASES[raw] || FIELD_ALIASES[raw.toLowerCase()] || null;
+  const geresh = raw.replace(/['"`]/g, '׳').replace(/\s+/g, ' ');
+  return FIELD_ALIASES[raw] || FIELD_ALIASES[raw.toLowerCase()] || FIELD_ALIASES[geresh] || null;
+}
+
+/** The value now in the claim for a field (its mirror key when the field itself is empty). */
+export function currentFieldValue(rowData: Record<string, unknown>, field: string) {
+  const own = String(rowData?.[field] ?? '');
+  const mirror = CLAIM_EDIT_FIELDS[field]?.mirror;
+  return own || (mirror ? String(rowData?.[mirror] ?? '') : '');
 }
 
 function normalizeValue(kind: FieldKind, raw: string): { ok: true; value: string } | { ok: false; error: string } {
@@ -107,6 +137,16 @@ function normalizeValue(kind: FieldKind, raw: string): { ok: true; value: string
     case 'plate': {
       const digits = v.replace(/\D/g, '');
       return /^\d{7,8}$/.test(digits) ? { ok: true, value: v } : { ok: false, error: 'מספר רכב חייב להכיל 7 או 8 ספרות' };
+    }
+    case 'idnum': {
+      const digits = v.replace(/\D/g, '');
+      return /^\d{8,9}$/.test(digits) && digits.length >= v.replace(/[\s-]/g, '').length
+        ? { ok: true, value: digits } : { ok: false, error: 'מספר תעודת זהות חייב להכיל 8 או 9 ספרות' };
+    }
+    case 'license': {
+      const digits = v.replace(/\D/g, '');
+      return /^\d{5,9}$/.test(digits) && digits.length >= v.replace(/[\s-]/g, '').length
+        ? { ok: true, value: digits } : { ok: false, error: 'מספר רישיון נהיגה חייב להכיל 5 עד 9 ספרות' };
     }
     case 'money': {
       const n = Number(v.replace(/[₪,\s]/g, ''));
@@ -139,7 +179,7 @@ export function planClaimFieldEdit(rowData: Record<string, unknown>, requested: 
     const def = CLAIM_EDIT_FIELDS[key];
     const norm = normalizeValue(def.kind, req.value);
     if (!norm.ok) { plan.errors.push(`${def.label}: ${norm.error}`); continue; }
-    const before = String(rowData?.[key] ?? '');
+    const before = currentFieldValue(rowData, key);
     if (before === norm.value) { plan.unchanged.push(def.label); continue; }
     plan.changes.push({ field: key, label: def.label, before, after: norm.value, ...(def.risk ? { risk: def.risk } : {}) });
   }
@@ -156,12 +196,14 @@ export function applyClaimFieldEdit(
   changes: FieldChange[],
   meta: { nowHe: string; actorName: string },
 ) {
-  const stale = changes.filter((c) => String(latestRowData?.[c.field] ?? '') !== c.before).map((c) => c.label);
+  const stale = changes.filter((c) => currentFieldValue(latestRowData, c.field) !== c.before).map((c) => c.label);
   if (stale.length) return { ok: false as const, stale };
   const rowData: Record<string, unknown> = { ...latestRowData };
   const columns: Record<string, string | null> = {};
   for (const c of changes) {
     rowData[c.field] = c.after;
+    const mirror = CLAIM_EDIT_FIELDS[c.field]?.mirror;
+    if (mirror) rowData[mirror] = c.after;
     const col = CLAIM_EDIT_FIELDS[c.field]?.column;
     if (col === 'plate') columns.plate = c.after;
     if (col === 'client_name') columns.client_name = c.after;

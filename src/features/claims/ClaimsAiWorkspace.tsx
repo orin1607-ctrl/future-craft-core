@@ -77,7 +77,24 @@ import type { VoiceFile, VoiceUi } from './daliaVoiceEngine';
 import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
 import { DALIA_SAFE_ALTERNATIVES, isFixedDaliaPrompt } from '../../../supabase/functions/_shared/daliaVoicePrompts';
+import { saveQuoteEntry, type QuoteEntryParams } from './claimQuoteEntrySave';
 import './claims-ai.css';
+
+type ClaimsEntryMode = 'quote' | 'details';
+const ENTRY_MODES: Record<ClaimsEntryMode, { button: string; prefix: string; hint: string; emptyText: string }> = {
+  quote: {
+    button: '📋 הזנת הצעת מחיר',
+    prefix: '📋 הזנת הצעת מחיר למחשבון',
+    hint: 'הדביקו את הצעת המחיר או צרפו תמונה / PDF, וכתבו מספר רכב, מספר תיק או שם לקוח (אם לא מופיע בהצעה). דליה תכין תצוגה מקדימה — שום דבר לא נשמר בלי אישור.',
+    emptyText: 'תזין למחשבון את הצעת המחיר שצירפתי',
+  },
+  details: {
+    button: '📄 השלמת פרטי תיק',
+    prefix: '📄 השלמת פרטי תיק',
+    hint: 'צרפו רישיון רכב, רישיון נהיגה, פוליסה או מסמכי צד ג׳, וכתבו מספר תיק, מספר רכב או שם לקוח. דליה תשלים רק שדות ריקים ותציג סתירות — שום דבר לא נשמר בלי אישור.',
+    emptyText: 'תשלים את פרטי התיק לפי המסמכים שצירפתי',
+  },
+};
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
 export type ClaimsAiDocumentActions = {
@@ -2838,6 +2855,10 @@ export function ClaimsAiWorkspace({
   const claimId = claim?.claimId || null;
   /** Dalia's large phone composer (auto-grow, expand, stop-speech, keyboard handling): garage and claims. */
   const daliaComposerUi = module === 'garage' || module === 'claims';
+  /** "הזנת הצעת מחיר" / "השלמת פרטי תיק": the next message is sent with its mode line, so the chat knows the job. */
+  const [entryMode, setEntryMode] = useState<ClaimsEntryMode | null>(null);
+  const entryModeRef = useRef<ClaimsEntryMode | null>(null);
+  entryModeRef.current = entryMode;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ClaimsAiMessage[]>([]);
@@ -4214,7 +4235,10 @@ const toggleVoiceMute = useCallback(() => {
         return;
       }
     }
-    const effectiveText = trimmed || (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה');
+    const mode = entryModeRef.current;
+    const baseText = trimmed || (mode ? ENTRY_MODES[mode].emptyText : (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה'));
+    const effectiveText = mode ? `${ENTRY_MODES[mode].prefix}\n${baseText}` : baseText;
+    if (mode) setEntryMode(null);
     const filesToUpload = [...stagedAttachments];
 
     // Optimistic user message - display immediately so it NEVER vanishes from view
@@ -4255,12 +4279,13 @@ const toggleVoiceMute = useCallback(() => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     let didTimeout = false;
+    // Attached documents are read twice on the server (the model, and OCR that checks its values): allow longer.
     const timeoutTimer = setTimeout(() => {
       didTimeout = true;
       try {
         controller.abort();
       } catch {}
-    }, 90000);
+    }, filesToUpload.length ? 150000 : 90000);
     let conversationId = activeId;
     let draft = '';
     let userSavedSuccessfully = false;
@@ -4880,6 +4905,15 @@ const toggleVoiceMute = useCallback(() => {
       }
       if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
+      // A quote card is saved here through the quote calculator's own service (the user's login, the same
+      // rows and totals as the calculator); the server then checks the saved quote and records it.
+      let toExecute = pending;
+      if (pending.action_type === 'create_claim_quote') {
+        const actorName = String(session.user?.user_metadata?.full_name || session.user?.email || 'משתמש');
+        const saved = await saveQuoteEntry(pending.parameters as unknown as QuoteEntryParams, pending.preview_id, { id: session.user.id, full_name: actorName });
+        toExecute = { ...pending, parameters: { ...pending.parameters, saved_quote: { id: saved.id, quote_no: saved.quote_no, version: saved.version } } };
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
@@ -4891,7 +4925,7 @@ const toggleVoiceMute = useCallback(() => {
           action: 'execute_pending_action',
           claim_id: claimId || (pending.parameters as Record<string, unknown>)?.claim_id || null,
           conversation_id: activeId,
-          pending_action: pending,
+          pending_action: toExecute,
         }),
       });
 
@@ -7043,6 +7077,31 @@ const toggleVoiceMute = useCallback(() => {
           data-testid="dalia-voice-file-input"
           onChange={onVoiceFilePicked}
         />
+
+        {module === 'claims' ? (
+          <div className="claims-ai-entry-modes" data-testid="claims-ai-entry-modes">
+            {(Object.keys(ENTRY_MODES) as ClaimsEntryMode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`btn btn-sm ${entryMode === m ? 'btn-p' : 'btn-g'}`}
+                data-testid={`claims-ai-mode-${m}`}
+                aria-pressed={entryMode === m}
+                onClick={() => {
+                  setEntryMode((cur) => (cur === m ? null : m));
+                  setClaimsChatOpen(true);
+                  setShowWelcomeHub(false);
+                  textareaRef.current?.focus();
+                }}
+              >
+                {ENTRY_MODES[m].button}
+              </button>
+            ))}
+            {entryMode ? (
+              <div className="claims-ai-entry-hint" data-testid="claims-ai-mode-hint">{ENTRY_MODES[entryMode].hint}</div>
+            ) : null}
+          </div>
+        ) : null}
 
         {stagedAttachments.length > 0 ? (
           <div className="claims-ai-attachments-tray" data-testid="claims-ai-attachments-tray">
