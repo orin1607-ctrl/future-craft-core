@@ -4357,10 +4357,50 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
               )}
               {cardTab === 'vehicle' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
-                  {[['מספר רישוי', cur.plate || '—'], ['דגם', cur.carModel || '—'], ['חברה/לקוח', cur.company_name || '—'], ['רכב במערכת', cur.vehicle_id ? 'משויך' : 'לא משויך']].map((f) => (
-                    <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
-                  ))}
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 14 }}>
+                    {[
+                      ['מספר רישוי', cur.plate || '—'],
+                      ['תוצר ודגם', [cur.carMake, cur.carModel].filter(Boolean).join(' ') || cur.carModel || '—'],
+                      ['שנת ייצור', cur.carYear || '—'],
+                      ['רמת גימור', cur.ramatGimur || '—'],
+                      ['עלייה לכביש', cur.roadDate || '—'],
+                      ['סוג בעלות (רישוי)', cur.ownershipType || '—'],
+                      ['קילומטראז׳', cur.mileage ? `${Number(cur.mileage).toLocaleString()} ק״מ` : '—'],
+                      ['בעלויות קודמות (יד)', cur.prevOwners || '—'],
+                      ['חברה/לקוח', cur.company_name || '—'],
+                      ['רכב במערכת', cur.vehicle_id ? 'משויך' : 'לא משויך'],
+                    ].map((f) => (
+                      <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
+                    ))}
+                  </div>
+
+                  <div className="sdiv" style={{ marginTop: 12, marginBottom: 10 }}>
+                    <div className="sdiv-t">שווי רכב ומחירון</div>
+                    <div className="sdiv-l" />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, background: 'var(--bg2)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--bdr)' }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>מחיר מחירון בסיסי</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: cur.basicPrice ? 'var(--t1)' : 'var(--t3)' }}>
+                        {cur.basicPrice ? `₪${Number(cur.basicPrice).toLocaleString()}` : 'טרם הוזן'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>שווי רכב משוקלל</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: cur.weightedPrice ? 'var(--p1, #2563eb)' : 'var(--t3)' }}>
+                        {cur.weightedPrice ? `₪${Number(cur.weightedPrice).toLocaleString()}` : 'טרם חושב'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>תאריך בדיקה</div>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>{cur.valuationDate || '—'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>מקור המידע</div>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>{cur.valuationSource || '—'}</div>
+                    </div>
+                  </div>
                 </div>
               )}
               {cardTab === 'treat' && (

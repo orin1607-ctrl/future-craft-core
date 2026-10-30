@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 /** נתוני רכב גולמיים ממאגר משרד התחבורה (data.gov.il) — דרך edge function `vehicle-lookup` */
 export interface GovVehicleData {
   mispar_rechev: number;
@@ -55,6 +56,33 @@ export class GovVehicleLookupError extends Error {
 }
 
 /** אותו חיבור שב-Vehicles.tsx / VehicleLookup — Supabase function `vehicle-lookup` */
+async function fetchDirectFromDataGov(cleanPlate: string): Promise<GovVehicleData | null> {
+  try {
+    const plateNum = parseInt(cleanPlate, 10);
+    const filterBody = {
+      resource_id: '053cea08-09bc-40ec-8f7a-156f0677aff3',
+      filters: { mispar_rechev: isNaN(plateNum) ? cleanPlate : plateNum },
+      limit: 1,
+    };
+    const res = await fetch('https://data.gov.il/api/3/action/datastore_search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filterBody),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      success?: boolean;
+      result?: { records?: GovVehicleData[] };
+    };
+    if (json.success && json.result?.records && json.result.records.length > 0) {
+      return json.result.records[0];
+    }
+  } catch {
+    // direct fallback failed
+  }
+  return null;
+}
+
+/** אותו חיבור שב-Vehicles.tsx / VehicleLookup — Supabase function `vehicle-lookup` עם fallback ישיר למאגר הממשלתי */
 export async function fetchVehicleFromGov(licensePlate: string): Promise<GovVehicleData | null> {
   const cleanPlate = licensePlate.replace(/[-\s]/g, '');
   if (!cleanPlate || cleanPlate.length < 5) {
@@ -64,32 +92,60 @@ export async function fetchVehicleFromGov(licensePlate: string): Promise<GovVehi
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  const res = await fetch(
-    `${supabaseUrl}/functions/v1/vehicle-lookup?plate=${encodeURIComponent(cleanPlate)}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${anonKey}`,
-        apikey: anonKey,
+  let token = anonKey;
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session?.access_token) {
+      token = data.session.access_token;
+    }
+  } catch {
+    // use anonKey
+  }
+
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/vehicle-lookup?plate=${encodeURIComponent(cleanPlate)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+        },
       },
-    },
-  );
-
-  const json = (await res.json().catch(() => ({}))) as {
-    error?: string;
-    raw?: GovVehicleData;
-  };
-
-  if (!res.ok) {
-    throw new GovVehicleLookupError(
-      json.error || 'שגיאה בחיבור למשרד התחבורה',
-      res.status,
     );
+
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      raw?: GovVehicleData;
+      data?: Record<string, unknown>;
+    };
+
+    if (res.ok && json.raw) {
+      return json.raw;
+    }
+
+    // If edge function returned 401/403 or no raw, try direct data.gov.il fallback
+    const directRecord = await fetchDirectFromDataGov(cleanPlate);
+    if (directRecord) {
+      return directRecord;
+    }
+
+    if (!res.ok) {
+      throw new GovVehicleLookupError(
+        json.error || 'הרכב לא נמצא במאגר משרד התחבורה',
+        res.status,
+      );
+    }
+  } catch (err) {
+    // If edge function network error, try direct data.gov.il before throwing
+    const directRecord = await fetchDirectFromDataGov(cleanPlate);
+    if (directRecord) {
+      return directRecord;
+    }
+    if (err instanceof GovVehicleLookupError) throw err;
+    throw new GovVehicleLookupError('שגיאה בחיבור למשרד התחבורה');
   }
 
-  if (json.raw) {
-    return json.raw;
-  }
   return null;
 }
 

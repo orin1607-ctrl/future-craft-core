@@ -1,4 +1,9 @@
-import type { ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
+import {
+  fetchVehicleFromGov,
+  GovVehicleLookupError,
+  formatGovDateForInput,
+} from '@/lib/govVehicleLookup';
 import SignaturePad from './SignaturePad';
 import { CLAIM_KINDS } from './claimsConstants';
 import {
@@ -42,6 +47,10 @@ function YesNo({ value, onChange, testid }: { value: string; onChange: (v: strin
 }
 
 export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSignature, signatureSet, staffSlot }: Props) {
+  const [govLoading, setGovLoading] = useState(false);
+  const [govStatus, setGovStatus] = useState<{ type: 'ok' | 'err' | 'idle'; message: string }>({ type: 'idle', message: '' });
+  const lastLookupPlateRef = useRef<string>('');
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const set = (k: string, v: string) => onChange({ ...value, [k]: v });
   const patch = (next: Partial<IntakeDraft>) => onChange({ ...value, ...next });
   const toggleZone = (field: 'damageLocation' | 'thirdDamageLocation', z: string) => {
@@ -54,6 +63,84 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
     ? ['client', 'driver', 'event', 'third', ...(mode === 'customer' || onSignature ? ['sign'] : []), ...(mode === 'customer' ? ['review'] : [])]
     : [stepKey];
   const hideStepTitle = mode === 'customer' && stepKey !== 'all';
+  const performGovLookup = useCallback(async (plateToLookup: string, userTriggered = false) => {
+    const clean = (plateToLookup || '').replace(/[-\s]/g, '');
+    if (!clean || clean.length < 5) {
+      if (userTriggered) {
+        setGovStatus({ type: 'err', message: 'יש להזין מספר רכב תקין (לפחות 5 ספרות)' });
+      }
+      return;
+    }
+    if (!userTriggered && lastLookupPlateRef.current === clean) {
+      return;
+    }
+    setGovLoading(true);
+    setGovStatus({ type: 'idle', message: '' });
+    try {
+      const raw = await fetchVehicleFromGov(clean);
+      if (!raw) {
+        setGovStatus({ type: 'err', message: 'לא נמצאו נתונים לרכב זה במאגר משרד התחבורה' });
+        return;
+      }
+      lastLookupPlateRef.current = clean;
+
+      const patchData: Partial<IntakeDraft> = {};
+      const model = (raw.kinuy_mishari || raw.degem_nm || '').toString().trim();
+      const make = (raw.tozeret_nm || '').toString().trim();
+      const year = raw.shnat_yitzur ? String(raw.shnat_yitzur) : '';
+      const finish = (raw.ramat_gimur || '').toString().trim();
+      const road = formatGovDateForInput(raw.moed_aliya_lakvish);
+      const baalut = (raw.baalut || '').toString().trim();
+      const fuel = (raw.sug_delek_nm || '').toString().trim();
+      const color = (raw.tzeva_rechev || '').toString().trim();
+      const vin = (raw.misgeret || '').toString().trim();
+      const engine = (raw.degem_manoa || '').toString().trim();
+      const vehicleType = (raw.sug_rechev_nm || '').toString().trim();
+
+      // Never overwrite fields that were already filled manually
+      if (!value.carMake?.trim() && make) patchData.carMake = make;
+      if (!value.carModel?.trim() && model) patchData.carModel = model;
+      if (!value.carYear?.trim() && year) patchData.carYear = year;
+      if (!value.ramatGimur?.trim() && finish) patchData.ramatGimur = finish;
+      if (!value.roadDate?.trim() && road) patchData.roadDate = road;
+      if (!value.ownershipType?.trim() && baalut) patchData.ownershipType = baalut;
+      if (!value.fuelType?.trim() && fuel) patchData.fuelType = fuel;
+      if (!value.carColor?.trim() && color) patchData.carColor = color;
+      if (!value.vin?.trim() && vin) patchData.vin = vin;
+      if (!value.engineNumber?.trim() && engine) patchData.engineNumber = engine;
+
+      // Adapt carType if not manually picked or is standard default
+      if (vehicleType) {
+        if (vehicleType.includes('משא') || vehicleType.includes('כבד')) {
+          if (!value.carType || value.carType === 'פרטי') patchData.carType = 'רכב כבד מעל 4 טון';
+        } else if (vehicleType.includes('מסחרי')) {
+          if (!value.carType || value.carType === 'פרטי') patchData.carType = 'מסחרי';
+        } else if (vehicleType.includes('קל')) {
+          if (!value.carType || value.carType === 'פרטי') patchData.carType = 'רכב קל';
+        }
+      }
+
+      patch(patchData);
+      setGovStatus({ type: 'ok', message: '✓ פרטי הרכב נמשכו בהצלחה ממשרד התחבורה' });
+    } catch (err) {
+      const msg = err instanceof GovVehicleLookupError ? err.message : 'שגיאה בחיבור למשרד התחבורה';
+      setGovStatus({ type: 'err', message: msg });
+    } finally {
+      setGovLoading(false);
+    }
+  }, [value, patch]);
+
+  const handlePlateChange = (newPlate: string) => {
+    set('plate', newPlate);
+    const clean = newPlate.replace(/[-\s]/g, '');
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if ((clean.length === 7 || clean.length === 8) && clean !== lastLookupPlateRef.current) {
+      debounceTimerRef.current = setTimeout(() => {
+        void performGovLookup(clean, false);
+      }, 500);
+    }
+  };
+
   const stepTitle = (text: string) => hideStepTitle ? null : (
     <div className="sdiv" style={{ marginTop: 0 }}><div className="sdiv-t">{text}</div><div className="sdiv-l" /></div>
   );
@@ -141,6 +228,59 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           <Field id="in_email" label="דואר אלקטרוני"><input className="fi" id="in_email" type="email" inputMode="email" dir="ltr" value={value.clientEmail} onChange={(e) => set('clientEmail', e.target.value)} /></Field>
 
           {stepTitle('פרטי הרכב')}
+
+          <div className="fg full" style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <label className="fl" htmlFor="in_plate">מס׳ רישוי רכב המבוטח *</label>
+                <input
+                  className="fi"
+                  id="in_plate"
+                  data-testid="intake-plate"
+                  value={value.plate}
+                  onChange={(e) => handlePlateChange(e.target.value)}
+                  onBlur={() => {
+                    const clean = (value.plate || '').replace(/[-\s]/g, '');
+                    if (clean.length >= 5 && clean !== lastLookupPlateRef.current) {
+                      void performGovLookup(clean, false);
+                    }
+                  }}
+                  placeholder="לדוגמה: 12-345-67"
+                  dir="ltr"
+                  style={{ textAlign: 'right', fontWeight: 'bold' }}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-sec"
+                data-testid="btn-gov-lookup"
+                disabled={govLoading}
+                onClick={() => void performGovLookup(value.plate, true)}
+                style={{ height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}
+              >
+                {govLoading ? '⏳ שולף נתונים...' : '🔍 שלוף ממשרד התחבורה'}
+              </button>
+            </div>
+            {govStatus.message && (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: '0.82rem',
+                  padding: '5px 10px',
+                  borderRadius: 6,
+                  color: govStatus.type === 'ok' ? '#15803d' : '#b91c1c',
+                  background: govStatus.type === 'ok' ? '#f0fdf4' : '#fef2f2',
+                  border: `1px solid ${govStatus.type === 'ok' ? '#bbf7d0' : '#fecaca'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                {govStatus.message}
+              </div>
+            )}
+          </div>
+
           <div className="fg full">
             <div className="fl">סוג הרכב</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -149,10 +289,12 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
               ))}
             </div>
           </div>
-          <Field id="in_make" label="תוצר"><input className="fi" id="in_make" value={value.carMake} onChange={(e) => set('carMake', e.target.value)} /></Field>
-          <Field id="in_model" label="דגם"><input className="fi" id="in_model" value={value.carModel} onChange={(e) => set('carModel', e.target.value)} /></Field>
-          <Field id="in_year" label="שנת ייצור"><input className="fi" id="in_year" inputMode="numeric" value={value.carYear} onChange={(e) => set('carYear', e.target.value)} /></Field>
-          <Field id="in_plate" label="מס׳ רישוי *"><input className="fi" id="in_plate" data-testid="intake-plate" value={value.plate} onChange={(e) => set('plate', e.target.value)} /></Field>
+          <Field id="in_make" label="תוצר"><input className="fi" id="in_make" value={value.carMake} onChange={(e) => set('carMake', e.target.value)} placeholder="לדוגמה: טויוטה" /></Field>
+          <Field id="in_model" label="דגם"><input className="fi" id="in_model" value={value.carModel} onChange={(e) => set('carModel', e.target.value)} placeholder="לדוגמה: קורולה" /></Field>
+          <Field id="in_year" label="שנת ייצור"><input className="fi" id="in_year" inputMode="numeric" value={value.carYear} onChange={(e) => set('carYear', e.target.value)} placeholder="לדוגמה: 2022" /></Field>
+          <Field id="in_ramat_gimur" label="רמת גימור"><input className="fi" id="in_ramat_gimur" value={value.ramatGimur || ''} onChange={(e) => set('ramatGimur', e.target.value)} placeholder="לדוגמה: GLI / Sunroof" /></Field>
+          <Field id="in_road_date" label="עלייה לכביש"><input className="fi" id="in_road_date" type="date" value={value.roadDate || ''} onChange={(e) => set('roadDate', e.target.value)} /></Field>
+          <Field id="in_baalut" label="סוג בעלות (רישוי)"><input className="fi" id="in_baalut" value={value.ownershipType || ''} onChange={(e) => set('ownershipType', e.target.value)} placeholder="פרטי / ליסינג / חברה" /></Field>
           <Field id="in_owner" label="שם בעל הרכב"><input className="fi" id="in_owner" data-testid="intake-vehicle-owner" value={value.vehicleOwnerName} onChange={(e) => set('vehicleOwnerName', e.target.value)} placeholder="אם שונה מהמבוטח" /></Field>
           <label className="pick-row"><input type="checkbox" checked={value.driverDifferent === 'true'} onChange={(e) => set('driverDifferent', e.target.checked ? 'true' : 'false')} /><span>הנהג בזמן התאונה שונה מהלקוח</span></label>
         </div>

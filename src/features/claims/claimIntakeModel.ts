@@ -48,6 +48,19 @@ export const ACCIDENT_NOTICE_FIELDS: Array<{
   { key: 'carYear', formLabel: 'שנת ייצור', section: 'א. רכב', reuse: true, autofill: 'carYear' },
   { key: 'plate', formLabel: 'מס׳ רישוי', section: 'א. רכב', reuse: true, autofill: 'plate' },
   { key: 'vehicleOwnerName', formLabel: 'שם בעל הרכב', section: 'א. רכב', reuse: false, autofill: 'clientName' },
+  { key: 'ramatGimur', formLabel: 'רמת גימור', section: 'א. רכב', reuse: true, autofill: 'ramatGimur' },
+  { key: 'roadDate', formLabel: 'מועד עלייה לכביש', section: 'א. רכב', reuse: true, autofill: 'roadDate' },
+  { key: 'ownershipType', formLabel: 'סוג בעלות', section: 'א. רכב', reuse: true, autofill: 'ownershipType' },
+  { key: 'fuelType', formLabel: 'סוג דלק', section: 'א. רכב', reuse: true, autofill: 'fuelType' },
+  { key: 'carColor', formLabel: 'צבע רכב', section: 'א. רכב', reuse: true, autofill: 'carColor' },
+  { key: 'vin', formLabel: 'מספר שלדה (VIN)', section: 'א. רכב', reuse: true, autofill: 'vin' },
+  { key: 'engineNumber', formLabel: 'דגם מנוע', section: 'א. רכב', reuse: true, autofill: 'engineNumber' },
+  { key: 'mileage', formLabel: 'קילומטראז׳', section: 'א. רכב', reuse: true, autofill: 'mileage' },
+  { key: 'prevOwners', formLabel: 'מספר בעלויות קודמות (יד)', section: 'א. רכב', reuse: true, autofill: 'prevOwners' },
+  { key: 'basicPrice', formLabel: 'מחיר מחירון בסיסי', section: 'א. רכב', reuse: true, autofill: 'basicPrice' },
+  { key: 'weightedPrice', formLabel: 'שווי רכב משוקלל', section: 'א. רכב', reuse: true, autofill: 'weightedPrice' },
+  { key: 'valuationDate', formLabel: 'תאריך בדיקת שווי', section: 'א. רכב', reuse: true, autofill: 'valuationDate' },
+  { key: 'valuationSource', formLabel: 'מקור נתוני שווי', section: 'א. רכב', reuse: true, autofill: 'valuationSource' },
   { key: 'driverDifferent', formLabel: 'הנהג שונה מהמבוטח', section: 'ב. נהג', reuse: true, autofill: 'driverDifferent' },
   { key: 'driverName', formLabel: 'שם הנהג', section: 'ב. נהג', reuse: true, autofill: 'driverName|clientName' },
   { key: 'driverId', formLabel: 'מס׳ ת.ז. נהג', section: 'ב. נהג', reuse: true, autofill: 'driverId|clientId' },
@@ -118,6 +131,8 @@ export const ACCIDENT_NOTICE_FIELDS: Array<{
 export const EMPTY_INTAKE: IntakeDraft = {
   clientName: '', clientPhone: '', clientEmail: '', clientId: '', clientAddress: '', clientZip: '',
   plate: '', carMake: '', carModel: '', carYear: '', carType: 'פרטי',
+  ramatGimur: '', roadDate: '', ownershipType: '', fuelType: '', carColor: '', vin: '', engineNumber: '',
+  mileage: '', prevOwners: '', basicPrice: '', weightedPrice: '', valuationDate: '', valuationSource: '',
   insCompany: '', insType: '', policyNum: '', claimNum: '', claimKind: CLAIM_KINDS[0],
   driverDifferent: 'false', driverName: '', driverId: '', driverPhone: '', driverLicense: '',
   driverLicenseType: '', driverLicenseValid: '', driverLicenseYear: '', driverBirthDate: '',
@@ -173,6 +188,19 @@ export function intakeFromClaim(c: Record<string, string>): IntakeDraft {
   next.clientEmail = c.clientEmail || next.clientEmail;
   next.plate = c.plate || next.plate;
   next.carModel = c.carModel || next.carModel;
+  next.ramatGimur = firstFilled(c.ramatGimur, c.ramat_gimur, c.vehicle_segment, next.ramatGimur);
+  next.roadDate = firstFilled(c.roadDate, c.road_date, c.moed_aliya_lakvish, next.roadDate);
+  next.ownershipType = firstFilled(c.ownershipType, c.ownership_type, c.baalut, next.ownershipType);
+  next.fuelType = firstFilled(c.fuelType, c.fuel_type, c.sug_delek_nm, next.fuelType);
+  next.carColor = firstFilled(c.carColor, c.vehicle_color, c.tzeva_rechev, next.carColor);
+  next.vin = firstFilled(c.vin, c.misgeret, next.vin);
+  next.engineNumber = firstFilled(c.engineNumber, c.degem_manoa, next.engineNumber);
+  next.mileage = firstFilled(c.mileage, c.current_km, next.mileage);
+  next.prevOwners = firstFilled(c.prevOwners, c.prev_owners, next.prevOwners);
+  next.basicPrice = firstFilled(c.basicPrice, c.basic_price, next.basicPrice);
+  next.weightedPrice = firstFilled(c.weightedPrice, c.weighted_price, next.weightedPrice);
+  next.valuationDate = firstFilled(c.valuationDate, c.valuation_date, next.valuationDate);
+  next.valuationSource = firstFilled(c.valuationSource, c.valuation_source, next.valuationSource);
   next.insCompany = c.insCompany || next.insCompany;
   next.policyNum = c.policyNum || next.policyNum;
   next.claimNum = c.claimNum || next.claimNum;
