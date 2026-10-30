@@ -105,6 +105,18 @@ export default function LeviYitzhakModal({
   const policyAmount = calculateRepairAmount(weightedPrice, policyPct);
   const thirdAmount = calculateRepairAmount(weightedPrice, thirdPct);
 
+  // Open Levi Itzhak Android App via verified Android Intent URI (package: com.levinew.app)
+  // Falls back to Google Play Store if not installed or on non-Android devices
+  const handleOpenApp = () => {
+    const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
+    if (isAndroid) {
+      window.location.href =
+        'intent://#Intent;package=com.levinew.app;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.levinew.app;end';
+    } else {
+      window.open('https://play.google.com/store/apps/details?id=com.levinew.app', '_blank', 'noopener,noreferrer');
+    }
+  };
+
   // Handle uploaded or dropped file
   const handleProcessFile = async (file: File) => {
     setSelectedFile(file);
@@ -312,8 +324,27 @@ export default function LeviYitzhakModal({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Open Official Levi Itzhak Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* Open in Levi Itzhak Android App */}
+            <button
+              type="button"
+              onClick={handleOpenApp}
+              className="btn btn-p btn-sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontWeight: 700,
+                fontSize: 12,
+              }}
+              data-testid="btn-open-levi-app-header"
+              title="פתח באפליקציית לוי יצחק המותקנת בטלפון"
+            >
+              <span>📱</span>
+              <span>פתח באפליקציה</span>
+            </button>
+
+            {/* Open Official Levi Itzhak Website */}
             <a
               href="https://www.levi-itzhak.co.il/"
               target="_blank"
@@ -329,8 +360,8 @@ export default function LeviYitzhakModal({
               }}
               data-testid="btn-open-levi-external"
             >
-              <span>🔗</span>
-              <span>פתח מחירון לוי יצחק</span>
+              <span>🌐</span>
+              <span>אתר המחירון</span>
             </a>
 
             <button
@@ -354,6 +385,51 @@ export default function LeviYitzhakModal({
 
         {/* Scrollable Content */}
         <div style={{ padding: 20, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Android App Quick Action & Guidance Banner */}
+          <div
+            style={{
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: 10,
+              padding: '12px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+            data-testid="levi-app-workflow-banner"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, color: '#166534' }}>
+                <span style={{ fontSize: 18 }}>📱</span>
+                <span>פתיחה באפליקציית לוי יצחק (אנדרואיד)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-p btn-sm"
+                  onClick={handleOpenApp}
+                  style={{ fontWeight: 700, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  data-testid="btn-open-levi-app"
+                >
+                  <span>📱</span>
+                  <span>פתח באפליקציית לוי יצחק</span>
+                </button>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.levinew.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-g btn-sm"
+                  style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                  data-testid="btn-open-levi-playstore"
+                >
+                  <span>Google Play</span>
+                </a>
+              </div>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#15803d', lineHeight: 1.5 }}>
+              💡 <strong>איך זה עובד בטלפון:</strong> לחץ על ״פתח באפליקציית לוי יצחק״ ← בדוק את מחירון רכב <strong>{claim.plate || 'התביעה'}</strong> באפליקציה בחינם ← בצע צילום מסך (Screenshot) ← העלה או שתף אותו כאן לדליה לחילוץ אוטומטי של המחירון והשקלול!
+            </div>
+          </div>
           {/* Plate Mismatch Alert */}
           {plateWarning && (
             <div
