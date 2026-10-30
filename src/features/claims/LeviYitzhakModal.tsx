@@ -83,7 +83,19 @@ export default function LeviYitzhakModal({
       setThirdPct(claim.repairCalcThirdPct || '');
       setShowInQuote(claim.showRepairInQuote === 'true');
       setQuoteRoute((claim.quoteRepairRoute as 'policy' | 'third_party') || 'policy');
-      setPreviewUrl(claim.leviYitzhakImageUrl || '');
+      const initialImage = claim.leviYitzhakImageUrl || claim.leviYitzhakDocId || '';
+      if (initialImage.startsWith('http') || initialImage.startsWith('blob:') || initialImage.startsWith('data:')) {
+        setPreviewUrl(initialImage);
+      } else if (initialImage) {
+        setPreviewUrl('');
+        api.invokeDocs('signed_url', { claim_id: claim.id, file_id: initialImage })
+          .then((res: any) => {
+            if (res?.url) setPreviewUrl(res.url);
+          })
+          .catch(() => {});
+      } else {
+        setPreviewUrl('');
+      }
       setSelectedFile(null);
       setPlateWarning('');
     }
@@ -422,36 +434,44 @@ export default function LeviYitzhakModal({
             >
               {previewUrl ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, textAlign: 'right' }}>
-                  {/\.pdf$/i.test(selectedFile?.name || previewUrl) ? (
-                    <div
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 6,
-                        background: '#fee2e2',
-                        color: '#dc2626',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 24,
-                        fontWeight: 900,
-                      }}
-                    >
-                      PDF
-                    </div>
-                  ) : (
-                    <img
-                      src={previewUrl}
-                      alt="מחירון לוי יצחק"
-                      style={{
-                        width: 64,
-                        height: 64,
-                        objectFit: 'cover',
-                        borderRadius: 6,
-                        border: '1px solid var(--bdr, #e2e8f0)',
-                      }}
-                    />
-                  )}
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="לחץ לצפייה במסמך המלא בלשונית חדשה"
+                    style={{ textDecoration: 'none', cursor: 'pointer', display: 'flex' }}
+                  >
+                    {/\.pdf$/i.test(selectedFile?.name || previewUrl) ? (
+                      <div
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 6,
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 24,
+                          fontWeight: 900,
+                        }}
+                      >
+                        PDF
+                      </div>
+                    ) : (
+                      <img
+                        src={previewUrl}
+                        alt="מחירון לוי יצחק"
+                        style={{
+                          width: 64,
+                          height: 64,
+                          objectFit: 'cover',
+                          borderRadius: 6,
+                          border: '1px solid var(--bdr, #e2e8f0)',
+                        }}
+                      />
+                    )}
+                  </a>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, truncate: true }}>
                       {selectedFile ? selectedFile.name : 'צילום מחירון משויך לתיק'}
