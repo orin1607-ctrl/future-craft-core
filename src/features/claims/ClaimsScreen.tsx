@@ -4155,6 +4155,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: '#fff' }} data-testid="claims-quote-btn" onClick={() => { setCardMore(false); setQuoteOpen({ quoteId: claimQuotes[0]?.id || null }); }}>💰 הצעת מחיר</button>
                 <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff' }} data-testid="claims-paint-calc-btn" onClick={() => { setCardMore(false); setPaintCalcInitial(null); setPaintCalcOpen(true); }}>🎨 מחשבון צבע והערכת עלויות</button>
+                <button type="button" className="ab-btn ab-pri" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#fff', fontWeight: 700 }} data-testid="claims-card-levi-btn" onClick={() => { setCardMore(false); setLeviYitzhakOpen(true); }} title="מחירון לוי יצחק, שווי משוקלל ואפליקציה">📊 מחירון לוי יצחק</button>
                 <button
                   type="button"
                   className="ab-btn ab-pri"

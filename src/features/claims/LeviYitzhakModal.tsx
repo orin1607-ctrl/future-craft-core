@@ -105,13 +105,26 @@ export default function LeviYitzhakModal({
   const policyAmount = calculateRepairAmount(weightedPrice, policyPct);
   const thirdAmount = calculateRepairAmount(weightedPrice, thirdPct);
 
-  // Open Levi Itzhak Android App via verified Android Intent URI (package: com.levinew.app)
-  // Falls back to Google Play Store if not installed or on non-Android devices
+  // Open Levi Itzhak Android App directly to the search-by-plate screen
+  // Uses official verified BROWSABLE scheme: leviios://search-by-plate (package: com.levinew.app)
+  // Auto-copies clean vehicle plate to clipboard for 1-tap pasting
   const handleOpenApp = () => {
     const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent || '');
+    const cleanPlate = (claim.plate || '').replace(/[^0-9]/g, '');
+
+    // Auto-copy vehicle plate to clipboard for 1-tap pasting
+    if (cleanPlate && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(cleanPlate).catch(() => {});
+      toast?.(`מספר רכב ${claim.plate} הועתק ללוח. פותח את אפליקציית לוי יצחק...`, 'info');
+    }
+
     if (isAndroid) {
-      window.location.href =
-        'intent://#Intent;package=com.levinew.app;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.levinew.app;end';
+      // Android Chrome Intent with verified BROWSABLE scheme 'leviios' targeting 'search-by-plate' screen
+      // If app is installed: launches directly into search-by-plate screen without Play Store step
+      // If app is not installed: falls back to Google Play Store
+      const intentUri =
+        'intent://search-by-plate#Intent;scheme=leviios;package=com.levinew.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.levinew.app;end';
+      window.location.href = intentUri;
     } else {
       window.open('https://play.google.com/store/apps/details?id=com.levinew.app', '_blank', 'noopener,noreferrer');
     }
@@ -427,7 +440,7 @@ export default function LeviYitzhakModal({
               </div>
             </div>
             <div style={{ fontSize: 11.5, color: '#15803d', lineHeight: 1.5 }}>
-              💡 <strong>איך זה עובד בטלפון:</strong> לחץ על ״פתח באפליקציית לוי יצחק״ ← בדוק את מחירון רכב <strong>{claim.plate || 'התביעה'}</strong> באפליקציה בחינם ← בצע צילום מסך (Screenshot) ← העלה או שתף אותו כאן לדליה לחילוץ אוטומטי של המחירון והשקלול!
+              💡 <strong>איך זה עובד בטלפון:</strong> לחץ על ״פתח באפליקציית לוי יצחק״ ← האפליקציה נפתחת ישירות במסך ״הקלד מספר רישוי״ ומספר הרכב <strong>{claim.plate || 'התביעה'}</strong> מועתק אוטומטית ללוח להדבקה מהירה ← בצע צילום מסך של המחירון בחינם ← העלה או שתף אותו כאן לדליה לחילוץ אוטומטי של המחירון והשקלול!
             </div>
           </div>
           {/* Plate Mismatch Alert */}
