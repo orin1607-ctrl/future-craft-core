@@ -46,6 +46,7 @@ import DocumentViewerModal from './DocumentViewerModal';
 import { shareDocToEmail, shareDocToWhatsApp, type DocShareFile } from './claimDocShare';
 import { contextFromClaim } from './carPartBridge';
 import ClaimsFinancialAuditModal from './ClaimsFinancialAuditModal';
+import LeviYitzhakModal from './LeviYitzhakModal';
 import {
   classifyFinancialDocumentKind,
   extractOurSurveyorReport,
@@ -947,6 +948,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [paintHistoryLoading, setPaintHistoryLoading] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState<{ quoteId: string | null } | null>(null);
   const [carPartOpen, setCarPartOpen] = useState(false);
+  const [leviYitzhakOpen, setLeviYitzhakOpen] = useState(false);
   const [financialAuditModalOpen, setFinancialAuditModalOpen] = useState(false);
   const [financialAuditActiveClaimId, setFinancialAuditActiveClaimId] = useState<string | null>(null);
   const [claimOcrStates, setClaimOcrStates] = useState<Record<string, {
@@ -4375,8 +4377,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     ))}
                   </div>
 
-                  <div className="sdiv" style={{ marginTop: 12, marginBottom: 10 }}>
+                  <div className="sdiv" style={{ marginTop: 12, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="sdiv-t">שווי רכב ומחירון</div>
+                    <button
+                      type="button"
+                      className="btn btn-p btn-sm"
+                      style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => setLeviYitzhakOpen(true)}
+                      data-testid="btn-open-levi-yitzhak"
+                    >
+                      <span>📊</span>
+                      <span>מחירון לוי יצחק</span>
+                    </button>
                     <div className="sdiv-l" />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, background: 'var(--bg2)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--bdr)' }}>
@@ -4400,6 +4412,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>מקור המידע</div>
                       <div style={{ fontSize: 12, fontWeight: 600 }}>{cur.valuationSource || '—'}</div>
                     </div>
+
+                    {(cur.repairCalcPolicyAmount || cur.repairCalcThirdAmount) && (
+                      <>
+                        {cur.repairCalcPolicyAmount && (
+                          <div>
+                            <div style={{ fontSize: 10, color: '#0369a1', fontWeight: 700 }}>סכום תיקון (פוליסה)</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0369a1' }}>
+                              {cur.repairCalcPolicyPct}% · ₪{Number(cur.repairCalcPolicyAmount).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                        {cur.repairCalcThirdAmount && (
+                          <div>
+                            <div style={{ fontSize: 10, color: '#7c3aed', fontWeight: 700 }}>סכום תיקון (צד ג׳)</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#7c3aed' }}>
+                              {cur.repairCalcThirdPct}% · ₪{Number(cur.repairCalcThirdAmount).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>הצגה בהצעת מחיר ללקוח</div>
+                          <div style={{ fontSize: 11.5, fontWeight: 600, color: cur.showRepairInQuote === 'true' ? '#16a34a' : 'var(--t3)' }}>
+                            {cur.showRepairInQuote === 'true' ? `פעיל (${cur.quoteRepairRoute === 'third_party' ? 'צד ג׳' : 'פוליסה'})` : 'כבוי (פנימי בלבד)'}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -7449,6 +7488,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           }}
           onSaved={() => { void loadCardData(cur.id); }}
           onClose={() => setCarPartOpen(false)}
+          toast={toast}
+        />
+      )}
+
+      {leviYitzhakOpen && cur && (
+        <LeviYitzhakModal
+          open={leviYitzhakOpen}
+          claim={cur}
+          api={apiRef.current}
+          onClose={() => setLeviYitzhakOpen(false)}
+          onSaved={async (updated) => {
+            setCur(updated);
+            await loadAll();
+            await loadCardData(updated.id);
+          }}
           toast={toast}
         />
       )}

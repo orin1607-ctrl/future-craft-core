@@ -70,6 +70,7 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 const COMMON_NAMES = [
   'תמונת נזק',
   'צילום רישיון רכב',
+  'מחירון לוי יצחק',
   'הצעת מחיר Car-Part',
   'חשבונית תיקון',
   'דוח שמאי',
@@ -123,6 +124,7 @@ export default function ClaimsShareInboxPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedTarget, setSelectedTarget] = useState<ShareTarget | null>(null);
+  const [claimDestType, setClaimDestType] = useState<'general' | 'levi_itzhak'>('general');
   const [batchName, setBatchName] = useState('');
   const [saveSuccessSummary, setSaveSuccessSummary] = useState<{ count: number; targetTitle: string; targetUrl: string } | null>(null);
 
@@ -353,6 +355,7 @@ export default function ClaimsShareInboxPage() {
         reason: 'נשמר ידנית בשיתוף לדליה',
         claimsApi: api,
         userId: user?.id,
+        targetSubType: activeModule === 'claims' && claimDestType === 'levi_itzhak' ? 'levi_itzhak' : undefined,
       });
 
       if (res.success) {
@@ -647,6 +650,42 @@ export default function ClaimsShareInboxPage() {
               <span>ניהול רכבים</span>
             </button>
           </div>
+
+          {/* Sub-destination for Claims */}
+          {activeModule === 'claims' && (
+            <div className="rounded-md border bg-muted/40 p-2.5 space-y-1.5">
+              <div className="text-xs font-semibold text-foreground">יעד בתוך תיק התביעה:</div>
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="claimDestType"
+                    checked={claimDestType === 'general'}
+                    onChange={() => setClaimDestType('general')}
+                  />
+                  <span>מסמכי תביעה כלליים</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-primary">
+                  <input
+                    type="radio"
+                    name="claimDestType"
+                    checked={claimDestType === 'levi_itzhak'}
+                    onChange={() => {
+                      setClaimDestType('levi_itzhak');
+                      setItems((prev) =>
+                        prev.map((it) =>
+                          it.customName === 'מסמך' || it.customName === 'תמונה'
+                            ? { ...it, customName: 'מחירון לוי יצחק' }
+                            : it
+                        )
+                      );
+                    }}
+                  />
+                  <span>📊 מחירון לוי יצחק</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Search Box */}
           <div className="space-y-1">

@@ -979,6 +979,45 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                   <NumField className="cq-in cq-in-pct" value={data.vatPercent} label="אחוז מע״מ" onValue={(v) => update((d) => ({ ...d, vatPercent: v }))} />%</span>
                   <b>{formatIls(totals.vat)}</b></div>
                 <div className="cq-sum-total" data-testid="cq-total"><span>סה״כ כולל מע״מ</span><b>{formatIls(totals.total)}</b></div>
+
+                {/* Levi Itzhak Calculated Repair Callout (Only when showRepairInQuote is enabled) */}
+                {((claim.showRepairInQuote === 'true' || data.claim?.showRepairInQuote) && (claim.weightedPrice || data.claim?.weightedPrice)) && (
+                  <div
+                    className="cq-sum-row cq-levi-repair-callout"
+                    data-testid="cq-levi-repair-callout"
+                    style={{
+                      background: 'var(--bg2, #f8fafc)',
+                      border: '1px solid var(--bdr, #e2e8f0)',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      marginTop: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--p1, #2563eb)' }}>
+                        ★ סכום תיקון מחושב ({((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party') ? 'מסלול צד ג׳' : 'מסלול פוליסה'}):
+                      </span>
+                      <b style={{ fontSize: 14, color: 'var(--p1, #2563eb)' }}>
+                        {formatIls(
+                          Number(
+                            ((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party')
+                              ? (claim.repairCalcThirdAmount || data.claim?.repairCalcThirdAmount)
+                              : (claim.repairCalcPolicyAmount || data.claim?.repairCalcPolicyAmount)
+                          ) || 0
+                        )}
+                      </b>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>
+                      חישוב לפי שווי משוקלל: {formatIls(Number(claim.weightedPrice || data.claim?.weightedPrice) || 0)} · שיעור תיקון:{' '}
+                      {((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party')
+                        ? (claim.repairCalcThirdPct || data.claim?.repairCalcThirdPct || '0')
+                        : (claim.repairCalcPolicyPct || data.claim?.repairCalcPolicyPct || '0')}%
+                    </div>
+                  </div>
+                )}
               </section>
 
               <section className="cq-card cq-internal" data-testid="cq-internal">

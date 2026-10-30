@@ -199,6 +199,13 @@ export type ClaimSnapshot = {
   insCompany: string;
   clientPhone: string;
   clientEmail: string;
+  weightedPrice?: string;
+  showRepairInQuote?: boolean;
+  quoteRepairRoute?: 'policy' | 'third_party';
+  repairCalcPolicyPct?: string;
+  repairCalcPolicyAmount?: string;
+  repairCalcThirdPct?: string;
+  repairCalcThirdAmount?: string;
 };
 
 export type QuoteData = {
@@ -241,6 +248,13 @@ export function claimSnapshotOf(claim: Record<string, string | undefined>): Clai
     insCompany: s(claim.insCompany),
     clientPhone: s(claim.clientPhone),
     clientEmail: s(claim.clientEmail),
+    weightedPrice: s(claim.weightedPrice),
+    showRepairInQuote: claim.showRepairInQuote === 'true' || (claim as any).showRepairInQuote === true,
+    quoteRepairRoute: ((claim.quoteRepairRoute as any) === 'third_party' ? 'third_party' : 'policy'),
+    repairCalcPolicyPct: s(claim.repairCalcPolicyPct),
+    repairCalcPolicyAmount: s(claim.repairCalcPolicyAmount),
+    repairCalcThirdPct: s(claim.repairCalcThirdPct),
+    repairCalcThirdAmount: s(claim.repairCalcThirdAmount),
   };
 }
 

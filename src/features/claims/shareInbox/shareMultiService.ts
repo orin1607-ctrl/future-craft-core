@@ -82,7 +82,9 @@ export function suggestDocumentName(fileName: string, mimeType?: string, index?:
   const nameLower = (fileName || '').toLowerCase();
   let baseName = '';
   
-  if (nameLower.includes('license') || nameLower.includes('רישיון') || nameLower.includes('רשיון')) {
+  if (nameLower.includes('levi') || nameLower.includes('יצחק') || nameLower.includes('מחירון')) {
+    baseName = 'מחירון לוי יצחק';
+  } else if (nameLower.includes('license') || nameLower.includes('רישיון') || nameLower.includes('רשיון')) {
     baseName = 'צילום רישיון רכב';
   } else if (nameLower.includes('damage') || nameLower.includes('נזק') || nameLower.includes('פגוש') || nameLower.includes('תאונה')) {
     baseName = 'תמונת נזק';
@@ -221,9 +223,11 @@ export async function saveSharedFileToTarget(params: {
   reason: string;
   claimsApi: any;
   userId?: string;
+  targetSubType?: string;
 }): Promise<SaveResult> {
-  const { target, file, customName, auto, reason, claimsApi, userId } = params;
+  const { target, file, customName, auto, reason, claimsApi, userId, targetSubType } = params;
   const displayName = customName.trim() || file.name;
+  const isLeviYitzhak = targetSubType === 'levi_itzhak' || displayName.includes('מחירון לוי יצחק');
   const ext = file.name.split('.').pop()?.toLowerCase();
   const fullFileName = ext && !displayName.toLowerCase().endsWith(`.${ext}`) ? `${displayName}.${ext}` : displayName;
 
@@ -242,9 +246,29 @@ export async function saveSharedFileToTarget(params: {
     await claimsApi.invokeDocs('update_doc_meta', {
       claim_id: target.id,
       file_id: r.file_id,
-      staff_note: shareNote(auto, reason || displayName),
+      staff_note: shareNote(auto, isLeviYitzhak ? 'מחירון לוי יצחק' : (reason || displayName)),
+      doc_category: isLeviYitzhak ? 'levi_itzhak' : undefined,
     });
-    await claimsApi.logHistory(target.id, 'מסמך נקלט בשיתוף לדליה', `${displayName}${auto ? ` · ${reason}` : ''}`, 'docs');
+    if (isLeviYitzhak) {
+      try {
+        const rawClaim = target.raw || {};
+        await claimsApi.saveClaim({
+          ...rawClaim,
+          id: target.id,
+          leviYitzhakDocId: r.file_id,
+          leviYitzhakFileName: fullFileName,
+          valuationSource: rawClaim.valuationSource || 'מחירון לוי יצחק',
+        });
+      } catch (e) {
+        console.warn('[Share] could not link leviYitzhakDocId directly:', e);
+      }
+    }
+    await claimsApi.logHistory(
+      target.id,
+      isLeviYitzhak ? 'מחירון לוי יצחק נקלט בשיתוף לדליה' : 'מסמך נקלט בשיתוף לדליה',
+      `${displayName}${auto ? ` · ${reason}` : ''}`,
+      'docs'
+    );
     return {
       success: true,
       targetLabel: target.title,

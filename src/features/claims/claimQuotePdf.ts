@@ -303,6 +303,20 @@ export async function renderClaimQuoteCanvases(d: QuoteData, meta: QuotePdfMeta)
   }
   p.y += sumH + 10;
 
+  // Levi Itzhak Calculated Repair callout in PDF (only if showRepairInQuote is enabled)
+  if (d.claim.showRepairInQuote && d.claim.weightedPrice) {
+    const isThird = d.claim.quoteRepairRoute === 'third_party';
+    const pct = isThird ? d.claim.repairCalcThirdPct || '0' : d.claim.repairCalcPolicyPct || '0';
+    const amount = Number(isThird ? d.claim.repairCalcThirdAmount : d.claim.repairCalcPolicyAmount) || 0;
+    const routeLabel = isThird ? "מסלול צד ג׳" : "מסלול פוליסה";
+    const weightedVal = Number(d.claim.weightedPrice) || 0;
+
+    p.need(45);
+    drawRoundedRect(p.ctx, MARGIN, p.y, width, 32, 6, '#f0fdf4', '#86efac');
+    text(p.ctx, `סכום תיקון מחושב (${routeLabel}): ${pct}% משווי משוקלל ${formatIls(weightedVal)} = ${formatIls(amount)}`, right - 12, p.y + 16, { size: 10.5, weight: 700, color: '#166534' });
+    p.y += 42;
+  }
+
   // Footer on every page
   p.pages.forEach((cv, i) => {
     const ctx = cv.getContext('2d');
