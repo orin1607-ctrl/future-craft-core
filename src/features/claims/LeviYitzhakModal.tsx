@@ -1084,7 +1084,7 @@ export default function LeviYitzhakModal({
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: 14 }}>
               {/* Policy Route */}
               <div
                 style={{
@@ -1097,8 +1097,8 @@ export default function LeviYitzhakModal({
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: '#0369a1' }}>
                   מסלול תביעת פוליסה
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ flex: '1 1 120px', minWidth: 100 }}>
                     <label style={{ display: 'block', fontSize: 10.5, color: 'var(--t3, #64748b)', marginBottom: 2 }}>
                       אחוז תיקון חופשי (%)
                     </label>
@@ -1108,13 +1108,14 @@ export default function LeviYitzhakModal({
                       min="0"
                       max="100"
                       className="fi"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                       value={policyPct}
                       onChange={(e) => setPolicyPct(e.target.value)}
                       placeholder="למשל 12.5"
                       data-testid="in-repair-policy-pct"
                     />
                   </div>
-                  <div style={{ textAlign: 'left', minWidth: 100 }}>
+                  <div style={{ textAlign: 'left', flex: '0 0 auto', minWidth: 90 }}>
                     <div style={{ fontSize: 10.5, color: 'var(--t3, #64748b)' }}>סכום מחושב</div>
                     <div
                       style={{ fontSize: 15, fontWeight: 800, color: policyAmount ? '#0369a1' : 'var(--t3, #64748b)' }}
@@ -1138,8 +1139,8 @@ export default function LeviYitzhakModal({
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: '#7c3aed' }}>
                   מסלול תביעת צד ג׳
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ flex: '1 1 120px', minWidth: 100 }}>
                     <label style={{ display: 'block', fontSize: 10.5, color: 'var(--t3, #64748b)', marginBottom: 2 }}>
                       אחוז תיקון חופשי (%)
                     </label>
@@ -1149,13 +1150,14 @@ export default function LeviYitzhakModal({
                       min="0"
                       max="100"
                       className="fi"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                       value={thirdPct}
                       onChange={(e) => setThirdPct(e.target.value)}
                       placeholder="למשל 15"
                       data-testid="in-repair-third-pct"
                     />
                   </div>
-                  <div style={{ textAlign: 'left', minWidth: 100 }}>
+                  <div style={{ textAlign: 'left', flex: '0 0 auto', minWidth: 90 }}>
                     <div style={{ fontSize: 10.5, color: 'var(--t3, #64748b)' }}>סכום מחושב</div>
                     <div
                       style={{ fontSize: 15, fontWeight: 800, color: thirdAmount ? '#7c3aed' : 'var(--t3, #64748b)' }}
@@ -1213,6 +1215,7 @@ export default function LeviYitzhakModal({
                   borderRadius: 6,
                   background: showInQuote ? '#10b981' : '#94a3b8',
                   color: '#ffffff',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {showInQuote ? 'פעיל בהצעה' : 'כבוי (פנימי)'}
@@ -1228,7 +1231,8 @@ export default function LeviYitzhakModal({
                   borderTop: '1px solid #a7f3d0',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 20,
+                  flexWrap: 'wrap',
+                  gap: 12,
                   fontSize: 12.5,
                 }}
               >

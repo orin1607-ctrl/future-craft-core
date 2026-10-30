@@ -7520,8 +7520,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           onClose={() => setLeviYitzhakOpen(false)}
           onSaved={async (updated) => {
             setClaims((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
-            await loadAll();
             await loadCardData(updated.id);
+            const res = await apiRef.current.getClaims().catch(() => null);
+            if (res?.data) {
+              setClaims(res.data.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+            }
           }}
           toast={toast}
         />

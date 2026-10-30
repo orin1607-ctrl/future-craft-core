@@ -213,8 +213,14 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
     // Customer and vehicle details always come fresh from the claim.
     const fresh = claimSnapshotOf(claim);
     const base = row ? normalizeQuoteData(row.data, claim) : newQuoteData(claim);
-    const claimSnap = { ...base.claim };
-    (Object.keys(fresh) as Array<keyof typeof fresh>).forEach((k) => { if (fresh[k]) claimSnap[k] = fresh[k]; });
+    const claimSnap: ClaimSnapshot = {
+      ...base.claim,
+      ...fresh,
+      showRepairInQuote: claim.showRepairInQuote !== undefined
+        ? (claim.showRepairInQuote === 'true' || (claim as any).showRepairInQuote === true)
+        : (base.claim?.showRepairInQuote ?? false),
+      quoteRepairRoute: ((claim.quoteRepairRoute as any) === 'third_party' ? 'third_party' : ((claim.quoteRepairRoute as any) === 'policy' ? 'policy' : (base.claim?.quoteRepairRoute || 'policy'))),
+    };
     let next: QuoteData = { ...base, claim: claimSnap };
     // Paint works come from the claim's latest saved paint calculation automatically.
     const lp = latestPaint.current;
@@ -980,44 +986,84 @@ export default function ClaimQuoteEditor(props: ClaimQuoteEditorProps) {
                   <b>{formatIls(totals.vat)}</b></div>
                 <div className="cq-sum-total" data-testid="cq-total"><span>סה״כ כולל מע״מ</span><b>{formatIls(totals.total)}</b></div>
 
-                {/* Levi Itzhak Calculated Repair Callout (Only when showRepairInQuote is enabled) */}
-                {((claim.showRepairInQuote === 'true' || data.claim?.showRepairInQuote) && (claim.weightedPrice || data.claim?.weightedPrice)) && (
-                  <div
-                    className="cq-sum-row cq-levi-repair-callout"
-                    data-testid="cq-levi-repair-callout"
-                    style={{
-                      background: 'var(--bg2, #f8fafc)',
-                      border: '1px solid var(--bdr, #e2e8f0)',
-                      borderRadius: 8,
-                      padding: '10px 12px',
-                      marginTop: 10,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--p1, #2563eb)' }}>
-                        ★ סכום תיקון מחושב ({((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party') ? 'מסלול צד ג׳' : 'מסלול פוליסה'}):
-                      </span>
-                      <b style={{ fontSize: 14, color: 'var(--p1, #2563eb)' }}>
-                        {formatIls(
-                          Number(
-                            ((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party')
-                              ? (claim.repairCalcThirdAmount || data.claim?.repairCalcThirdAmount)
-                              : (claim.repairCalcPolicyAmount || data.claim?.repairCalcPolicyAmount)
-                          ) || 0
-                        )}
-                      </b>
+                {/* Levi Itzhak Valuation & Calculated Repair Section (Only when showRepairInQuote is enabled) */}
+                {(() => {
+                  const show = claim.showRepairInQuote !== undefined
+                    ? (claim.showRepairInQuote === 'true' || (claim as any).showRepairInQuote === true)
+                    : Boolean(data.claim?.showRepairInQuote);
+                  const rawWeighted = String(claim.weightedPrice || data.claim?.weightedPrice || '').replace(/,/g, '').trim();
+                  const weighted = Number(rawWeighted) || 0;
+                  if (!show || !weighted) return null;
+
+                  const isThird = (claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party';
+                  const routeLabel = isThird ? 'צד ג׳' : 'פוליסה';
+                  const pct = isThird
+                    ? (claim.repairCalcThirdPct || data.claim?.repairCalcThirdPct || '0')
+                    : (claim.repairCalcPolicyPct || data.claim?.repairCalcPolicyPct || '0');
+                  const rawAmount = String(
+                    isThird
+                      ? (claim.repairCalcThirdAmount || data.claim?.repairCalcThirdAmount || '')
+                      : (claim.repairCalcPolicyAmount || data.claim?.repairCalcPolicyAmount || '')
+                  ).replace(/,/g, '').trim();
+                  const amount = Number(rawAmount) || 0;
+
+                  return (
+                    <div
+                      className="cq-card cq-levi-quote-section"
+                      data-testid="cq-levi-repair-callout"
+                      style={{
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                        border: '1.5px solid #86efac',
+                        borderRadius: 10,
+                        padding: '14px 16px',
+                        marginTop: 14,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13.5, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>📊</span>
+                          <span>מחירון לוי יצחק — שווי רכב וסכום תיקון מחושב</span>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#bbf7d0', color: '#166534' }}>
+                          לידיעה בלבד
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(2, 1fr)',
+                          gap: 10,
+                          background: '#ffffff',
+                          borderRadius: 8,
+                          padding: '10px 12px',
+                          border: '1px solid #dcfce7',
+                        }}
+                      >
+                        <div data-testid="cq-levi-item-weighted">
+                          <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>שווי משוקלל:</span>
+                          <b style={{ fontSize: 14, color: '#0f172a' }}>{formatIls(weighted)}</b>
+                        </div>
+                        <div data-testid="cq-levi-item-route">
+                          <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>מסלול:</span>
+                          <b style={{ fontSize: 14, color: '#0f172a' }}>{routeLabel}</b>
+                        </div>
+                        <div data-testid="cq-levi-item-pct">
+                          <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>אחוז תיקון:</span>
+                          <b style={{ fontSize: 14, color: '#0f172a' }}>{pct}%</b>
+                        </div>
+                        <div data-testid="cq-levi-item-amount">
+                          <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>סכום תיקון מחושב:</span>
+                          <b style={{ fontSize: 15, color: '#15803d' }}>{formatIls(amount)}</b>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: '#15803d', marginTop: 8 }}>
+                        * נתוני מחירון לוי יצחק מוצגים לידיעת הלקוח / חברת הביטוח ואינם משנים את חישוב שעות העבודה והחלפים של ההצעה.
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>
-                      חישוב לפי שווי משוקלל: {formatIls(Number(claim.weightedPrice || data.claim?.weightedPrice) || 0)} · שיעור תיקון:{' '}
-                      {((claim.quoteRepairRoute || data.claim?.quoteRepairRoute) === 'third_party')
-                        ? (claim.repairCalcThirdPct || data.claim?.repairCalcThirdPct || '0')
-                        : (claim.repairCalcPolicyPct || data.claim?.repairCalcPolicyPct || '0')}%
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </section>
 
               <section className="cq-card cq-internal" data-testid="cq-internal">

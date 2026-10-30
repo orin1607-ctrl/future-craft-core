@@ -307,14 +307,27 @@ export async function renderClaimQuoteCanvases(d: QuoteData, meta: QuotePdfMeta)
   if (d.claim.showRepairInQuote && d.claim.weightedPrice) {
     const isThird = d.claim.quoteRepairRoute === 'third_party';
     const pct = isThird ? d.claim.repairCalcThirdPct || '0' : d.claim.repairCalcPolicyPct || '0';
-    const amount = Number(isThird ? d.claim.repairCalcThirdAmount : d.claim.repairCalcPolicyAmount) || 0;
-    const routeLabel = isThird ? "מסלול צד ג׳" : "מסלול פוליסה";
-    const weightedVal = Number(d.claim.weightedPrice) || 0;
+    const rawAmount = String(isThird ? d.claim.repairCalcThirdAmount : d.claim.repairCalcPolicyAmount || '').replace(/,/g, '');
+    const amount = Number(rawAmount) || 0;
+    const routeLabel = isThird ? "צד ג׳" : "פוליסה";
+    const weightedVal = Number(String(d.claim.weightedPrice || '').replace(/,/g, '')) || 0;
 
-    p.need(45);
-    drawRoundedRect(p.ctx, MARGIN, p.y, width, 32, 6, '#f0fdf4', '#86efac');
-    text(p.ctx, `סכום תיקון מחושב (${routeLabel}): ${pct}% משווי משוקלל ${formatIls(weightedVal)} = ${formatIls(amount)}`, right - 12, p.y + 16, { size: 10.5, weight: 700, color: '#166534' });
-    p.y += 42;
+    const boxH = 54;
+    p.need(boxH + 16);
+    drawRoundedRect(p.ctx, MARGIN, p.y, width, boxH, 6, '#f0fdf4', '#86efac');
+
+    // Header inside box
+    text(p.ctx, 'נתוני מחירון לוי יצחק וסכום תיקון מחושב (לידיעה בלבד)', right - 14, p.y + 16, { size: 10.5, weight: 800, color: '#166534' });
+
+    // 4 items evenly spaced in RTL across the width
+    const colW = (width - 28) / 4;
+    const itemY = p.y + 36;
+    text(p.ctx, `שווי משוקלל: ${formatIls(weightedVal)}`, right - 14, itemY, { size: 10, weight: 600, color: '#334155' });
+    text(p.ctx, `מסלול: ${routeLabel}`, right - 14 - colW, itemY, { size: 10, weight: 600, color: '#334155' });
+    text(p.ctx, `אחוז תיקון: ${pct}%`, right - 14 - colW * 2, itemY, { size: 10, weight: 600, color: '#334155' });
+    text(p.ctx, `סכום תיקון מחושב: ${formatIls(amount)}`, right - 14 - colW * 3, itemY, { size: 10.5, weight: 800, color: '#15803d' });
+
+    p.y += boxH + 12;
   }
 
   // Footer on every page
