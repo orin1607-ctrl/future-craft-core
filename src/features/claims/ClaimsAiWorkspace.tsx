@@ -78,6 +78,8 @@ import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone,
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
 import { DALIA_SAFE_ALTERNATIVES, isFixedDaliaPrompt } from '../../../supabase/functions/_shared/daliaVoicePrompts';
 import { saveQuoteEntry, type QuoteEntryParams } from './claimQuoteEntrySave';
+import { queryClaimsReportsAssistant } from './claimsReportsAiAssistant';
+import type { ClaimRecord } from './claimsConstants';
 import './claims-ai.css';
 
 type ClaimsEntryMode = 'quote' | 'details';
@@ -2833,6 +2835,8 @@ export function ClaimsAiWorkspace({
   garageCase = null,
   onOpenGarageCase,
   garageVoiceActions = null,
+  claims = [],
+  onOpenReports,
 }: {
   open: boolean;
   onClose: () => void;
@@ -2851,8 +2855,16 @@ export function ClaimsAiWorkspace({
   onOpenGarageCase?: (caseId: string) => void;
   /** Garage operations for the voice workflows, bound to the signed-in user and shop. */
   garageVoiceActions?: GarageVoiceActions | null;
+  claims?: ClaimRecord[];
+  onOpenReports?: () => void;
 }) {
   const claimId = claim?.claimId || null;
+  const claimsRef = useRef(claims);
+  claimsRef.current = claims;
+  const onOpenReportsRef = useRef(onOpenReports);
+  onOpenReportsRef.current = onOpenReports;
+  const onOpenClaimRef = useRef(onOpenClaim);
+  onOpenClaimRef.current = onOpenClaim;
   /** Dalia's large phone composer (auto-grow, expand, stop-speech, keyboard handling): garage and claims. */
   const daliaComposerUi = module === 'garage' || module === 'claims';
   /** "הזנת הצעת מחיר" / "השלמת פרטי תיק": the next message is sent with its mode line, so the chat knows the job. */
@@ -4275,6 +4287,48 @@ const toggleVoiceMute = useCallback(() => {
     setBanner('');
     if (textareaRef.current) {
       textareaRef.current.style.height = '40px';
+    }
+    // Fast-track Claims & Reports queries with 100% real data, zero hallucination, vocal reply
+    if (filesToUpload.length === 0) {
+      const repAssistantResult = queryClaimsReportsAssistant(effectiveText, claimsRef.current || [], {
+        onOpenReports: onOpenReportsRef.current,
+        onOpenClaim: onOpenClaimRef.current,
+      });
+      if (repAssistantResult.matched) {
+        const asstMsgId = `reports-asst-${Date.now()}`;
+        const asstMsg: ClaimsAiMessage = {
+          id: asstMsgId,
+          conversation_id: activeId || "local",
+          role: "assistant",
+          content: repAssistantResult.markdown,
+          created_at: new Date().toISOString(),
+          tool_name: null,
+          metadata: {
+            source: "claims_reports_assistant",
+            intent: repAssistantResult.intent,
+            say: repAssistantResult.say,
+          },
+        };
+        setMessages((prev) => deduplicateMessages([...prev, asstMsg]));
+        setLoading(false);
+        isSubmittingRef.current = false;
+        if (activeId) {
+          void insertClaimsAiMessage({
+            conversationId: activeId,
+            role: "user",
+            content: effectiveText,
+            metadata: { claim_id: claimId, source, attachments: optimisticAttachments, intent: repAssistantResult.intent },
+          });
+          void insertClaimsAiMessage({
+            conversationId: activeId,
+            role: "assistant",
+            content: repAssistantResult.markdown,
+            metadata: { source: "claims_reports_assistant", intent: repAssistantResult.intent, say: repAssistantResult.say },
+          });
+        }
+        void speakAnswer(asstMsgId, repAssistantResult.say, { label: "claims-reports-answer" });
+        return;
+      }
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;

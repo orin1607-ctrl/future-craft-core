@@ -7433,6 +7433,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             setPaintCalcOpen(true);
           }
         }}
+        claims={claims}
+        onOpenReports={() => showView('reports')}
       />
 
       {paintCalcOpen && cur && (
