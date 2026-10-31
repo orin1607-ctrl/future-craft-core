@@ -123,14 +123,21 @@ async function canWork(sb: ReturnType<typeof admin>, uid: string, role: string, 
   return !!data && (data.assigned_to === uid || data.created_by === uid);
 }
 
-async function loadConnection(sb: ReturnType<typeof admin>) {
-  const { data } = await sb.from("claims_gmail_connection").select("*").eq("id", "staging").maybeSingle();
+async function loadConnection(sb: ReturnType<typeof admin>, envId = "staging") {
+  const { data } = await sb.from("claims_gmail_connection").select("*").eq("id", envId).maybeSingle();
   if (!data || data.revoked_at) return null;
   return data as {
+    id: string;
     connected_email: string;
     refresh_token: string;
     scopes: string;
     revoked_at: string | null;
+    connected_at?: string | null;
+    last_ok_at?: string | null;
+    last_error?: string | null;
+    last_error_at?: string | null;
+    last_error_class?: string | null;
+    is_token_expired?: boolean | null;
   };
 }
 
@@ -144,12 +151,45 @@ function tokenStoredKind(refreshToken: string) {
 
 function classifyTokenError(msg: string) {
   const m = String(msg || "").toLowerCase();
-  if (m.includes("expired") || m.includes("revoked")) return "invalid_grant_revoked";
+  if (m.includes("invalid_grant") || m.includes("expired") || m.includes("revoked")) return "invalid_grant_revoked";
   if (m.includes("invalid_client")) return "invalid_client";
   if (m.includes("unauthorized_client")) return "unauthorized_client";
   if (m.includes("invalid_request")) return "invalid_request";
   if (m.includes("token_refresh_failed")) return "token_refresh_failed";
+  if (m.includes("network") || m.includes("fetch failed") || m.includes("econnrefused")) return "network_error";
   return "other";
+}
+
+async function recordTokenError(sb: ReturnType<typeof admin>, envId: string, errorMsg: string, errorClass: string) {
+  try {
+    const isExpired = errorClass === "invalid_grant_revoked";
+    await sb.from("claims_gmail_connection").update({
+      last_error: errorMsg.slice(0, 300),
+      last_error_at: new Date().toISOString(),
+      last_error_class: errorClass,
+      is_token_expired: isExpired,
+    }).eq("id", envId);
+  } catch (err) {
+    console.error("recordTokenError failed", err);
+  }
+}
+
+async function recordTokenSuccess(sb: ReturnType<typeof admin>, envId: string, nextRefresh?: string) {
+  try {
+    const patch: Record<string, unknown> = {
+      last_ok_at: new Date().toISOString(),
+      last_error: null,
+      last_error_at: null,
+      last_error_class: null,
+      is_token_expired: false,
+    };
+    if (nextRefresh && tokenStoredKind(nextRefresh) !== "placeholder_revoked") {
+      patch.refresh_token = nextRefresh;
+    }
+    await sb.from("claims_gmail_connection").update(patch).eq("id", envId);
+  } catch (err) {
+    console.error("recordTokenSuccess failed", err);
+  }
 }
 
 async function googleAccessToken(refreshToken: string): Promise<{ access: string; newRefresh?: string }> {
@@ -167,19 +207,19 @@ async function googleAccessToken(refreshToken: string): Promise<{ access: string
     }),
   });
   const json = await res.json();
-  if (!res.ok || !json.access_token) throw new Error(json.error_description || json.error || "token_refresh_failed");
+  if (!res.ok || !json.access_token) {
+    const desc = json.error_description || json.error || "token_refresh_failed";
+    throw new Error(String(desc));
+  }
   return {
     access: String(json.access_token),
     newRefresh: json.refresh_token ? String(json.refresh_token) : undefined,
   };
 }
 
-async function persistRotatedRefresh(sb: ReturnType<typeof admin>, current: string, next?: string) {
+async function persistRotatedRefresh(sb: ReturnType<typeof admin>, current: string, next?: string, envId = "staging") {
   if (!next || next === current || tokenStoredKind(next) === "placeholder_revoked") return;
-  await sb.from("claims_gmail_connection").update({
-    refresh_token: next,
-    last_ok_at: new Date().toISOString(),
-  }).eq("id", "staging");
+  await recordTokenSuccess(sb, envId, next);
 }
 
 async function loadMatchClaims(sb: ReturnType<typeof admin>): Promise<MatchClaim[]> {
@@ -821,12 +861,13 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       if (conn?.refresh_token && tokenStoredKind(conn.refresh_token) !== "placeholder_revoked") {
         try {
           const tok = await googleAccessToken(conn.refresh_token);
-          await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
-          await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
+          await recordTokenSuccess(sb, "staging", tok.newRefresh);
           refreshProbe = { ok: true, errorClass: null, message: null };
         } catch (e) {
           const message = String((e as Error).message || e).slice(0, 160);
-          refreshProbe = { ok: false, errorClass: classifyTokenError(message), message };
+          const errorClass = classifyTokenError(message);
+          refreshProbe = { ok: false, errorClass, message };
+          await recordTokenError(sb, "staging", message, errorClass);
         }
       } else if (!conn) {
         refreshProbe = { ok: false, errorClass: "not_connected", message: null };
@@ -834,8 +875,13 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         refreshProbe = { ok: false, errorClass: tokenStoredKind(conn.refresh_token), message: null };
       }
     }
-    const isLiveConnected = Boolean(conn && (body.probe === false ? true : refreshProbe.ok));
-    const isTokenExpired = Boolean(conn && refreshProbe.errorClass === "invalid_grant_revoked");
+    const isLiveConnected = Boolean(conn && (body.probe === false ? !conn.is_token_expired : refreshProbe.ok));
+    const isTokenExpired = Boolean(conn && (refreshProbe.errorClass === "invalid_grant_revoked" || conn.is_token_expired));
+
+    const connectedAtMs = conn?.connected_at ? Date.parse(conn.connected_at) : 0;
+    const daysSinceConnect = connectedAtMs ? Math.floor((Date.now() - connectedAtMs) / (24 * 3600 * 1000)) : 0;
+    const isTestingModeSuspected = isTokenExpired || (daysSinceConnect >= 6 && !isLiveConnected);
+
     return jsonResponse({
       success: true,
       connected: isLiveConnected,
@@ -848,13 +894,24 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       scopes: SCOPES,
       canConnect: role === "super_admin",
       autoDispatch: false,
+      diagnostics: {
+        daysSinceConnect,
+        isTestingModeSuspected,
+        reauthRequired: isTokenExpired,
+        lastError: conn?.last_error || refreshProbe.message || null,
+        lastErrorClass: conn?.last_error_class || refreshProbe.errorClass || null,
+        lastErrorAt: conn?.last_error_at || null,
+        rootCauseGuidanceHe: isTestingModeSuspected
+          ? "טוקן ה-OAuth של Google פג תוקף עקב הגדרת Testing mode בפרויקט oren-car-claims. יש להעביר את ה-OAuth Consent Screen ל-In Production ב-Google Cloud Console כדי לבטל את תפוגת 7 הימים."
+          : null,
+      },
       oauth: {
         clientIdPresent: Boolean(clientId),
         clientSecretPresent: Boolean(Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET")),
         clientIdPrefix: clientId.slice(0, 12),
         tokenStored: conn ? tokenStoredKind(conn.refresh_token) : "missing",
         tokenLen: conn ? String(conn.refresh_token || "").length : 0,
-        lastOkAt: (conn as { last_ok_at?: string } | null)?.last_ok_at || null,
+        lastOkAt: conn?.last_ok_at || null,
         refreshProbe,
       },
       scheduler: {
@@ -867,6 +924,97 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         dueNow: !lastScanAt || Date.now() - lastMs >= MAILBOX_SCAN_EVERY_MS,
         paused: syncPaused,
       },
+    });
+  }
+
+  if (action === "get_auth_url") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only" }, 403);
+    const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+    if (!clientId) return jsonResponse({ success: false, error: "missing_client_id" }, 400);
+    const redirectUri = String(body.redirect_uri || "").trim() || "http://127.0.0.1:4521/oauth2callback";
+    const state = `stg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      access_type: "offline",
+      prompt: "consent",
+      include_granted_scopes: "false",
+      login_hint: ALLOWED_ACCOUNT,
+      scope: SCOPES.join(" "),
+      state,
+    }).toString();
+    return jsonResponse({
+      success: true,
+      authUrl,
+      state,
+      accountExpected: ALLOWED_ACCOUNT,
+      scopes: SCOPES,
+    });
+  }
+
+  if (action === "exchange_auth_code") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only" }, 403);
+    const code = String(body.code || "").trim();
+    const redirectUri = String(body.redirect_uri || "").trim() || "http://127.0.0.1:4521/oauth2callback";
+    if (!code) return jsonResponse({ success: false, error: "code_required" }, 400);
+    const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+    const clientSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
+    if (!clientId || !clientSecret) return jsonResponse({ success: false, error: "missing_client_env" }, 400);
+
+    const tokRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+    const tokens = await tokRes.json();
+    if (!tokRes.ok) return jsonResponse({ success: false, error: tokens.error_description || tokens.error || "exchange_failed" }, 400);
+    if (!tokens.refresh_token) return jsonResponse({ success: false, error: "no_refresh_token_returned" }, 400);
+
+    const meRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    const me = await meRes.json();
+    const email = String(me.email || "").toLowerCase();
+    if (email !== ALLOWED_ACCOUNT) {
+      await fetch("https://oauth2.googleapis.com/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: tokens.refresh_token }),
+      }).catch(() => undefined);
+      return jsonResponse({ success: false, error: `wrong_account:${email}`, expected: ALLOWED_ACCOUNT }, 403);
+    }
+
+    const granted = String(tokens.scope || "");
+    const nowIso = new Date().toISOString();
+    const { error: upsertErr } = await sb.from("claims_gmail_connection").upsert({
+      id: "staging",
+      connected_email: email,
+      refresh_token: tokens.refresh_token,
+      scopes: granted,
+      google_sub: me.id || "",
+      connected_at: nowIso,
+      revoked_at: null,
+      last_ok_at: nowIso,
+      last_error: null,
+      last_error_at: null,
+      last_error_class: null,
+      is_token_expired: false,
+    });
+    if (upsertErr) return jsonResponse({ success: false, error: upsertErr.message }, 500);
+
+    return jsonResponse({
+      success: true,
+      connected: true,
+      email,
+      scopes: granted,
+      connected_at: nowIso,
     });
   }
 
@@ -1270,14 +1418,35 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     return jsonResponse({ success: false, error: "wrong_account", email: conn.connected_email }, 403);
   }
 
+  if (conn.is_token_expired && body.force !== true) {
+    return jsonResponse({
+      success: false,
+      error: "token_expired_reauth_required",
+      reauthRequired: true,
+      lastError: conn.last_error,
+      lastErrorAt: conn.last_error_at,
+      mailboxMutated: false,
+      realEmailSend: false,
+    }, 400);
+  }
+
   let access = "";
   try {
     const tok = await googleAccessToken(conn.refresh_token);
     access = tok.access;
-    await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
-    await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
+    await recordTokenSuccess(sb, "staging", tok.newRefresh);
   } catch (e) {
-    return jsonResponse({ success: false, error: String((e as Error).message || e) }, 400);
+    const errMsg = String((e as Error).message || e);
+    const errClass = classifyTokenError(errMsg);
+    await recordTokenError(sb, "staging", errMsg, errClass);
+    return jsonResponse({
+      success: false,
+      error: errMsg,
+      errorClass: errClass,
+      tokenExpired: errClass === "invalid_grant_revoked",
+      mailboxMutated: false,
+      realEmailSend: false,
+    }, 400);
   }
 
   if (action === "scan_inbox") {
