@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ClaimsReportsView, { type GarageCaseRecord } from './ClaimsReportsView';
 import ClaimsReportsIntegratedView from './ClaimsReportsIntegratedView';
+import { SystemOpsCenterView } from './SystemOpsCenterView';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, lastTreatmentActionText, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
@@ -920,7 +921,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
       const v = sp.get('view') || sp.get('tab');
-      if (v === 'reports' || v === 'claims' || v === 'gmail' || v === 'tasks' || v === 'dashboard') {
+      if (v === 'reports' || v === 'claims' || v === 'gmail' || v === 'tasks' || v === 'dashboard' || v === 'ops_center') {
         return v;
       }
       if (window.location.hash.includes('view=reports') || window.location.hash.includes('tab=reports')) {
@@ -3593,6 +3594,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             >
               🚗 ניהול מוסך
             </button>
+            {actor.role === 'super_admin' && (
+              <button
+                type="button"
+                className={`tbn ${view === 'ops_center' ? 'act' : ''}`}
+                data-testid="claims-nav-ops-center"
+                onClick={() => showView('ops_center')}
+                title="מרכז בקרה ותפעול המערכת (מנהל על בלבד)"
+                style={{ color: '#38bdf8', fontWeight: 700 }}
+              >
+                🛡️ מרכז בקרה ותפעול
+              </button>
+            )}
             <button className="tbn" onClick={async () => {
               const r = await apiRef.current.getTemplates();
               setTpl(r.data || {});
@@ -3661,6 +3674,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📊</span>דוחות</button>
               <button className="sb-i" data-testid="claims-nav-to-garage-sidebar" onClick={() => { setSbOpen(false); navigate('/garage-management'); }}><span className="ic">🚗</span>ניהול מוסך</button>
+              {actor.role === 'super_admin' && (
+                <button
+                  type="button"
+                  className={`sb-i ${view === 'ops_center' ? 'act' : ''}`}
+                  data-testid="claims-sb-ops-center"
+                  onClick={() => showView('ops_center')}
+                  style={{ color: '#38bdf8', fontWeight: 700 }}
+                >
+                  <span className="ic">🛡️</span>מרכז בקרה ותפעול המערכת
+                </button>
+              )}
               <button className="sb-i" data-testid="claims-nav-templates" onClick={async () => {
                 setSbOpen(false);
                 const r = await apiRef.current.getTemplates();
@@ -3969,6 +3993,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 onOpenClaim={(id) => openCard(id)}
                 onOpenGarageCase={(id) => navigate(`/garage-management/${id}`)}
                 onOpenAiReports={() => setAiOpen(true)}
+              />
+            )}
+
+            {view === 'ops_center' && (
+              <SystemOpsCenterView
+                onBack={() => showView('claims')}
+                userRole={actor.role}
               />
             )}
           </div>
