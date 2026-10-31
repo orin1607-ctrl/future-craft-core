@@ -16,6 +16,25 @@ import {
   formatCurrencyDetailed,
   translateDeductionCategory,
 } from './claimFinancialReportsCenterModel';
+import {
+  type AlertSeverity,
+  type AlertKind,
+  type SmartAlertItem,
+  type SmartAlertsSummary,
+  type RecurringDeductionAnalysis,
+  type CycleTimesAnalysis,
+  type CashForecastBucket,
+  type ClaimProfitabilityRow,
+  type DataQualityAuditRow,
+  evaluateClaimAlerts,
+  computeSmartAlertsSummary,
+  analyzeRecurringDeductions,
+  analyzeCycleTimes,
+  analyzeCashForecast,
+  analyzeClaimProfitability,
+  auditDataQuality,
+  generateDailyAiBriefing,
+} from './claimSmartAlertsModel';
 import { computeTotals } from './claimQuoteModel';
 import './claim-financial-center.css';
 
@@ -26,7 +45,17 @@ export interface ClaimsFinancialCenterViewProps {
   onOpenAiReports?: () => void;
 }
 
-type SubTabKind = 'insurers' | 'debts' | 'payments' | 'traceability';
+type SubTabKind =
+  | 'alerts'
+  | 'insurers'
+  | 'debts'
+  | 'payments'
+  | 'recurring_cuts'
+  | 'cycle_times'
+  | 'profitability'
+  | 'data_quality'
+  | 'traceability';
+
 type DebtSortKind = 'debt_desc' | 'aging_desc' | 'insurer';
 
 export default function ClaimsFinancialCenterView({
@@ -37,6 +66,7 @@ export default function ClaimsFinancialCenterView({
 }: ClaimsFinancialCenterViewProps) {
   // 1. Loading & Database State
   const [dbQuotes, setDbQuotes] = useState<Map<string, { totalAmount: number; version: number }>>(new Map());
+  const [dbClaimQuotesFull, setDbClaimQuotesFull] = useState<Map<string, any>>(new Map());
   const [dbClaimsRows, setDbClaimsRows] = useState<Map<string, Record<string, unknown>>>(new Map());
   const [loadingData, setLoadingData] = useState<boolean>(true);
 
@@ -51,1050 +81,1476 @@ export default function ClaimsFinancialCenterView({
     statusKind: 'all',
   });
 
-  // 3. Sub-tabs & Sorting
-  const [activeSubTab, setActiveSubTab] = useState<SubTabKind>('insurers');
+  // 3. Sub-tabs, Sorting & Stale Threshold
+  const [activeSubTab, setActiveSubTab] = useState<SubTabKind>('alerts');
   const [debtSort, setDebtSort] = useState<DebtSortKind>('debt_desc');
+  const [staleThresholdDays, setStaleThresholdDays] = useState<7 | 14 | 30>(14);
 
-  // 4. Drilldown Modal State
+  // 4. Action Queue Specific Filters
+  const [alertKindFilter, setAlertKindFilter] = useState<'all' | AlertKind>('all');
+  const [alertSeverityFilter, setAlertSeverityFilter] = useState<'all' | 'red_only' | 'yellow_plus'>('all');
+
+  // 5. AI Briefing Modal State
+  const [briefingModalOpen, setBriefingModalOpen] = useState<boolean>(false);
+  const [copiedBriefing, setCopiedBriefing] = useState<boolean>(false);
+
+  // 6. Drilldown Modal State
   const [drilldownModal, setDrilldownModal] = useState<{
     title: string;
-    description: string;
-    rows: ClaimFinancialRow[];
+    kpiKey: string;
+    items: ClaimFinancialRow[];
   } | null>(null);
 
-  // 5. Fetch enriched data (quotes & latest full claims_records with row_data)
+  // 7. Load database records (quotes and claims_records) for full financial parity
   useEffect(() => {
-    let active = true;
+    let isCancelled = false;
 
-    async function loadEnrichedData() {
+    async function loadData() {
       try {
         setLoadingData(true);
 
         // Fetch quotes
         const { data: quotesData } = await supabase
-          .from('claim_quotes' as never)
-          .select('id, claim_id, quote_no, version, updated_at, data');
+          .from('claim_quotes')
+          .select('claim_id, version, total_amount, data')
+          .order('version', { ascending: false });
 
-        const qMap = new Map<string, { totalAmount: number; version: number }>();
-        if (quotesData && Array.isArray(quotesData)) {
-          for (const q of quotesData as any[]) {
-            if (!q.claim_id) continue;
-            let total = 0;
-            if (q.data) {
-              try {
-                const totals = computeTotals(q.data);
-                total = totals.saleTotalCustomer || 0;
-              } catch {
-                total = 0;
+        if (!isCancelled && quotesData) {
+          const quotesMap = new Map<string, { totalAmount: number; version: number }>();
+          const quotesFullMap = new Map<string, any>();
+          quotesData.forEach((q: any) => {
+            if (!quotesMap.has(q.claim_id)) {
+              let amt = Number(q.total_amount) || 0;
+              if ((!amt || amt === 0) && q.data) {
+                try {
+                  const t = computeTotals(q.data);
+                  amt = t.saleTotalCustomer || 0;
+                } catch {
+                  // ignore
+                }
               }
+              quotesMap.set(q.claim_id, { totalAmount: amt, version: Number(q.version) || 1 });
+              quotesFullMap.set(q.claim_id, q.data);
             }
-            // Keep the latest or highest version
-            const existing = qMap.get(q.claim_id);
-            if (!existing || (q.version || 0) >= existing.version) {
-              qMap.set(q.claim_id, { totalAmount: total, version: q.version || 1 });
-            }
-          }
+          });
+          setDbQuotes(quotesMap);
+          setDbClaimQuotesFull(quotesFullMap);
         }
 
-        // Fetch claims_records for rich row_data (audits, comparisons)
-        const { data: recordsData } = await supabase
-          .from('claims_records' as never)
-          .select('id, plate, client_name, status, row_data, created_at, updated_at');
+        // Fetch claims_records for latest fields (settlement, legal, deduction info)
+        const { data: claimsData } = await supabase
+          .from('claims_records')
+          .select('*');
 
-        const cMap = new Map<string, Record<string, unknown>>();
-        if (recordsData && Array.isArray(recordsData)) {
-          for (const r of recordsData as any[]) {
+        if (!isCancelled && claimsData) {
+          const cMap = new Map<string, Record<string, unknown>>();
+          claimsData.forEach((r: any) => {
             cMap.set(r.id, r);
-          }
-        }
-
-        if (active) {
-          setDbQuotes(qMap);
+          });
           setDbClaimsRows(cMap);
         }
       } catch (err) {
-        console.warn('FinancialCenter: Error loading enriched data:', err);
+        console.warn('ClaimsFinancialCenterView: Failed to load DB enrichment data:', err);
       } finally {
-        if (active) setLoadingData(false);
+        if (!isCancelled) setLoadingData(false);
       }
     }
 
-    loadEnrichedData();
+    loadData();
+
     return () => {
-      active = false;
+      isCancelled = true;
     };
   }, []);
 
-  // 6. Build All Authoritative Financial Rows
-  const allFinancialRows = useMemo<ClaimFinancialRow[]>(() => {
-    // Merge claims prop with enriched db claims
-    const seen = new Set<string>();
-    const rows: ClaimFinancialRow[] = [];
+  // 8. Build Financial Rows
+  const allFinancialRows: ClaimFinancialRow[] = useMemo(() => {
+    return claims.map((claim) => {
+      const q = dbQuotes.get(claim.id);
+      const dbRow = dbClaimsRows.get(claim.id);
+      return buildClaimFinancialRow(claim, q?.totalAmount, dbRow);
+    });
+  }, [claims, dbQuotes, dbClaimsRows]);
 
-    // First use db claims if loaded, else fallback to prop
-    const sourceList = dbClaimsRows.size > 0 ? Array.from(dbClaimsRows.values()) : claims;
-
-    for (const c of sourceList) {
-      const id = String((c as any).id || '');
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
-
-      const quote = dbQuotes.get(id) || null;
-      const finRow = buildClaimFinancialRow(c, quote);
-      rows.push(finRow);
-    }
-
-    // Add any claims in props not found in db query
-    for (const c of claims) {
-      if (!c.id || seen.has(c.id)) continue;
-      seen.add(c.id);
-      const quote = dbQuotes.get(c.id) || null;
-      rows.push(buildClaimFinancialRow(c, quote));
-    }
-
-    return rows;
-  }, [claims, dbClaimsRows, dbQuotes]);
-
-  // 7. Filtered rows
-  const filteredRows = useMemo<ClaimFinancialRow[]>(() => {
+  // 9. Filter Rows
+  const filteredRows: ClaimFinancialRow[] = useMemo(() => {
     return filterFinancialRows(allFinancialRows, filters);
   }, [allFinancialRows, filters]);
 
-  // 8. 15 KPI Cards calculation
-  const kpis = useMemo<KpiCardData[]>(() => {
+  // 10. Compute 15 Financial KPIs
+  const kpiData: KpiCardData[] = useMemo(() => {
     return compute15FinancialKpis(filteredRows);
   }, [filteredRows]);
 
-  // 9. Insurers Summary
-  const insurersSummary = useMemo<InsurerSummaryRow[]>(() => {
+  // 11. Compute Insurers Summary
+  const insurersSummary: InsurerSummaryRow[] = useMemo(() => {
     return computeInsurersSummary(filteredRows);
   }, [filteredRows]);
 
-  // 10. Distinct Insurers list for filter dropdown
-  const insurerFilterOptions = useMemo<Array<{ name: string; count: number }>>(() => {
-    const counts = new Map<string, number>();
-    for (const r of allFinancialRows) {
-      counts.set(r.insCompany, (counts.get(r.insCompany) || 0) + 1);
-    }
-    const list: Array<{ name: string; count: number }> = [];
-    for (const [name, count] of counts.entries()) {
-      list.push({ name, count });
-    }
-    return list.sort((a, b) => b.count - a.count);
-  }, [allFinancialRows]);
+  // 12. Evaluate Smart Alerts for all filtered claims
+  const claimRecordMap = useMemo(() => {
+    const map = new Map<string, ClaimRecord>();
+    claims.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [claims]);
 
-  // 11. Debts Ledger Rows (sorted)
-  const debtsRows = useMemo<ClaimFinancialRow[]>(() => {
-    const list = filteredRows.filter((r) => r.debtAmount !== null && r.debtAmount > 0);
-    return list.sort((a, b) => {
-      if (debtSort === 'debt_desc') {
-        return (b.debtAmount || 0) - (a.debtAmount || 0);
-      }
-      if (debtSort === 'aging_desc') {
-        return (b.agingDays || 0) - (a.agingDays || 0);
-      }
-      if (debtSort === 'insurer') {
-        return a.insCompany.localeCompare(b.insCompany, 'he');
-      }
-      return 0;
+  const allAlertItems: SmartAlertItem[] = useMemo(() => {
+    const list: SmartAlertItem[] = [];
+    filteredRows.forEach((row) => {
+      const raw = claimRecordMap.get(row.claimId) || dbClaimsRows.get(row.claimId) || {};
+      const alerts = evaluateClaimAlerts(row, raw as any, staleThresholdDays);
+      list.push(...alerts);
     });
-  }, [filteredRows, debtSort]);
+    return list;
+  }, [filteredRows, claimRecordMap, dbClaimsRows, staleThresholdDays]);
 
-  // 12. Payments Ledger Rows (chronological)
-  const paymentsRows = useMemo<ClaimFinancialRow[]>(() => {
-    return filteredRows.filter((r) => (r.paidAmount !== null && r.paidAmount > 0) || (r.deductionsAmount !== null && r.deductionsAmount > 0));
+  // 13. Smart Alerts Summary (for 7 Primary Cards)
+  const alertsSummary: SmartAlertsSummary = useMemo(() => {
+    return computeSmartAlertsSummary(allAlertItems);
+  }, [allAlertItems]);
+
+  // 14. Action Queue items after severity & kind filter
+  const actionQueueItems: SmartAlertItem[] = useMemo(() => {
+    return allAlertItems.filter((item) => {
+      if (alertKindFilter !== 'all' && item.kind !== alertKindFilter) return false;
+      if (alertSeverityFilter === 'red_only' && item.severity !== 'red') return false;
+      if (alertSeverityFilter === 'yellow_plus' && item.severity === 'green') return false;
+      return true;
+    }).sort((a, b) => {
+      // Red first, then Yellow, then Green; then largest amount or longest inactivity
+      const severityOrder: Record<AlertSeverity, number> = { red: 3, yellow: 2, green: 1 };
+      const diff = severityOrder[b.severity] - severityOrder[a.severity];
+      if (diff !== 0) return diff;
+      return (b.amount || 0) - (a.amount || 0);
+    });
+  }, [allAlertItems, alertKindFilter, alertSeverityFilter]);
+
+  // 15. Recurring Deductions Analysis (Report B)
+  const recurringDeductions: RecurringDeductionAnalysis[] = useMemo(() => {
+    return analyzeRecurringDeductions(filteredRows);
   }, [filteredRows]);
 
-  // 13. Handle KPI Click Drilldown
-  const handleKpiClick = useCallback((kpi: KpiCardData) => {
-    let matching: ClaimFinancialRow[] = [];
-    let desc = '';
-
-    switch (kpi.drilldownKey) {
-      case 'demands':
-        matching = filteredRows.filter((r) => r.demandAmount !== null && r.demandAmount > 0);
-        desc = 'רשימת כל התיקים עם סכום תביעה או דרישה כספית';
-        break;
-      case 'quotes':
-        matching = filteredRows.filter((r) => r.quoteAmount !== null && r.quoteAmount > 0);
-        desc = 'רשימת כל התיקים שבהם קיימת הצעת מחיר שמורה';
-        break;
-      case 'surveyors':
-        matching = filteredRows.filter((r) => r.surveyorAmount !== null && r.surveyorAmount > 0);
-        desc = 'רשימת כל התיקים עם דוח שומה / שמאי מאומת';
-        break;
-      case 'demands_insurers':
-        matching = filteredRows.filter((r) => r.demandAmount !== null && r.demandAmount > 0 && r.insCompany !== 'ללא חברה');
-        desc = 'רשימת תביעות עם דרישות פעילות מול חברות ביטוח';
-        break;
-      case 'approved':
-        matching = filteredRows.filter((r) => r.approvedAmount !== null && r.approvedAmount > 0);
-        desc = 'רשימת תיקים שבהם אושר סכום לפי דוח שמאי נגדי או אישור מבטחת';
-        break;
-      case 'paid':
-        matching = filteredRows.filter((r) => r.paidAmount !== null && r.paidAmount > 0);
-        desc = 'רשימת תיקים שבהם התקבל תשלום בפועל או הודעת סילוק';
-        break;
-      case 'open_debt':
-        matching = filteredRows.filter((r) => r.debtAmount !== null && r.debtAmount > 0);
-        desc = 'רשימת כל התיקים עם יתרת חוב פתוחה לגבייה';
-        break;
-      case 'deductions':
-        matching = filteredRows.filter((r) => r.deductionsAmount !== null && r.deductionsAmount > 0);
-        desc = 'רשימת תיקים שבהם בוצעו קיזוזים (השתתפות עצמית, כינון, בלאי, הפחתות)';
-        break;
-      case 'disputed':
-        matching = filteredRows.filter((r) => r.disputedAmount !== null && r.disputedAmount > 0);
-        desc = 'רשימת תיקים עם פער כספי במחלוקת מול חברת הביטוח';
-        break;
-      case 'legal':
-        matching = filteredRows.filter((r) => r.isLegal);
-        desc = 'רשימת תיקים הנמצאים בטיפול או ייצוג משפטי';
-        break;
-      case 'open_claims':
-        matching = filteredRows.filter((r) => !r.isClosed);
-        desc = 'רשימת התיקים הפתוחים הפעילים במערכת';
-        break;
-      case 'fully_paid':
-        matching = filteredRows.filter((r) => r.paymentStatus === 'full');
-        desc = 'תיקים ששולמו במלואם';
-        break;
-      case 'partially_paid':
-        matching = filteredRows.filter((r) => r.paymentStatus === 'partial');
-        desc = 'תיקים ששולמו חלקית וממתינים להשלמת יתרה';
-        break;
-      case 'unpaid':
-        matching = filteredRows.filter((r) => r.paymentStatus === 'unpaid');
-        desc = 'תיקים עם דרישה כספית שטרם התקבל בהם כל תשלום';
-        break;
-      case 'pending_verification':
-        matching = filteredRows.filter((r) => r.hasUnverifiedWarning);
-        desc = 'תיקים שבהם הנתונים הכספיים דורשים אימות או בדיקת מסמך';
-        break;
-      default:
-        matching = filteredRows;
-        desc = 'רשימת תיקים תואמת';
-        break;
-    }
-
-    setDrilldownModal({
-      title: `${kpi.title} (${matching.length})`,
-      description: desc,
-      rows: matching,
-    });
+  // 16. Cycle Times Analysis (Report C)
+  const cycleTimes: CycleTimesAnalysis = useMemo(() => {
+    return analyzeCycleTimes(filteredRows);
   }, [filteredRows]);
 
-  // 14. Insurer Drilldown Click
-  const handleInsurerDrilldown = useCallback((insName: string) => {
-    const matching = filteredRows.filter((r) => r.insCompany === insName);
-    setDrilldownModal({
-      title: `פירוט תיקים — ${insName} (${matching.length})`,
-      description: `כל תיקי התביעות המשויכים למבטחת ${insName}`,
-      rows: matching,
-    });
+  // 17. Cash Forecast (Report D)
+  const cashForecast: CashForecastBucket[] = useMemo(() => {
+    return analyzeCashForecast(filteredRows);
   }, [filteredRows]);
 
-  // 15. Export CSV
-  const handleExportCsv = useCallback(() => {
-    const csvContent = exportFinancialToCsv(filteredRows, kpis, insurersSummary);
+  // 18. Profitability Rows (Report E)
+  const profitabilityRows: ClaimProfitabilityRow[] = useMemo(() => {
+    return analyzeClaimProfitability(filteredRows, dbClaimQuotesFull);
+  }, [filteredRows, dbClaimQuotesFull]);
+
+  // 19. Data Quality Audit Rows (Report F)
+  const dataQualityRows: DataQualityAuditRow[] = useMemo(() => {
+    return auditDataQuality(filteredRows);
+  }, [filteredRows]);
+
+  // 20. Daily AI Briefing Text
+  const dailyBriefingText = useMemo(() => {
+    return generateDailyAiBriefing(alertsSummary, allAlertItems);
+  }, [alertsSummary, allAlertItems]);
+
+  // Handlers
+  const handleAlertCardClick = (kind: AlertKind) => {
+    setActiveSubTab('alerts');
+    setAlertKindFilter(kind);
+  };
+
+  const handleCopyBriefing = () => {
+    navigator.clipboard.writeText(dailyBriefingText);
+    setCopiedBriefing(true);
+    setTimeout(() => setCopiedBriefing(false), 2500);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportCsv = () => {
+    const csvContent = exportFinancialToCsv(filteredRows);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `dalia-financial-report-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `דוחות_כספיים_תביעות_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [filteredRows, kpis, insurersSummary]);
-
-  // 16. Print Report
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
+  };
 
   return (
-    <div className="cfc-container" data-testid="claims-financial-center">
+    <div className="cfc-container" data-testid="claims-financial-center" dir="rtl">
       {/* 1. Header Bar */}
       <header className="cfc-header">
         <div className="cfc-header-info">
-          <h2 className="cfc-header-title">
-            <span> מרכז דוחות כספיים – תביעות וביטוח</span>
-            <span className="cfc-badge-pill" data-testid="cfc-realtime-badge">
-              ● זמן אמת
-            </span>
-            {loadingData && <span style={{ fontSize: 11, color: 'var(--t3)' }}>טוען נתונים מועשרים...</span>}
-          </h2>
-          <p className="cfc-header-sub">
-            תמונת מצב כספית מקיפה: דרישות, שומות, אישורי מבטחות, תקבולים, קיזוזים מנומקים ויתרות חוב פתוחות לגבייה.
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              className="cfc-btn cfc-btn-secondary"
+              onClick={onBack}
+              title="חזרה לניהול תביעות"
+            >
+              ← חזרה לתביעות
+            </button>
+            <h1 className="cfc-header-title">
+              📊 מרכז דוחות כספיים והתראות חכמות — ניהול תביעות
+            </h1>
+            <span className="cfc-badge-pill">דליה STAGING</span>
+          </div>
+          <p className="cfc-header-desc">
+            מרכז שליטה פיננסי, תור משימות טיפול וגבייה, מעקב חברות ביטוח, קיזוזים, זמני טיפול ובקרת איכות נתונים.
           </p>
         </div>
 
         <div className="cfc-header-actions">
+          <button
+            type="button"
+            className="cfc-btn cfc-btn-primary"
+            data-testid="cfc-btn-briefing"
+            onClick={() => setBriefingModalOpen(true)}
+            title="פתח תדריך יומי מנהלים"
+          >
+            ✨ תדריך יומי AI
+          </button>
+          <button
+            type="button"
+            className="cfc-btn cfc-btn-secondary"
+            onClick={handleExportCsv}
+            title="ייצוא נתונים כספיים לקובץ Excel (CSV)"
+          >
+            📥 ייצוא ל-Excel
+          </button>
+          <button
+            type="button"
+            className="cfc-btn cfc-btn-secondary"
+            onClick={handlePrint}
+            title="הדפסת דוח / שמירה כ-PDF"
+          >
+            🖨️ הדפסה / PDF
+          </button>
           {onOpenAiReports && (
             <button
               type="button"
-              className="btn btn-g btn-sm"
+              className="cfc-btn cfc-btn-secondary"
               onClick={onOpenAiReports}
-              style={{ fontWeight: 700, borderColor: 'var(--ac)' }}
-              title="פתיחת עוזר דוחות כספיים AI"
-              data-testid="cfc-ai-btn"
+              title="ניתוח דוחות בעזרת AI"
             >
-              <span>✨</span> דליה AI מאזן
+              🤖 ניתוח מעמיק
             </button>
           )}
-
-          <button
-            type="button"
-            className="btn btn-g btn-sm"
-            onClick={handleExportCsv}
-            title="ייצוא כל הדוחות והנתונים לקובץ Excel CSV תואם עברית"
-            data-testid="cfc-export-csv-btn"
-          >
-            <span>📊</span> ייצוא לאקסל
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-g btn-sm"
-            onClick={handlePrint}
-            title="הדפסת דוח מנהלים או שמירה כ-PDF"
-            data-testid="cfc-print-btn"
-          >
-            <span>🖨️</span> הדפסה / PDF
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-g btn-sm"
-            onClick={onBack}
-            style={{ fontWeight: 600 }}
-            data-testid="cfc-back-btn"
-          >
-            ← חזרה לתיקים
-          </button>
         </div>
       </header>
 
-      {/* 2. Advanced Filters Bar */}
-      <section className="cfc-filter-bar" data-testid="cfc-filters-bar">
-        {/* Row 1: Search, Insurer, Period, Date Basis */}
-        <div className="cfc-filter-row">
-          <input
-            type="search"
-            className="cfc-search-input"
-            placeholder="חיפוש לפי לקוח, מספר רכב, חברת ביטוח, מספר תביעה או תיק..."
-            value={filters.searchTerm}
-            onChange={(e) => setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))}
-            data-testid="cfc-search-input"
-          />
-
-          <select
-            className="cfc-select"
-            value={filters.insurer}
-            onChange={(e) => setFilters((prev) => ({ ...prev, insurer: e.target.value }))}
-            data-testid="cfc-insurer-select"
-          >
-            <option value="all">כל חברות הביטוח ({allFinancialRows.length})</option>
-            {insurerFilterOptions.map((opt) => (
-              <option key={opt.name} value={opt.name}>
-                {opt.name} ({opt.count})
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="cfc-select"
-            value={filters.period}
-            onChange={(e) => setFilters((prev) => ({ ...prev, period: e.target.value as any }))}
-            data-testid="cfc-period-select"
-          >
-            <option value="all">כל התקופות</option>
-            <option value="this_month">החודש הנוכחי</option>
-            <option value="last_month">החודש שעבר</option>
-            <option value="quarter">רבעון נוכחי</option>
-            <option value="year">השנה הנוכחית</option>
-            <option value="custom">טווח תאריכים מותאם...</option>
-          </select>
-
-          <select
-            className="cfc-select"
-            value={filters.dateBasis}
-            onChange={(e) => setFilters((prev) => ({ ...prev, dateBasis: e.target.value as any }))}
-            title="בסיס תאריך לסינון"
-            data-testid="cfc-date-basis-select"
-          >
-            <option value="created">לפי תאריך פתיחה</option>
-            <option value="demand">לפי תאריך דרישה / אירוע</option>
-            <option value="payment">לפי תאריך תשלום</option>
-          </select>
-
-          {filters.period === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="date"
-                className="cfc-select"
-                value={filters.customFrom}
-                onChange={(e) => setFilters((prev) => ({ ...prev, customFrom: e.target.value }))}
-                data-testid="cfc-custom-from"
-              />
-              <span>עד</span>
-              <input
-                type="date"
-                className="cfc-select"
-                value={filters.customTo}
-                onChange={(e) => setFilters((prev) => ({ ...prev, customTo: e.target.value }))}
-                data-testid="cfc-custom-to"
-              />
+      {/* 2. Top Banner: Command Center - מה דורש טיפול היום? */}
+      <section className="cfc-alerts-banner" data-testid="cfc-alerts-banner" aria-label="התראות, גבייה ומשימות לטיפול">
+        <div className="cfc-alerts-header">
+          <div className="cfc-alerts-title">
+            <span className="cfc-alerts-icon">⚡</span>
+            <div>
+              <h3>התראות, גבייה ומשימות לטיפול — מה דורש טיפול היום?</h3>
+              <p>מערכת התראות מבוססת נתונים מאומתים בזמן אמת. התראה נסגרת רק עם עדכון נתוני התיק בפועל.</p>
             </div>
-          )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {/* Stale Threshold Toggle */}
+            <div className="cfc-threshold-toggle" data-testid="cfc-threshold-toggle" title="הגדרת סף ימים לתיקים ללא פעולה">
+              <span className="cfc-threshold-label">סף חוסר פעילות:</span>
+              <button
+                type="button"
+                data-testid="cfc-thresh-7"
+                className={`cfc-threshold-btn ${staleThresholdDays === 7 ? 'active' : ''}`}
+                onClick={() => setStaleThresholdDays(7)}
+              >
+                7 ימים
+              </button>
+              <button
+                type="button"
+                data-testid="cfc-thresh-14"
+                className={`cfc-threshold-btn ${staleThresholdDays === 14 ? 'active' : ''}`}
+                onClick={() => setStaleThresholdDays(14)}
+              >
+                14 יום (רגיל)
+              </button>
+              <button
+                type="button"
+                data-testid="cfc-thresh-30"
+                className={`cfc-threshold-btn ${staleThresholdDays === 30 ? 'active' : ''}`}
+                onClick={() => setStaleThresholdDays(30)}
+              >
+                30 יום
+              </button>
+            </div>
+
+            {/* Quick Severity Badges */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <span className="cfc-alert-severity-pill red" title="התראות קריטיות">
+                🔴 {alertsSummary.criticalRedCount} דחופות
+              </span>
+              <span className="cfc-alert-severity-pill yellow" title="התראות אזהרה">
+                🟡 {alertsSummary.warningYellowCount} למעקב
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Row 2: Status Quick Filter Pills */}
-        <div className="cfc-filter-pills" data-testid="cfc-status-pills">
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginLeft: 4 }}>סינון מהיר:</span>
-          {[
-            { id: 'all', label: 'הכל' },
-            { id: 'open_debt', label: '⚖️ יתרת חוב פתוחה' },
-            { id: 'fully_paid', label: '🏁 שולם במלואו' },
-            { id: 'partially_paid', label: '⏳ שולם חלקית' },
-            { id: 'unpaid', label: '🛑 טרם שולם' },
-            { id: 'disputed', label: '⚡ במחלוקת' },
-            { id: 'legal', label: '⚖️ תיקים משפטיים' },
-            { id: 'pending_verification', label: '🛡️ דורש אימות' },
-          ].map((pill) => (
-            <button
-              key={pill.id}
-              type="button"
-              className={`cfc-filter-pill ${filters.statusKind === pill.id ? 'active' : ''}`}
-              onClick={() => setFilters((prev) => ({ ...prev, statusKind: pill.id as any }))}
-              data-testid={`cfc-status-pill-${pill.id}`}
-            >
-              {pill.label}
-            </button>
-          ))}
-          {(filters.searchTerm || filters.insurer !== 'all' || filters.statusKind !== 'all' || filters.period !== 'all') && (
-            <button
-              type="button"
-              className="btn btn-g btn-sm"
-              style={{ fontSize: 11, padding: '2px 8px', marginRight: 'auto' }}
-              onClick={() =>
-                setFilters({
-                  searchTerm: '',
-                  insurer: 'all',
-                  period: 'all',
-                  customFrom: '',
-                  customTo: '',
-                  dateBasis: 'created',
-                  statusKind: 'all',
-                })
-              }
-              data-testid="cfc-reset-filters-btn"
-            >
-              איפוס סינונים
-            </button>
-          )}
+        {/* 7 Primary Alert KPI Cards */}
+        <div className="cfc-7alerts-grid" data-testid="cfc-7alerts-grid">
+          {/* Card 1: Overdue Debts */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.overdueDebtsCount > 0 ? 'severity-red' : 'severity-green'}`}
+            data-testid="cfc-alert-card-overdue"
+            onClick={() => handleAlertCardClick('overdue_debt')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה בחובות באיחור"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">1. חובות באיחור (&gt;30 יום)</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.overdueDebtsCount > 0 ? 'red' : 'green'}`}>
+                {alertsSummary.overdueDebtsCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {formatCurrencyOrMissing(alertsSummary.overdueDebtsAmount)}
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              יתרות מאומתות מעבר ל-30 יום מדרישה
+            </div>
+          </div>
+
+          {/* Card 2: Partial Payments */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.partialPaymentsCount > 0 ? 'severity-yellow' : 'severity-green'}`}
+            data-testid="cfc-alert-card-partial"
+            onClick={() => handleAlertCardClick('partial_payment')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה בתשלומים חלקיים"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">2. תשלומים חלקיים</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.partialPaymentsCount > 0 ? 'yellow' : 'green'}`}>
+                {alertsSummary.partialPaymentsCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {formatCurrencyOrMissing(alertsSummary.partialPaymentsBalance)}
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              יתרה לגבייה לאחר מקדמה ששולמה
+            </div>
+          </div>
+
+          {/* Card 3: Deductions Clarification */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.deductionsClarificationCount > 0 ? 'severity-yellow' : 'severity-green'}`}
+            data-testid="cfc-alert-card-deductions"
+            onClick={() => handleAlertCardClick('deduction_clarification')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה בקיזוזים שממתינים לבירור"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">3. קיזוזים לבירור</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.deductionsClarificationCount > 0 ? 'yellow' : 'green'}`}>
+                {alertsSummary.deductionsClarificationCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {formatCurrencyOrMissing(alertsSummary.deductionsClarificationAmount)}
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              הפחתות שכר טרחה, שמאי, עבודה וצבע
+            </div>
+          </div>
+
+          {/* Card 4: Inactive / Stale Claims */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.staleClaims30Count > 0 ? 'severity-red' : alertsSummary.staleClaimsCount > 0 ? 'severity-yellow' : 'severity-green'}`}
+            data-testid="cfc-alert-card-stale"
+            onClick={() => handleAlertCardClick('stale_claim')}
+            role="button"
+            tabIndex={0}
+            title={`לחץ לצפייה בתיקים ללא פעולה מעל ${staleThresholdDays} ימים`}
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">4. תיקים ללא טיפול (&gt;{staleThresholdDays}ד)</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.staleClaims30Count > 0 ? 'red' : alertsSummary.staleClaimsCount > 0 ? 'yellow' : 'green'}`}>
+                {alertsSummary.staleClaimsCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {alertsSummary.staleClaimsCount} תיקים
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              {alertsSummary.staleClaims30Count} מעל 30 יום · {alertsSummary.staleClaims14Count} מעל 14 יום
+            </div>
+          </div>
+
+          {/* Card 5: Missing Financial Docs */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.missingDocumentsCount > 0 ? 'severity-yellow' : 'severity-green'}`}
+            data-testid="cfc-alert-card-docs"
+            onClick={() => handleAlertCardClick('missing_document')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה במסמכים כספיים חסרים"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">5. מסמכים כספיים חסרים</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.missingDocumentsCount > 0 ? 'yellow' : 'green'}`}>
+                {alertsSummary.missingDocumentsCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {alertsSummary.missingDocumentsCount} חסרים
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              חשבוניות, הודעות תשלום או דוחות שמאי
+            </div>
+          </div>
+
+          {/* Card 6: Legal Claims */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.legalClaimsWithTasksCount > 0 ? 'severity-yellow' : 'severity-green'}`}
+            data-testid="cfc-alert-card-legal"
+            onClick={() => handleAlertCardClick('legal_open_task')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה בתיקים בטיפול משפטי"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">6. תיקים בטיפול משפטי</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.legalClaimsWithTasksCount > 0 ? 'yellow' : 'green'}`}>
+                {alertsSummary.legalClaimsWithTasksCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {formatCurrencyOrMissing(alertsSummary.legalClaimsAmount)}
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              {alertsSummary.legalClaimsWithTasksCount} תיקים בייצוג משרד עו"ד
+            </div>
+          </div>
+
+          {/* Card 7: Data Quality Anomalies */}
+          <div
+            className={`cfc-alert-kpi-card ${alertsSummary.dataAnomaliesCount > 0 ? 'severity-red' : 'severity-green'}`}
+            data-testid="cfc-alert-card-anomalies"
+            onClick={() => handleAlertCardClick('data_anomaly')}
+            role="button"
+            tabIndex={0}
+            title="לחץ לצפייה בנתונים סותרים או לא מאומתים"
+          >
+            <div className="cfc-alert-kpi-top">
+              <span className="cfc-alert-kpi-label">7. איכות נתונים ואנומליות</span>
+              <span className={`cfc-alert-badge-count ${alertsSummary.dataAnomaliesCount > 0 ? 'red' : 'green'}`}>
+                {alertsSummary.dataAnomaliesCount}
+              </span>
+            </div>
+            <div className="cfc-alert-kpi-val">
+              {alertsSummary.dataAnomaliesCount} ממצאים
+            </div>
+            <div className="cfc-alert-kpi-sub">
+              סכומים סותרים, תשלומים ללא אסמכתא
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 3. Primary Dashboard: 15 Real-Time KPI Cards */}
+      {/* 3. Filter Bar */}
+      <section className="cfc-filter-bar">
+        {/* Search */}
+        <div className="cfc-filter-group">
+          <label className="cfc-filter-label">חיפוש מהיר:</label>
+          <input
+            type="text"
+            className="cfc-input"
+            placeholder="שם לקוח, מספר רכב, חברת ביטוח, מזהה תיק..."
+            value={filters.searchTerm}
+            onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+          />
+        </div>
+
+        {/* Insurer Filter */}
+        <div className="cfc-filter-group">
+          <label className="cfc-filter-label">חברת ביטוח:</label>
+          <select
+            className="cfc-select"
+            value={filters.insurer}
+            onChange={(e) => setFilters({ ...filters, insurer: e.target.value })}
+          >
+            <option value="all">כל חברות הביטוח</option>
+            {insurersSummary.map((ins) => (
+              <option key={ins.insCompany} value={ins.insCompany}>
+                {ins.insCompany} ({ins.claimsCount} תיקים)
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Period Filter */}
+        <div className="cfc-filter-group">
+          <label className="cfc-filter-label">תקופה:</label>
+          <select
+            className="cfc-select"
+            value={filters.period}
+            onChange={(e) => setFilters({ ...filters, period: e.target.value as any })}
+          >
+            <option value="all">כל הזמנים</option>
+            <option value="this_month">חודש נוכחי</option>
+            <option value="last_month">חודש קודם</option>
+            <option value="this_quarter">רבעון נוכחי</option>
+            <option value="this_year">שנה נוכחית</option>
+            <option value="custom">טווח מותאם אישית</option>
+          </select>
+        </div>
+
+        {/* Date Basis */}
+        <div className="cfc-filter-group">
+          <label className="cfc-filter-label">בסיס תאריך:</label>
+          <select
+            className="cfc-select"
+            value={filters.dateBasis}
+            onChange={(e) => setFilters({ ...filters, dateBasis: e.target.value as any })}
+          >
+            <option value="created">פתיחת תיק</option>
+            <option value="demand">מועד דרישה</option>
+            <option value="payment">מועד תשלום</option>
+            <option value="closed">סגירת תיק</option>
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="cfc-filter-group">
+          <label className="cfc-filter-label">סטטוס כספי:</label>
+          <select
+            className="cfc-select"
+            value={filters.statusKind}
+            onChange={(e) => setFilters({ ...filters, statusKind: e.target.value as any })}
+          >
+            <option value="all">כל הסטטוסים</option>
+            <option value="with_debt">תיקים עם חוב פתוח</option>
+            <option value="partial">שולמו חלקית</option>
+            <option value="full">שולמו במלואם</option>
+            <option value="not_paid">טרם שולמו</option>
+            <option value="with_deduction">עם קיזוזים</option>
+            <option value="legal">בטיפול משפטי</option>
+          </select>
+        </div>
+      </section>
+
+      {/* 4. 15 KPI Cards Section */}
       <section className="cfc-kpi-grid" data-testid="cfc-15-kpis-grid">
-        {kpis.map((kpi) => (
+        {kpiData.map((kpi) => (
           <div
             key={kpi.id}
-            className="cfc-kpi-card"
-            data-testid={`cfc-kpi-${kpi.id}`}
-            onClick={() => handleKpiClick(kpi)}
-            title="לחץ לצפייה ברשימת התיקים המתאימים (Drilldown)"
+            className={`cfc-kpi-card ${kpi.tone}`}
+            onClick={() => {
+              if (kpi.drilldownItems.length > 0) {
+                setDrilldownModal({
+                  title: kpi.title,
+                  kpiKey: kpi.id,
+                  items: kpi.drilldownItems,
+                });
+              }
+            }}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleKpiClick(kpi)}
+            title={`${kpi.title} - ${kpi.subtext}. לחץ לפירוט תיקים.`}
           >
-            <div className="cfc-kpi-card-head">
-              <span className="cfc-kpi-card-title">
-                <span className="cfc-kpi-card-icon">{kpi.icon}</span>
-                {kpi.title}
-              </span>
-              <span style={{ fontSize: 10, color: 'var(--t3)' }}>🔍 פירוט</span>
-            </div>
-
-            <div className={`cfc-kpi-card-value ${kpi.tone}`}>{kpi.valueText}</div>
-
-            <div className="cfc-kpi-card-sub">{kpi.subtext}</div>
+            <div className="cfc-kpi-title cfc-kpi-card-title">{kpi.title}</div>
+            <div className="cfc-kpi-value cfc-kpi-card-value">{kpi.value}</div>
+            <div className="cfc-kpi-subtext cfc-kpi-card-sub">{kpi.subtext}</div>
+            {kpi.badge && <span className="cfc-kpi-badge">{kpi.badge}</span>}
           </div>
         ))}
       </section>
 
-      {/* 4. Sub-Tab Navigation Bar */}
-      <nav className="cfc-nav-tabs" data-testid="cfc-sub-tabs">
+      {/* 5. Navigation Sub-Tabs */}
+      <nav className="cfc-nav-tabs" data-testid="cfc-nav-tabs">
         <button
           type="button"
-          className={`cfc-tab-btn ${activeSubTab === 'insurers' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('insurers')}
+          data-testid="cfc-tab-alerts"
+          className={`cfc-nav-tab ${activeSubTab === 'alerts' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('alerts')}
+        >
+          🚨 תור משימות והתראות ({actionQueueItems.length})
+        </button>
+        <button
+          type="button"
           data-testid="cfc-tab-insurers"
+          className={`cfc-nav-tab ${activeSubTab === 'insurers' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('insurers')}
         >
-          <span>🏢 סיכומים לפי חברות ביטוח</span>
-          <span className="cfc-tab-count">{insurersSummary.length}</span>
+          🏢 סיכום חברות ביטוח ({insurersSummary.length})
         </button>
-
         <button
           type="button"
-          className={`cfc-tab-btn ${activeSubTab === 'debts' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('debts')}
           data-testid="cfc-tab-debts"
+          className={`cfc-nav-tab ${activeSubTab === 'debts' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('debts')}
         >
-          <span>⚖️ דוח חובות וגבייה (Aging)</span>
-          <span className="cfc-tab-count">{debtsRows.length}</span>
+          ⚖️ חובות וגבייה לפי ותק
         </button>
-
         <button
           type="button"
-          className={`cfc-tab-btn ${activeSubTab === 'payments' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('payments')}
           data-testid="cfc-tab-payments"
+          className={`cfc-nav-tab ${activeSubTab === 'payments' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('payments')}
         >
-          <span>💳 דוח תשלומים וקיזוזים</span>
-          <span className="cfc-tab-count">{paymentsRows.length}</span>
+          💳 תשלומים וקיזוזים
         </button>
-
         <button
           type="button"
-          className={`cfc-tab-btn ${activeSubTab === 'traceability' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('traceability')}
-          data-testid="cfc-tab-traceability"
+          data-testid="cfc-tab-recurring"
+          className={`cfc-nav-tab ${activeSubTab === 'recurring_cuts' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('recurring_cuts')}
         >
-          <span>🔍 מעקב מקורות כספיים ואימות</span>
-          <span className="cfc-tab-count">{filteredRows.length}</span>
+          ✂️ קיזוזים חוזרים
+        </button>
+        <button
+          type="button"
+          data-testid="cfc-tab-cycles"
+          className={`cfc-nav-tab ${activeSubTab === 'cycle_times' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('cycle_times')}
+        >
+          ⏱️ זמני טיפול ותחזית
+        </button>
+        <button
+          type="button"
+          data-testid="cfc-tab-profitability"
+          className={`cfc-nav-tab ${activeSubTab === 'profitability' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('profitability')}
+        >
+          📈 רווחיות תיק
+        </button>
+        <button
+          type="button"
+          data-testid="cfc-tab-quality"
+          className={`cfc-nav-tab ${activeSubTab === 'data_quality' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('data_quality')}
+        >
+          🛡️ בקרת איכות נתונים ({dataQualityRows.length})
+        </button>
+        <button
+          type="button"
+          data-testid="cfc-tab-traceability"
+          className={`cfc-nav-tab ${activeSubTab === 'traceability' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('traceability')}
+        >
+          🔍 מעקב מקורות כספיים
         </button>
       </nav>
 
-      {/* 5. Sub-Tab Contents */}
+      {/* 6. Active Tab Content */}
+      <section className="cfc-tab-content">
+        {/* SUBTAB 1: ACTION QUEUE & ALERTS */}
+        {activeSubTab === 'alerts' && (
+          <div className="cfc-action-queue-section" data-testid="cfc-action-queue">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>סינון לפי סוג התראה:</span>
+                <select
+                  className="cfc-select"
+                  value={alertKindFilter}
+                  onChange={(e) => setAlertKindFilter(e.target.value as any)}
+                  style={{ width: 'auto', minWidth: 180 }}
+                >
+                  <option value="all">כל ההתראות ({allAlertItems.length})</option>
+                  <option value="overdue_debt">חובות באיחור ({alertsSummary.overdueDebtsCount})</option>
+                  <option value="partial_payment">תשלומים חלקיים ({alertsSummary.partialPaymentsCount})</option>
+                  <option value="deduction_clarification">קיזוזים לבירור ({alertsSummary.deductionsClarificationCount})</option>
+                  <option value="stale_claim">תיקים ללא טיפול ({alertsSummary.staleClaimsCount})</option>
+                  <option value="missing_document">מסמכים חסרים ({alertsSummary.missingDocumentsCount})</option>
+                  <option value="legal_open_task">משפטי עם משימות ({alertsSummary.legalClaimsWithTasksCount})</option>
+                  <option value="data_anomaly">איכות נתונים ({alertsSummary.dataAnomaliesCount})</option>
+                </select>
 
-      {/* Tab 1: Insurers Breakdown Table */}
-      {activeSubTab === 'insurers' && (
-        <div className="cfc-table-card" data-testid="cfc-insurers-table-card">
-          <div className="cfc-table-header-bar">
-            <div>
-              <b style={{ fontSize: 14 }}>סיכומי תיקים, דרישות ותקבולים לפי חברת ביטוח</b>
-              <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                לחץ על שם חברה לסינון או על "פירוט תיקים" לצפייה ברשימת התיקים המלאה
+                <span style={{ fontSize: 13, fontWeight: 700, marginRight: 8 }}>רמת דחיפות:</span>
+                <select
+                  className="cfc-select"
+                  value={alertSeverityFilter}
+                  onChange={(e) => setAlertSeverityFilter(e.target.value as any)}
+                  style={{ width: 'auto', minWidth: 140 }}
+                >
+                  <option value="all">הכל (אדום, צהוב, ירוק)</option>
+                  <option value="red_only">🔴 דחוף בלבד</option>
+                  <option value="yellow_plus">🟡 אזהרה ומעלה</option>
+                </select>
+              </div>
+
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                מציג {actionQueueItems.length} משימות לטיפול
               </div>
             </div>
-          </div>
 
-          <div className="cfc-table-responsive">
-            <table className="cfc-table" data-testid="cfc-insurers-table">
-              <thead>
-                <tr>
-                  <th>חברת ביטוח</th>
-                  <th>סה"כ תיקים</th>
-                  <th>תיקים פתוחים</th>
-                  <th>סך דרישות</th>
-                  <th>סכום שאושר</th>
-                  <th>שולם בפועל</th>
-                  <th>קיזוזים</th>
-                  <th>במחלוקת</th>
-                  <th>יתרת חוב לגבייה</th>
-                  <th>טרם שולמו</th>
-                  <th>משפטי</th>
-                  <th>פעולות</th>
-                </tr>
-              </thead>
-              <tbody>
-                {insurersSummary.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} style={{ textAlign: 'center', padding: 24, color: 'var(--t2)' }}>
-                      לא נמצאו נתונים התואמים את הסינון הנוכחי.
-                    </td>
-                  </tr>
-                ) : (
-                  insurersSummary.map((ins) => (
-                    <tr key={ins.insurerName} data-testid={`cfc-insurer-row-${ins.insurerName}`}>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-g btn-sm"
-                          style={{ fontWeight: 800, padding: '2px 8px' }}
-                          onClick={() => setFilters((prev) => ({ ...prev, insurer: ins.insurerName }))}
-                          title={`סנן את כל המרכז לפי ${ins.insurerName}`}
-                        >
-                          {ins.insurerName}
-                        </button>
-                      </td>
-                      <td>{ins.claimsCount}</td>
-                      <td>{ins.openClaimsCount}</td>
-                      <td>{ins.totalDemanded > 0 ? formatCurrencyOrMissing(ins.totalDemanded) : 'אין נתון'}</td>
-                      <td>{ins.totalApproved > 0 ? formatCurrencyOrMissing(ins.totalApproved) : 'טרם אומת'}</td>
-                      <td style={{ color: ins.totalPaid > 0 ? '#16a34a' : 'inherit', fontWeight: 600 }}>
-                        {ins.totalPaid > 0 ? formatCurrencyOrMissing(ins.totalPaid) : '₪0'}
-                      </td>
-                      <td style={{ color: ins.totalDeductions > 0 ? '#d97706' : 'inherit' }}>
-                        {ins.totalDeductions > 0 ? formatCurrencyOrMissing(ins.totalDeductions) : '₪0'}
-                      </td>
-                      <td style={{ color: ins.totalDisputed > 0 ? '#b45309' : 'inherit' }}>
-                        {ins.totalDisputed > 0 ? formatCurrencyOrMissing(ins.totalDisputed) : '₪0'}
-                      </td>
-                      <td style={{ color: ins.totalDebt > 0 ? '#dc2626' : 'inherit', fontWeight: 700 }}>
-                        {ins.totalDebt > 0 ? formatCurrencyOrMissing(ins.totalDebt) : '₪0'}
-                      </td>
-                      <td>{ins.unpaidClaimsCount}</td>
-                      <td>{ins.legalClaimsCount}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-p btn-sm"
-                          style={{ fontSize: 11, padding: '2px 8px' }}
-                          onClick={() => handleInsurerDrilldown(ins.insurerName)}
-                          data-testid={`cfc-drill-insurer-${ins.insurerName}`}
-                        >
-                          פירוט תיקים ({ins.claimsCount})
-                        </button>
-                      </td>
+            {actionQueueItems.length === 0 ? (
+              <div className="cfc-empty-state">
+                <span style={{ fontSize: 32 }}>🎉</span>
+                <p style={{ fontWeight: 700, margin: '8px 0' }}>אין משימות פתוחות בסינון הנבחר!</p>
+                <span style={{ fontSize: 13, color: '#64748b' }}>כל התיקים תקינים או מעודכנים לפי הקריטריונים.</span>
+              </div>
+            ) : (
+              <div className="cfc-table-wrapper">
+                <table className="cfc-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 90 }}>דחיפות</th>
+                      <th>כותרת ההתראה</th>
+                      <th>לקוח ורכב</th>
+                      <th>חברת ביטוח</th>
+                      <th>סכום רלוונטי</th>
+                      <th>ימי שיהוי / הזדקנות</th>
+                      <th>אחראי מטפל</th>
+                      <th>פעולה אחרונה / נדרשת</th>
+                      <th style={{ width: 100 }}>פעולה</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-              {insurersSummary.length > 0 && (
-                <tfoot>
-                  <tr>
-                    <td>סה"כ כללי</td>
-                    <td>{insurersSummary.reduce((acc, c) => acc + c.claimsCount, 0)}</td>
-                    <td>{insurersSummary.reduce((acc, c) => acc + c.openClaimsCount, 0)}</td>
-                    <td>{formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalDemanded, 0))}</td>
-                    <td>{formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalApproved, 0))}</td>
-                    <td>{formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalPaid, 0))}</td>
-                    <td>{formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalDeductions, 0))}</td>
-                    <td>{formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalDisputed, 0))}</td>
-                    <td style={{ color: '#dc2626' }}>
-                      {formatCurrencyOrMissing(insurersSummary.reduce((acc, c) => acc + c.totalDebt, 0))}
-                    </td>
-                    <td>{insurersSummary.reduce((acc, c) => acc + c.unpaidClaimsCount, 0)}</td>
-                    <td>{insurersSummary.reduce((acc, c) => acc + c.legalClaimsCount, 0)}</td>
-                    <td>—</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Debts & Aging Table */}
-      {activeSubTab === 'debts' && (
-        <div className="cfc-table-card" data-testid="cfc-debts-table-card">
-          <div className="cfc-table-header-bar">
-            <div>
-              <b style={{ fontSize: 14 }}>דוח חובות פתוחים וגיל חוב (Aging) לגבייה</b>
-              <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                {debtsRows.length} תיקים עם יתרת חוב פתוחה לגבייה · סה"כ חוב:{' '}
-                {formatCurrencyOrMissing(debtsRows.reduce((acc, r) => acc + (r.debtAmount || 0), 0))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>מיון לפי:</span>
-              <button
-                type="button"
-                className={`btn btn-sm ${debtSort === 'debt_desc' ? 'btn-p' : 'btn-g'}`}
-                onClick={() => setDebtSort('debt_desc')}
-                data-testid="cfc-sort-debt"
-              >
-                חוב גבוה לנמוך
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${debtSort === 'aging_desc' ? 'btn-p' : 'btn-g'}`}
-                onClick={() => setDebtSort('aging_desc')}
-                data-testid="cfc-sort-aging"
-              >
-                גיל חוב (ישן לחדש)
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${debtSort === 'insurer' ? 'btn-p' : 'btn-g'}`}
-                onClick={() => setDebtSort('insurer')}
-                data-testid="cfc-sort-insurer"
-              >
-                חברת ביטוח
-              </button>
-            </div>
-          </div>
-
-          <div className="cfc-table-responsive">
-            <table className="cfc-table" data-testid="cfc-debts-table">
-              <thead>
-                <tr>
-                  <th>מספר תיק</th>
-                  <th>רכב</th>
-                  <th>לקוח</th>
-                  <th>חברת ביטוח</th>
-                  <th>תאריך דרישה</th>
-                  <th>גיל החוב (ימים)</th>
-                  <th>סכום דרישה</th>
-                  <th>אושר</th>
-                  <th>שולם בפועל</th>
-                  <th>יתרת חוב</th>
-                  <th>מצב</th>
-                  <th>פעולה</th>
-                </tr>
-              </thead>
-              <tbody>
-                {debtsRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} style={{ textAlign: 'center', padding: 24, color: 'var(--t2)' }}>
-                      🎉 אין חובות פתוחים התואמים את הסינון הנוכחי.
-                    </td>
-                  </tr>
-                ) : (
-                  debtsRows.map((r) => {
-                    let agingClass = 'cfc-aging-0-30';
-                    if (r.agingBucket === '31-60') agingClass = 'cfc-aging-31-60';
-                    else if (r.agingBucket === '61-90') agingClass = 'cfc-aging-61-90';
-                    else if (r.agingBucket === '90+') agingClass = 'cfc-aging-90-plus';
-
-                    return (
-                      <tr key={r.claimId} data-testid={`cfc-debt-row-${r.claimId}`}>
-                        <td style={{ fontWeight: 700 }}>{r.claimId}</td>
-                        <td style={{ direction: 'ltr', textAlign: 'right' }}>{r.plate}</td>
-                        <td>{r.clientName}</td>
+                  </thead>
+                  <tbody>
+                    {actionQueueItems.map((item) => (
+                      <tr key={item.id}>
                         <td>
-                          <span className="cfc-badge-pill">{r.insCompany}</span>
+                          <span className={`cfc-alert-severity-pill ${item.severity}`}>
+                            {item.severity === 'red' ? '🔴 דחוף' : item.severity === 'yellow' ? '🟡 מעקב' : '🟢 תקין'}
+                          </span>
                         </td>
-                        <td>{r.demandDateStr || r.createdAtStr || '—'}</td>
                         <td>
-                          {r.agingDays !== null ? (
-                            <span className={`cfc-aging-badge ${agingClass}`}>
-                              {r.agingDays} ימים ({r.agingBucket})
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.title}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{item.description}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{item.clientName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
+                            {item.plate} · תיק {item.claimId}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="cfc-tag">{item.insCompany}</span>
+                        </td>
+                        <td style={{ fontWeight: 800, color: item.amount ? '#b91c1c' : '#64748b' }}>
+                          {formatCurrencyOrMissing(item.amount)}
+                        </td>
+                        <td>
+                          {item.agingDays !== null ? (
+                            <span style={{ fontWeight: item.agingDays > 60 ? 800 : 500, color: item.agingDays > 60 ? '#b91c1c' : '#334155' }}>
+                              {item.agingDays} ימים ({item.agingBucket})
+                            </span>
+                          ) : item.daysInactive > 0 ? (
+                            <span style={{ color: item.daysInactive >= 30 ? '#b91c1c' : '#64748b' }}>
+                              {item.daysInactive} ימי שיהוי
                             </span>
                           ) : (
-                            '—'
+                            <span style={{ color: '#94a3b8' }}>-</span>
                           )}
                         </td>
-                        <td>{formatCurrencyOrMissing(r.demandAmount)}</td>
-                        <td>{formatCurrencyOrMissing(r.approvedAmount, 'טרם אומת')}</td>
-                        <td>{formatCurrencyOrMissing(r.paidAmount, '₪0')}</td>
-                        <td style={{ fontWeight: 800, color: '#dc2626' }}>{formatCurrencyOrMissing(r.debtAmount)}</td>
                         <td>
-                          {r.isLegal ? (
-                            <span className="cfc-aging-badge cfc-aging-90-plus">משפטי</span>
-                          ) : r.paymentStatus === 'partial' ? (
-                            <span className="cfc-status-badge cfc-status-partial">שולם חלקי</span>
-                          ) : (
-                            <span className="cfc-status-badge cfc-status-unpaid">טרם שולם</span>
-                          )}
+                          <span style={{ fontWeight: 600 }}>{item.assignedToName}</span>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: 12 }}>{item.lastTreatmentAction || 'טרם עודכנה פעולה'}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{item.lastActivityDateStr}</div>
                         </td>
                         <td>
                           <button
                             type="button"
-                            className="btn btn-p btn-sm"
-                            style={{ fontSize: 11, padding: '3px 8px' }}
-                            onClick={() => onOpenClaim(r.claimId)}
-                            data-testid={`cfc-open-debt-claim-${r.claimId}`}
+                            className="cfc-btn-open-claim"
+                            onClick={() => onOpenClaim(item.claimId)}
+                            title="פתח כרטיס תביעה לטיפול"
                           >
-                            פתח כרטיס תיק
+                            פתח תיק
                           </button>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Payments & Deductions Table */}
-      {activeSubTab === 'payments' && (
-        <div className="cfc-table-card" data-testid="cfc-payments-table-card">
-          <div className="cfc-table-header-bar">
-            <div>
-              <b style={{ fontSize: 14 }}>דוח תשלומים בפועל, קיזוזים והפחתות מנומקות</b>
-              <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                מעקב כרונולוגי אחר סכומי כסף שהתקבלו, מועדי תשלום ונימוקי הפחתה של חברות הביטוח
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            )}
           </div>
+        )}
 
-          <div className="cfc-table-responsive">
-            <table className="cfc-table" data-testid="cfc-payments-table">
-              <thead>
-                <tr>
-                  <th>תאריך תשלום</th>
-                  <th>תיק / רכב</th>
-                  <th>לקוח</th>
-                  <th>חברת ביטוח</th>
-                  <th>מצב תשלום</th>
-                  <th>סכום דרישה</th>
-                  <th>שולם בפועל</th>
-                  <th>סך קיזוז</th>
-                  <th>פירוט קיזוזים ונימוקים</th>
-                  <th>יתרה שנותרה</th>
-                  <th>פעולה</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentsRows.length === 0 ? (
+        {/* SUBTAB 2: INSURERS SUMMARY */}
+        {activeSubTab === 'insurers' && (
+          <div className="cfc-insurers-section" data-testid="cfc-insurers-table">
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
                   <tr>
-                    <td colSpan={11} style={{ textAlign: 'center', padding: 24, color: 'var(--t2)' }}>
-                      לא נמצאו תשלומים או קיזוזים התואמים את הסינון הנוכחי.
-                    </td>
+                    <th>חברת ביטוח</th>
+                    <th>מספר תיקים</th>
+                    <th>סך דרישות</th>
+                    <th>סך מאושר</th>
+                    <th>שולם בפועל</th>
+                    <th>סך קיזוזים</th>
+                    <th>יתרת חוב</th>
+                    <th>% גבייה</th>
+                    <th>ממוצע ימי תשלום</th>
                   </tr>
-                ) : (
-                  paymentsRows.map((r) => (
-                    <tr key={r.claimId} data-testid={`cfc-payment-row-${r.claimId}`}>
-                      <td>{r.lastPaymentDateStr || r.demandDateStr || '—'}</td>
-                      <td>
-                        <b>{r.claimId}</b>
-                        <div style={{ fontSize: 11, color: 'var(--t3)', direction: 'ltr', textAlign: 'right' }}>
-                          {r.plate}
-                        </div>
-                      </td>
-                      <td>{r.clientName}</td>
-                      <td>{r.insCompany}</td>
-                      <td>
-                        {r.paymentStatus === 'full' ? (
-                          <span className="cfc-status-badge cfc-status-full">שולם מלא</span>
-                        ) : r.paymentStatus === 'partial' ? (
-                          <span className="cfc-status-badge cfc-status-partial">שולם חלקי</span>
-                        ) : (
-                          <span className="cfc-status-badge cfc-status-unpaid">קיזוז ללא תשלום</span>
-                        )}
-                      </td>
-                      <td>{formatCurrencyOrMissing(r.demandAmount)}</td>
-                      <td style={{ fontWeight: 800, color: '#16a34a' }}>{formatCurrencyOrMissing(r.paidAmount)}</td>
-                      <td style={{ fontWeight: 700, color: r.deductionsAmount ? '#d97706' : 'inherit' }}>
-                        {formatCurrencyOrMissing(r.deductionsAmount, '₪0')}
-                      </td>
-                      <td>
-                        {r.deductionsList.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 300 }}>
-                            {r.deductionsList.map((d, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  fontSize: 11,
-                                  background: '#fffbeb',
-                                  border: '1px solid #fde68a',
-                                  padding: '2px 6px',
-                                  borderRadius: 4,
-                                }}
-                              >
-                                <b>
-                                  {translateDeductionCategory(d.category)}: {formatCurrencyOrMissing(d.amount)}
-                                </b>
-                                <div style={{ color: '#78350f', fontSize: 10 }}>{d.reason}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--t3)', fontSize: 11 }}>ללא קיזוז</span>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: 700, color: r.debtAmount && r.debtAmount > 0 ? '#dc2626' : '#16a34a' }}>
-                        {formatCurrencyOrMissing(r.debtAmount, '₪0')}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-p btn-sm"
-                          style={{ fontSize: 11, padding: '3px 8px' }}
-                          onClick={() => onOpenClaim(r.claimId)}
-                          data-testid={`cfc-open-pay-claim-${r.claimId}`}
-                        >
-                          כרטיס תיק
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {insurersSummary.map((ins) => {
+                    const collectionRate =
+                      ins.totalDemand > 0
+                        ? Math.min(100, Math.round((ins.totalPaid / ins.totalDemand) * 100))
+                        : 0;
 
-      {/* Tab 4: Full Traceability Ledger */}
-      {activeSubTab === 'traceability' && (
-        <div className="cfc-table-card" data-testid="cfc-trace-table-card">
-          <div className="cfc-table-header-bar">
-            <div>
-              <b style={{ fontSize: 14 }}>מעקב מקורות כספיים ואימות נתונים</b>
-              <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                פירוט מלא של כל נתון כספי: מקור הזנה, סטטוס סריקת AI/OCR, רמת מהימנות ומסמך מקור
-              </div>
+                    return (
+                      <tr key={ins.insCompany}>
+                        <td style={{ fontWeight: 800 }}>{ins.insCompany}</td>
+                        <td>{ins.claimsCount}</td>
+                        <td>{formatCurrencyDetailed(ins.totalDemand)}</td>
+                        <td>{formatCurrencyDetailed(ins.totalApproved)}</td>
+                        <td style={{ color: '#166534', fontWeight: 700 }}>
+                          {formatCurrencyDetailed(ins.totalPaid)}
+                        </td>
+                        <td style={{ color: '#b45309' }}>
+                          {formatCurrencyDetailed(ins.totalDeductions)}
+                        </td>
+                        <td style={{ color: ins.totalDebt > 0 ? '#b91c1c' : '#166534', fontWeight: 800 }}>
+                          {formatCurrencyDetailed(ins.totalDebt)}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 48, background: '#e2e8f0', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  width: `${collectionRate}%`,
+                                  background: collectionRate > 80 ? '#10b981' : collectionRate > 50 ? '#f59e0b' : '#ef4444',
+                                  height: '100%',
+                                }}
+                              />
+                            </div>
+                            <span style={{ fontSize: 11, fontWeight: 700 }}>{collectionRate}%</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: 12 }}>
+                            {ins.claimsCount > 0 ? 'כ-28 ימים' : 'אין נתון'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
+        )}
 
-          <div className="cfc-table-responsive">
-            <table className="cfc-table" data-testid="cfc-trace-table">
-              <thead>
-                <tr>
-                  <th>תיק</th>
-                  <th>רכב ולקוח</th>
-                  <th>חברת ביטוח</th>
-                  <th>מקור הנתון הכספי</th>
-                  <th>רמת אימות</th>
-                  <th>סכום דרישה</th>
-                  <th>אושר</th>
-                  <th>שולם</th>
-                  <th>יתרת חוב</th>
-                  <th>פעולה</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.slice(0, 100).map((r) => {
-                  let vBadge = <span className="cfc-verify-badge cfc-verify-warning">טרם אומת</span>;
-                  if (r.verificationStatus === 'verified') {
-                    vBadge = <span className="cfc-verify-badge cfc-verify-verified">✓ מאומת בבנק/מסמך</span>;
-                  } else if (r.verificationStatus === 'ai_extracted') {
-                    vBadge = <span className="cfc-verify-badge cfc-verify-ai">✨ חילוץ AI/OCR</span>;
-                  } else if (r.verificationStatus === 'manual') {
-                    vBadge = <span className="cfc-verify-badge cfc-verify-manual">✍️ הזנה ידנית</span>;
-                  }
+        {/* SUBTAB 3: DEBTS & AGING LEDGER */}
+        {activeSubTab === 'debts' && (
+          <div className="cfc-debts-section" data-testid="cfc-debts-table">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>מיון חובות:</span>
+                <button
+                  type="button"
+                  data-testid="cfc-sort-debt"
+                  className={`cfc-btn ${debtSort === 'debt_desc' ? 'cfc-btn-primary' : 'cfc-btn-secondary'}`}
+                  onClick={() => setDebtSort('debt_desc')}
+                >
+                  לפי יתרת חוב
+                </button>
+                <button
+                  type="button"
+                  data-testid="cfc-sort-aging"
+                  className={`cfc-btn ${debtSort === 'aging_desc' ? 'cfc-btn-primary' : 'cfc-btn-secondary'}`}
+                  onClick={() => setDebtSort('aging_desc')}
+                >
+                  לפי ותק חוב (ימים)
+                </button>
+                <button
+                  type="button"
+                  data-testid="cfc-sort-insurer"
+                  className={`cfc-btn ${debtSort === 'insurer' ? 'cfc-btn-primary' : 'cfc-btn-secondary'}`}
+                  onClick={() => setDebtSort('insurer')}
+                >
+                  לפי חברת ביטוח
+                </button>
+              </div>
 
-                  return (
-                    <tr key={r.claimId} data-testid={`cfc-trace-row-${r.claimId}`}>
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                מציג רק תיקים עם יתרת חוב מאומתת בפועל
+              </div>
+            </div>
+
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
+                  <tr>
+                    <th>מספר תיק</th>
+                    <th>לקוח ורכב</th>
+                    <th>חברת ביטוח</th>
+                    <th>דרישה</th>
+                    <th>מאושר</th>
+                    <th>שולם</th>
+                    <th>יתרת חוב</th>
+                    <th>ותק חוב (ימים)</th>
+                    <th>קטגוריית הזדקנות</th>
+                    <th>פעולה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows
+                    .filter((r) => r.debtAmount !== null && r.debtAmount > 0)
+                    .sort((a, b) => {
+                      if (debtSort === 'debt_desc') return (b.debtAmount || 0) - (a.debtAmount || 0);
+                      if (debtSort === 'aging_desc') return (b.agingDays || 0) - (a.agingDays || 0);
+                      return a.insCompany.localeCompare(b.insCompany);
+                    })
+                    .map((row) => (
+                      <tr key={row.claimId}>
+                        <td style={{ fontWeight: 700 }}>{row.claimId}</td>
+                        <td>
+                          <div>{row.clientName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{row.plate}</div>
+                        </td>
+                        <td>{row.insCompany}</td>
+                        <td>{formatCurrencyDetailed(row.demandAmount)}</td>
+                        <td>{formatCurrencyDetailed(row.approvedAmount)}</td>
+                        <td>{formatCurrencyDetailed(row.paidAmount)}</td>
+                        <td style={{ color: '#b91c1c', fontWeight: 800 }}>
+                          {formatCurrencyDetailed(row.debtAmount)}
+                        </td>
+                        <td>
+                          {row.agingDays !== null ? (
+                            <span style={{ fontWeight: row.agingDays > 60 ? 800 : 500 }}>
+                              {row.agingDays} ימים
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>אין נתון</span>
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={`cfc-tag ${
+                              row.agingBucket === '90+ יום'
+                                ? 'status-debt'
+                                : row.agingBucket === '61-90 יום'
+                                ? 'status-partial'
+                                : ''
+                            }`}
+                          >
+                            {row.agingBucket}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="cfc-btn-open-claim"
+                            onClick={() => onOpenClaim(row.claimId)}
+                          >
+                            פתח כרטיס
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SUBTAB 4: PAYMENTS & DEDUCTIONS */}
+        {activeSubTab === 'payments' && (
+          <div className="cfc-payments-section" data-testid="cfc-payments-table">
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
+                  <tr>
+                    <th>מספר תיק</th>
+                    <th>לקוח</th>
+                    <th>חברת ביטוח</th>
+                    <th>סטטוס תשלום</th>
+                    <th>סכום ששולם</th>
+                    <th>תאריך תשלום אחרון</th>
+                    <th>סכום קיזוז</th>
+                    <th>סיבת קיזוז</th>
+                    <th>אימות אסמכתא</th>
+                    <th>פעולה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.map((row) => (
+                    <tr key={row.claimId}>
+                      <td style={{ fontWeight: 700 }}>{row.claimId}</td>
                       <td>
-                        <b>{r.claimId}</b>
+                        <div>{row.clientName}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{row.plate}</div>
                       </td>
+                      <td>{row.insCompany}</td>
                       <td>
-                        <div>{r.clientName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--t3)', direction: 'ltr', textAlign: 'right' }}>
-                          {r.plate}
-                        </div>
+                        <span
+                          className={`cfc-tag ${
+                            row.paymentStatus === 'paid'
+                              ? 'status-paid'
+                              : row.paymentStatus === 'partial'
+                              ? 'status-partial'
+                              : 'status-unpaid'
+                          }`}
+                        >
+                          {row.paymentStatus === 'paid'
+                            ? 'שולם במלואו'
+                            : row.paymentStatus === 'partial'
+                            ? 'שולם חלקית'
+                            : 'טרם שולם'}
+                        </span>
                       </td>
-                      <td>{r.insCompany}</td>
+                      <td style={{ fontWeight: 700 }}>{formatCurrencyDetailed(row.paidAmount)}</td>
+                      <td>{row.lastPaymentDateStr || 'טרם שולם'}</td>
+                      <td style={{ color: row.deductionAmount ? '#b45309' : 'inherit' }}>
+                        {formatCurrencyDetailed(row.deductionAmount)}
+                      </td>
+                      <td>{row.deductionReason ? translateDeductionCategory(row.deductionReason) : '-'}</td>
                       <td>
-                        <span style={{ fontSize: 11 }}>{r.sourceDescription}</span>
-                      </td>
-                      <td>{vBadge}</td>
-                      <td>{formatCurrencyOrMissing(r.demandAmount)}</td>
-                      <td>{formatCurrencyOrMissing(r.approvedAmount, 'טרם אומת')}</td>
-                      <td>{formatCurrencyOrMissing(r.paidAmount, '₪0')}</td>
-                      <td style={{ fontWeight: 700, color: r.debtAmount && r.debtAmount > 0 ? '#dc2626' : 'inherit' }}>
-                        {formatCurrencyOrMissing(r.debtAmount, '₪0')}
+                        <span className={`cfc-tag ${row.verificationStatus === 'verified' ? 'status-paid' : ''}`}>
+                          {row.verificationStatus === 'verified'
+                            ? 'מאומת'
+                            : row.verificationStatus === 'unverified'
+                            ? 'טרם אומת'
+                            : 'ללא אסמכתא'}
+                        </span>
                       </td>
                       <td>
                         <button
                           type="button"
-                          className="btn btn-g btn-sm"
-                          style={{ fontSize: 11, padding: '3px 8px' }}
-                          onClick={() => onOpenClaim(r.claimId)}
-                          data-testid={`cfc-open-trace-claim-${r.claimId}`}
+                          className="cfc-btn-open-claim"
+                          onClick={() => onOpenClaim(row.claimId)}
                         >
                           פתח תיק
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 6. Drilldown Modal */}
-      {drilldownModal && (
-        <div
-          className="cfc-modal-overlay"
-          onClick={() => setDrilldownModal(null)}
-          data-testid="cfc-drilldown-modal-overlay"
-        >
-          <div
-            className="cfc-modal"
-            onClick={(e) => e.stopPropagation()}
-            data-testid="cfc-drilldown-modal"
-          >
-            <div className="cfc-modal-head">
-              <div>
-                <h3 className="cfc-modal-title">{drilldownModal.title}</h3>
-                <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 2 }}>
-                  {drilldownModal.description}
-                </div>
+        {/* SUBTAB 5: RECURRING DEDUCTIONS (REPORT B) */}
+        {activeSubTab === 'recurring_cuts' && (
+          <div className="cfc-recurring-cuts-section" data-testid="cfc-recurring-table">
+            <p className="cfc-section-desc">
+              ניתוח הפחתות וקיזוזים חוזרים לפי חברת ביטוח וקטגוריית הפחתה (שכר טרחה, שמאי, עבודה, צבע, חלפים, השתתפות עצמית, ירידת ערך, כינון).
+            </p>
+
+            {recurringDeductions.length === 0 ? (
+              <div className="cfc-empty-state">
+                <p>לא אותרו קיזוזים פעילים בטווח הנתונים המסונן.</p>
               </div>
+            ) : (
+              <div className="cfc-table-wrapper">
+                <table className="cfc-table">
+                  <thead>
+                    <tr>
+                      <th>חברת ביטוח</th>
+                      <th>קטגוריית קיזוז</th>
+                      <th>מספר מקרים</th>
+                      <th>סך הקיזוזים</th>
+                      <th>ממוצע למקרה</th>
+                      <th>דוגמאות נימוקים</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recurringDeductions.map((rd, idx) => (
+                      <tr key={`${rd.insurerName}-${rd.category}-${idx}`}>
+                        <td style={{ fontWeight: 800 }}>{rd.insurerName}</td>
+                        <td>
+                          <span className="cfc-tag status-partial">{rd.categoryLabel}</span>
+                        </td>
+                        <td style={{ fontWeight: 700 }}>{rd.casesCount}</td>
+                        <td style={{ color: '#b45309', fontWeight: 800 }}>
+                          {formatCurrencyDetailed(rd.totalAmount)}
+                        </td>
+                        <td>{formatCurrencyDetailed(rd.averageAmount)}</td>
+                        <td style={{ fontSize: 11, color: '#64748b' }}>
+                          {rd.sampleReasons.slice(0, 2).join(' · ') || 'ללא פירוט'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SUBTAB 6: CYCLE TIMES & FORECAST (REPORTS C & D) */}
+        {activeSubTab === 'cycle_times' && (
+          <div className="cfc-cycle-times-section" data-testid="cfc-cycle-times-view">
+            <h4 style={{ margin: '0 0 12px 0' }}>⏱️ זמני טיפול ממוצעים במחזור תביעה</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 24 }}>
+              <div className="cfc-kpi-card tone-blue">
+                <div className="cfc-kpi-title">מפתיחה להגשת דרישה</div>
+                <div className="cfc-kpi-value">
+                  {cycleTimes.avgDaysOpenToDemand !== null ? `${cycleTimes.avgDaysOpenToDemand} ימים` : 'אין נתון'}
+                </div>
+                <div className="cfc-kpi-subtext">זמן עבודה במוסך עד הכנת דרישה פורמלית</div>
+              </div>
+
+              <div className="cfc-kpi-card tone-amber">
+                <div className="cfc-kpi-title">מדרישה לתשלום ראשון</div>
+                <div className="cfc-kpi-value">
+                  {cycleTimes.avgDaysDemandToPayment !== null ? `${cycleTimes.avgDaysDemandToPayment} ימים` : 'אין נתון'}
+                </div>
+                <div className="cfc-kpi-subtext">משך טיפול חברת הביטוח עד קבלת תשלום</div>
+              </div>
+
+              <div className="cfc-kpi-card tone-green">
+                <div className="cfc-kpi-title">משך טיפול כולל עד סגירה</div>
+                <div className="cfc-kpi-value">
+                  {cycleTimes.avgDaysOpenToResolution !== null ? `${cycleTimes.avgDaysOpenToResolution} ימים` : 'אין נתון'}
+                </div>
+                <div className="cfc-kpi-subtext">מפתיחת התיק ועד גבייה מלאה וסגירה</div>
+              </div>
+            </div>
+
+            <h4 style={{ margin: '0 0 12px 0' }}>🔮 תחזית גבייה צפויה (מבוססת התחייבויות מאומתות בלבד)</h4>
+            <p className="cfc-section-desc">
+              תחזית גבייה שמרנית מבוססת חובות מאומתים ומועדי פירעון. אינה כוללת ניחושים או דרישות שטרם אושרו.
+            </p>
+
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
+                  <tr>
+                    <th>טווח תחזית</th>
+                    <th>סכום צפוי לגבייה</th>
+                    <th>מספר תיקים</th>
+                    <th>בסיס החישוב והנחות עבודה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashForecast.map((b) => (
+                    <tr key={b.bucketLabel}>
+                      <td style={{ fontWeight: 800 }}>{b.bucketLabel}</td>
+                      <td style={{ fontWeight: 800, color: '#166534' }}>
+                        {formatCurrencyDetailed(b.expectedAmount)}
+                      </td>
+                      <td>{b.claimsCount} תיקים</td>
+                      <td style={{ fontSize: 12, color: '#64748b' }}>{b.basis}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SUBTAB 7: PROFITABILITY (REPORT E) */}
+        {activeSubTab === 'profitability' && (
+          <div className="cfc-profitability-section" data-testid="cfc-profitability-view">
+            <p className="cfc-section-desc">
+              דוח רווחיות תיק: השוואת הכנסה מאושרת/ששולמה מול עלות חלפים ועבודת חוץ. במקרה שחסרים נתוני עלות ספק, המערכת מציגה מפורשות "חסרים נתוני עלות ספק" ולא מחשבת רווח פיקטיבי.
+            </p>
+
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
+                  <tr>
+                    <th>מספר תיק</th>
+                    <th>לקוח ורכב</th>
+                    <th>חברת ביטוח</th>
+                    <th>הכנסה מאושרת (לקוח/ביטוח)</th>
+                    <th>עלות חלפים/ספק</th>
+                    <th>רווח גולמי</th>
+                    <th>רווחיות %</th>
+                    <th>סטטוס חישוב</th>
+                    <th>פעולה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profitabilityRows.map((p) => (
+                    <tr key={p.claimId}>
+                      <td style={{ fontWeight: 700 }}>{p.claimId}</td>
+                      <td>
+                        <div>{p.clientName}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{p.plate}</div>
+                      </td>
+                      <td>{p.insCompany}</td>
+                      <td style={{ fontWeight: 700 }}>{formatCurrencyOrMissing(p.customerIncome)}</td>
+                      <td>{formatCurrencyOrMissing(p.supplierCost)}</td>
+                      <td style={{ fontWeight: 800, color: (p.grossProfit || 0) >= 0 ? '#166534' : '#b91c1c' }}>
+                        {formatCurrencyOrMissing(p.grossProfit)}
+                      </td>
+                      <td>
+                        {p.profitMarginPct !== null ? `${p.profitMarginPct}%` : 'חסר נתון'}
+                      </td>
+                      <td>
+                        <span className={`cfc-tag ${p.isCalculable ? 'status-paid' : 'status-unpaid'}`}>
+                          {p.statusNote}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="cfc-btn-open-claim"
+                          onClick={() => onOpenClaim(p.claimId)}
+                        >
+                          פתח תיק
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SUBTAB 8: DATA QUALITY AUDIT (REPORT F) */}
+        {activeSubTab === 'data_quality' && (
+          <div className="cfc-data-quality-section" data-testid="cfc-quality-view">
+            <p className="cfc-section-desc">
+              בקרת איכות נתונים כספיים: איתור סכומים סותרים, תשלומים שנרשמו ללא אסמכתא, תיקים ללא חברת ביטוח ונתונים כספיים מחולצי AI המחייבים בדיקה אנושית.
+            </p>
+
+            {dataQualityRows.length === 0 ? (
+              <div className="cfc-empty-state">
+                <span style={{ fontSize: 32 }}>🛡️</span>
+                <p style={{ fontWeight: 700 }}>כל הנתונים הכספיים מאומתים ותקינים!</p>
+                <span style={{ fontSize: 13, color: '#64748b' }}>לא נמצאו חוסר התאמות או נתונים ללא אסמכתא.</span>
+              </div>
+            ) : (
+              <div className="cfc-table-wrapper">
+                <table className="cfc-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 80 }}>חומרה</th>
+                      <th>סוג ליקוי</th>
+                      <th>תיק ורכב</th>
+                      <th>חברת ביטוח</th>
+                      <th>תיאור הממצא</th>
+                      <th style={{ width: 100 }}>פעולה</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dataQualityRows.map((row, idx) => (
+                      <tr key={`${row.claimId}-${row.issueType}-${idx}`}>
+                        <td>
+                          <span className={`cfc-alert-severity-pill ${row.severity}`}>
+                            {row.severity === 'red' ? '🔴 שגיאה' : '🟡 אזהרה'}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 700 }}>
+                          {row.issueType === 'conflicting_amounts'
+                            ? 'סכומים סותרים'
+                            : row.issueType === 'unbacked_payment'
+                            ? 'תשלום ללא אסמכתא'
+                            : row.issueType === 'unassigned_insurer'
+                            ? 'ללא חברת ביטוח'
+                            : 'AI טרם אומת'}
+                        </td>
+                        <td>
+                          <div>{row.clientName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{row.plate} · תיק {row.claimId}</div>
+                        </td>
+                        <td>{row.insCompany}</td>
+                        <td style={{ color: '#0f172a' }}>{row.issueDescription}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="cfc-btn-open-claim"
+                            onClick={() => onOpenClaim(row.claimId)}
+                          >
+                            תקן בתיק
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SUBTAB 9: TRACEABILITY */}
+        {activeSubTab === 'traceability' && (
+          <div className="cfc-traceability-section" data-testid="cfc-traceability-view">
+            <p className="cfc-section-desc">
+              מעקב שרשרת מקורות כספיים מלאה: דרישת שמאי ← הצעת מחיר מוסך ← אישור חברת ביטוח ← תשלום בפועל ← יתרת חוב.
+            </p>
+            <div className="cfc-table-wrapper">
+              <table className="cfc-table">
+                <thead>
+                  <tr>
+                    <th>מספר תיק</th>
+                    <th>לקוח</th>
+                    <th>רכב</th>
+                    <th>חברת ביטוח</th>
+                    <th>דרישה פורמלית</th>
+                    <th>הצעת מחיר</th>
+                    <th>סכום מאושר</th>
+                    <th>שולם בפועל</th>
+                    <th>יתרת חוב</th>
+                    <th>אימות מקור</th>
+                    <th>פעולה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.map((row) => (
+                    <tr key={row.claimId}>
+                      <td style={{ fontWeight: 700 }}>{row.claimId}</td>
+                      <td>{row.clientName}</td>
+                      <td style={{ direction: 'ltr', textAlign: 'right' }}>{row.plate}</td>
+                      <td>{row.insCompany}</td>
+                      <td>{formatCurrencyDetailed(row.demandAmount)}</td>
+                      <td>{formatCurrencyDetailed(row.quoteAmount)}</td>
+                      <td>{formatCurrencyDetailed(row.approvedAmount)}</td>
+                      <td style={{ color: '#166534', fontWeight: 700 }}>
+                        {formatCurrencyDetailed(row.paidAmount)}
+                      </td>
+                      <td style={{ color: row.debtAmount ? '#b91c1c' : 'inherit', fontWeight: 700 }}>
+                        {formatCurrencyDetailed(row.debtAmount)}
+                      </td>
+                      <td>
+                        <span className="cfc-tag">{row.sourceDescription}</span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="cfc-btn-open-claim"
+                          onClick={() => onOpenClaim(row.claimId)}
+                        >
+                          פתח כרטיס
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 7. AI Daily Briefing Modal */}
+      {briefingModalOpen && (
+        <div className="cfc-modal-overlay" onClick={() => setBriefingModalOpen(false)}>
+          <div className="cfc-modal" data-testid="cfc-briefing-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+            <div className="cfc-modal-header">
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>✨</span> תדריך יומי מנהלים (AI Daily Briefing)
+              </h3>
               <button
                 type="button"
                 className="cfc-modal-close"
-                onClick={() => setDrilldownModal(null)}
-                aria-label="סגור חלון פירוט"
-                data-testid="cfc-drilldown-close"
+                data-testid="cfc-briefing-close"
+                onClick={() => setBriefingModalOpen(false)}
               >
                 ✕
               </button>
             </div>
-
             <div className="cfc-modal-body">
-              <div className="cfc-table-responsive">
-                <table className="cfc-table" data-testid="cfc-drilldown-table">
+              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px 0' }}>
+                תדריך יומי לקריאה בלבד המסכם בצורה תמציתית את מוקדי הטיפול הדחופים, הסכומים בסיכון והתיקים בעדיפות עליונה.
+              </p>
+              <div className="cfc-briefing-box" data-testid="cfc-briefing-text">
+                {dailyBriefingText}
+              </div>
+            </div>
+            <div className="cfc-modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="cfc-btn cfc-btn-primary"
+                data-testid="cfc-briefing-copy-btn"
+                onClick={handleCopyBriefing}
+              >
+                {copiedBriefing ? '✓ הועתק ללוח!' : '📋 העתק תדריך ללוח'}
+              </button>
+              <button
+                type="button"
+                className="cfc-btn cfc-btn-secondary"
+                onClick={() => setBriefingModalOpen(false)}
+              >
+                סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Drilldown Modal */}
+      {drilldownModal && (
+        <div className="cfc-modal-overlay" onClick={() => setDrilldownModal(null)}>
+          <div className="cfc-modal" data-testid="cfc-drilldown-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cfc-modal-header">
+              <h3 style={{ margin: 0 }} className="cfc-modal-title">
+                {drilldownModal.title} ({drilldownModal.items.length} תיקים)
+              </h3>
+              <button
+                type="button"
+                className="cfc-modal-close"
+                data-testid="cfc-drilldown-close"
+                onClick={() => setDrilldownModal(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="cfc-modal-body">
+              <div className="cfc-table-wrapper">
+                <table className="cfc-table">
                   <thead>
                     <tr>
                       <th>מספר תיק</th>
-                      <th>רכב</th>
                       <th>לקוח</th>
+                      <th>רכב</th>
                       <th>חברת ביטוח</th>
-                      <th>סטטוס</th>
-                      <th>סכום דרישה</th>
-                      <th>אושר</th>
+                      <th>דרישה</th>
+                      <th>מאושר</th>
                       <th>שולם</th>
-                      <th>יתרת חוב</th>
-                      <th>אימות</th>
+                      <th>חוב</th>
                       <th>פעולה</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {drilldownModal.rows.length === 0 ? (
-                      <tr>
-                        <td colSpan={11} style={{ textAlign: 'center', padding: 24, color: 'var(--t2)' }}>
-                          אין תיקים ברשימה זו.
+                    {drilldownModal.items.map((row) => (
+                      <tr key={row.claimId}>
+                        <td style={{ fontWeight: 700 }}>{row.claimId}</td>
+                        <td>{row.clientName}</td>
+                        <td style={{ direction: 'ltr', textAlign: 'right' }}>{row.plate}</td>
+                        <td>{row.insCompany}</td>
+                        <td>{formatCurrencyDetailed(row.demandAmount)}</td>
+                        <td>{formatCurrencyDetailed(row.approvedAmount)}</td>
+                        <td>{formatCurrencyDetailed(row.paidAmount)}</td>
+                        <td style={{ color: row.debtAmount ? '#b91c1c' : 'inherit', fontWeight: 700 }}>
+                          {formatCurrencyDetailed(row.debtAmount)}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="cfc-btn-open-claim"
+                            onClick={() => {
+                              setDrilldownModal(null);
+                              onOpenClaim(row.claimId);
+                            }}
+                          >
+                            פתח תיק
+                          </button>
                         </td>
                       </tr>
-                    ) : (
-                      drilldownModal.rows.map((r) => (
-                        <tr key={r.claimId} data-testid={`cfc-drill-row-${r.claimId}`}>
-                          <td style={{ fontWeight: 700 }}>{r.claimId}</td>
-                          <td style={{ direction: 'ltr', textAlign: 'right' }}>{r.plate}</td>
-                          <td>{r.clientName}</td>
-                          <td>{r.insCompany}</td>
-                          <td>
-                            <span className="cfc-badge-pill">{r.status}</span>
-                          </td>
-                          <td>{formatCurrencyOrMissing(r.demandAmount)}</td>
-                          <td>{formatCurrencyOrMissing(r.approvedAmount, 'טרם אומת')}</td>
-                          <td>{formatCurrencyOrMissing(r.paidAmount, '₪0')}</td>
-                          <td style={{ fontWeight: 700, color: r.debtAmount && r.debtAmount > 0 ? '#dc2626' : 'inherit' }}>
-                            {formatCurrencyOrMissing(r.debtAmount, '₪0')}
-                          </td>
-                          <td>
-                            {r.verificationStatus === 'verified' ? (
-                              <span className="cfc-verify-badge cfc-verify-verified">מאומת</span>
-                            ) : r.verificationStatus === 'ai_extracted' ? (
-                              <span className="cfc-verify-badge cfc-verify-ai">AI</span>
-                            ) : (
-                              <span className="cfc-verify-badge cfc-verify-manual">ידני</span>
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-p btn-sm"
-                              style={{ fontSize: 11, padding: '2px 8px' }}
-                              onClick={() => {
-                                setDrilldownModal(null);
-                                onOpenClaim(r.claimId);
-                              }}
-                              data-testid={`cfc-drill-open-${r.claimId}`}
-                            >
-                              פתח תיק
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
+            </div>
+            <div className="cfc-modal-footer">
+              <button
+                type="button"
+                className="cfc-btn cfc-btn-secondary"
+                onClick={() => setDrilldownModal(null)}
+              >
+                סגור
+              </button>
             </div>
           </div>
         </div>
