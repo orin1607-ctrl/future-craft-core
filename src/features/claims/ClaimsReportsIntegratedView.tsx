@@ -476,7 +476,9 @@ export default function ClaimsReportsIntegratedView({
       {activeReportHub === 'financial_center' ? (
         <ClaimsFinancialCenterView
           claims={claims}
+          garageCases={garageCases}
           onOpenClaim={onOpenClaim}
+          onOpenGarageCase={onOpenGarageCase}
           onBack={onBack}
           onOpenAiReports={onOpenAiReports}
         />

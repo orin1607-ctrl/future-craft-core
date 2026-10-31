@@ -2630,7 +2630,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const raw = String(id || '').trim();
     // Resolve claim ID: match by c.id, c.claimNum, c.plate (case-insensitive and format-tolerant)
     const rawClean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const resolvedClaim = claims.find((c) => {
+    let resolvedClaim = claims.find((c) => {
       if (c.id === raw || (c.id && c.id.toLowerCase() === raw.toLowerCase())) return true;
       if (c.claimNum === raw || (c.claimNum && c.claimNum.toLowerCase() === raw.toLowerCase())) return true;
       if (c.plate === raw || (c.plate && c.plate.toLowerCase() === raw.toLowerCase())) return true;
@@ -2639,6 +2639,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       if (c.plate && c.plate.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
       return false;
     });
+
+    if (!resolvedClaim && raw) {
+      try {
+        const fresh = await apiRef.current.getClaims();
+        if (fresh?.data?.length) {
+          setClaims(fresh.data);
+          resolvedClaim = fresh.data.find((c) => {
+            if (c.id === raw || (c.id && c.id.toLowerCase() === raw.toLowerCase())) return true;
+            if (c.claimNum === raw || (c.claimNum && c.claimNum.toLowerCase() === raw.toLowerCase())) return true;
+            if (c.plate === raw || (c.plate && c.plate.toLowerCase() === raw.toLowerCase())) return true;
+            if (c.id && c.id.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+            if (c.claimNum && c.claimNum.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+            if (c.plate && c.plate.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+            return false;
+          });
+        }
+      } catch (err) {
+        console.warn('Fallback claim lookup error:', err);
+      }
+    }
+
     const targetId = resolvedClaim ? resolvedClaim.id : raw;
 
     mailFocusRef.current = tab === 'mailfu' ? [] : (mailIds || []);
@@ -2666,7 +2687,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setGalleryUrls({});
     setDocsReady(false);
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px), (max-width: 920px) and (max-height: 500px)').matches) setCardSnapCollapsed(true);
-    await loadCardData(id);
+    await loadCardData(targetId);
   };
 
   const openTreatCenter = async (claimId: string, taskId: string) => {
