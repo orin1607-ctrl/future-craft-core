@@ -4,6 +4,7 @@ import type { ClaimRecord } from './claimsConstants';
 import { displayClaimNum } from './claimsConstants';
 import type { GarageCaseRecord } from './ClaimsReportsView';
 import ClaimQuotesReportSection from './ClaimQuotesReportSection';
+import ClaimsFinancialCenterView from './ClaimsFinancialCenterView';
 import './claim-quote.css';
 
 export interface ClaimsReportsIntegratedViewProps {
@@ -118,6 +119,9 @@ export default function ClaimsReportsIntegratedView({
   onOpenGarageCase,
   onOpenAiReports,
 }: ClaimsReportsIntegratedViewProps) {
+  // Top-level hub: Financial Center (default) vs Operational & Garage reports
+  const [activeReportHub, setActiveReportHub] = useState<'financial_center' | 'operational'>('financial_center');
+
   // Filters
   const [period, setPeriod] = useState<PeriodOption>('this_month');
   const [customFrom, setCustomFrom] = useState('');
@@ -431,7 +435,54 @@ export default function ClaimsReportsIntegratedView({
 
   return (
     <div className="claims-reports-integrated" style={{ width: '100%', minWidth: 0 }}>
-      {/* 1. Page Header matching existing ClaimsScreen */}
+      {/* Top Hub Navigation: Financial Reports Center vs Operational Reports */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 10,
+          marginBottom: 16,
+          background: 'var(--bg2)',
+          border: '1px solid var(--br2)',
+          borderRadius: 'var(--r)',
+          padding: '8px 12px',
+        }}
+        data-testid="reports-hub-nav"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${activeReportHub === 'financial_center' ? 'btn-p' : 'btn-g'}`}
+            onClick={() => setActiveReportHub('financial_center')}
+            style={{ fontWeight: 800, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            data-testid="tab-financial-center"
+          >
+            <span>📊 מרכז דוחות כספיים – תביעות וביטוח</span>
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${activeReportHub === 'operational' ? 'btn-p' : 'btn-g'}`}
+            onClick={() => setActiveReportHub('operational')}
+            style={{ fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            data-testid="tab-operational-reports"
+          >
+            <span>🔧 דוחות תפעוליים ומוסך</span>
+          </button>
+        </div>
+      </div>
+
+      {activeReportHub === 'financial_center' ? (
+        <ClaimsFinancialCenterView
+          claims={claims}
+          onOpenClaim={onOpenClaim}
+          onBack={onBack}
+          onOpenAiReports={onOpenAiReports}
+        />
+      ) : (
+        <>
+          {/* 1. Page Header matching existing ClaimsScreen */}
       <div className="ph" style={{ marginBottom: 14 }}>
         <div>
           <div className="ph-t" data-testid="claims-reports-heading">
@@ -1217,6 +1268,8 @@ export default function ClaimsReportsIntegratedView({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
